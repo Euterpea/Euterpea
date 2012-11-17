@@ -1,0 +1,27 @@
+#################
+## Haskell
+#################
+
+dist
+cabal-dev
+*.o
+*.hi
+
+
+############
+## Windows
+############
+
+# Windows image file caches
+Thumbs.db
+
+# Folder config file
+Desktop.ini
+
+
+############
+## Mac OS
+############
+
+# Mac crap
+.DS_Store

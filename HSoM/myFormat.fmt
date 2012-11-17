@@ -1,0 +1,181 @@
+%format bottom = "\bot"
+%format forall = "\forall"
+%format ==     = "=="
+%format /=     = "\neq"
+%format ===    = "\equiv"
+%format ====   = "\cong"
+%format ==>    = "\Rightarrow"
+%format ===>   = "\Longrightarrow"
+%format ^      = "\char94"
+%format :+:    = "\mathbin{:\!\!+\!\!:}"
+%format !:+:   = "\mathbin{\ :\!\!+\!\!:}"
+%format +:     = "\mathbin{+\!\!:}"
+%format /=:    = "\mathbin{/\!=:}"
+%format :=/    = "\mathbin{:=\!\!/}"
+%format !:=:   = "\mathbin{\ :=:}"
+%format :+     = "\mathbin{:\!\!+}"
+%format :.     = "\mathbin{:\!\!.}"
+%format =:>    = "\supseteq"
+%format <*     = "\mathbin{<\!\!*}"
+%format >*     = "\mathbin{>\!\!*}"
+%format <=*    = "\mathbin{\leq\!\!*}"
+%format >=*    = "\mathbin{\geq\!\!*}"
+%format /=*    = "\mathbin{\neq\!\!*}"
+%format ==*    = "\mathbin{==\!\!*}"
+%format ->>    = "\mathbin{-\!\!\!\gg}"
+%format =>>    = "\mathbin{=\!\gg}"
+%format /      = "\mathbin{\!/\!}"
+%format !++    = "\mathbin{\ +\!\!\!+}"
+%format -<     = "\mathbin{-\!\!\!\prec}"
+%format >>>    = "\mathbin{>\!\!\!>\!\!\!>}"
+%format <<<    = "\mathbin{<\!\!\!<\!\!\!<}"
+%format e1
+%format e2
+%format e3
+%format e4
+%format T1
+%format T2
+%format T3
+%format T4
+%format m0
+%format m1
+%format m2
+%format m3
+%format m4
+%format m5
+%format m6
+%format m'1
+%format m'2
+%format p0
+%format p1
+%format p2
+%format p3
+%format p4
+%format pr1
+%format pr2
+%format pr3
+%format pr4
+%format pr12
+%format pc1
+%format pc2
+%format d0
+%format d1
+%format d2
+%format d3
+%format d4
+%format d5
+%format d6
+%format x1
+%format x2
+%format x3
+%format x4
+%format y1
+%format y2
+%format xs1
+%format xs2
+%format xs3
+%format xs4
+%format v1
+%format v2
+%format v3
+%format v4
+%format v1a    = "\Varid{v}_{1a}"
+%format v1b    = "\Varid{v}_{1b}"
+%format v2a    = "\Varid{v}_{2a}"
+%format v2b    = "\Varid{v}_{2b}"
+%format v2c    = "\Varid{v}_{2c}"
+%format v2d    = "\Varid{v}_{2d}"
+%format v2e    = "\Varid{v}_{2e}"
+%format v2f    = "\Varid{v}_{2f}"
+%format v2g    = "\Varid{v}_{2g}"
+%format f0
+%format f1
+%format f2
+%format f3
+%format f4
+%format r1
+%format r2
+%format mel1
+%format mel2
+%format b1
+%format b2
+%format b3
+%format ma1
+%format ma2
+%format mb1
+%format mb2
+%format c1
+%format c2
+%format s1
+%format s2
+%format s3
+%format s4
+%format s5
+%format s6
+%format s7
+%format s8
+%format ss1
+%format ss2
+%format ss3
+%format ss4
+%format ss5
+%format ss6
+%format l1
+%format l2
+%format l3
+%format l4
+%format es1
+%format es2
+%format pf1
+%format pf2
+%format t0
+%format t1
+%format t2
+%format tm0
+%format ttm0
+%format tm1
+%format tm2
+%format tm3
+%format ttm3
+%format tm4
+%format tm5
+%format fac1
+%format fac2
+%format ui1
+%format ui2
+%format ui3
+%format ui4
+%format ui5
+%format ui6
+%format mui1
+%format mui2
+%format mui3
+%format mui4
+%format mui5
+%format mui6
+%format n1
+%format n2
+%format ns1
+%format ns2
+%format r1
+%format r2
+%format toAbsP1
+%format toAbsP2
+%format mkNote1
+%format mkNote2
+%format mkNote3
+%format mkLine1
+%format mkLine2
+%format mkLine3
+%format ps0
+%format ps1
+%format ps2
+%format na1
+%format na2
+%format na3
+%format ap1
+%format ap2
+%format aps1
+%format aps2
+%format tab1
+%format tab2
