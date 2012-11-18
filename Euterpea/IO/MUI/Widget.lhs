@@ -88,7 +88,6 @@ a signal of strings.  The input is the
 >   k <- getKeyStrokes -< ()
 >   let s' = if inFocus then amend s k else s
 >   _ <- display  -< s'
->   _ <- display' -< inFocus
 >   returnA -< s'
 >  where
 >   amend s (Just (c, True)) | ord c == 8 = take (length s - 1) s
@@ -200,7 +199,7 @@ it also shows a static text label.
 >             else (False, if focused then sys { focus = Nothing } else sys)
 >           _ -> (s, sys) 
 >           where
->             bbx = computeBBX ctx d
+>             bbx = bounds ctx --computeBBX ctx d
 >             myid = uid ctx 
 >             focused = focus sys == Just myid
 
@@ -412,8 +411,8 @@ at once, we use [] rather than Event for the type.
 > realtimeGraph :: RealFrac a => Dimension -> Time -> Int -> Color -> UISF (Time, [(a,Time)]) ()
 > realtimeGraph (w, h) hist buffer color = proc (t, is) -> do
 >   rec lst <- init [(0,0)] -< removeOld t (lst ++ is)
->   canvas (w,h) -< Just $ withColor color $ polyline (map (adjust t) lst)
->   where removeOld _ [] = [(0,0)]
+>   canvas (w,h) -< if null lst then Nothing else Just (withColor color $ polyline (map (adjust t) lst))
+>   where removeOld _ [] = []
 >         removeOld t ((i,t0):is) = if t0+hist>=t then (i,t0):is else removeOld t is
 >         adjust t (i,t0) = (truncate $ fromIntegral w * (hist + t0 - t) / hist,
 >                            buffer + truncate (fromIntegral (h - 2*buffer) * (1 - i)))
@@ -424,11 +423,14 @@ there is no scale, so really, the keys of the map are thrown away entirely,
 but this probably shouldn't stay this way.
 
 > histogram :: RealFrac a => Dimension -> Int -> UISF (Event [a]) ()
-> histogram d@(w,h) buffer = arr (fmap (polyline . mkPts)) >>> canvas d
+> histogram d@(w,h) buffer = arr (nonnullfmap (polyline . mkPts)) >>> canvas d
 >   where mkPts l  = zip (xs $ length l) (map adjust . normalize . reverse $ l)
 >         xs n     = reverse $ map truncate [0,(fromIntegral w / fromIntegral (n-1))..(fromIntegral w)]
 >         adjust i = buffer + truncate (fromIntegral (h - 2*buffer) * (1 - i))
 >         normalize lst = map (/m) lst where m = maximum lst
+>         nonnullfmap :: ([a] -> b) -> Event [a] -> Event b
+>         nonnullfmap f (Just lst@(_:_)) = Just (f lst)
+>         nonnullfmap _ _ = Nothing
 
 
 
