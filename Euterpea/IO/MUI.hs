@@ -14,20 +14,23 @@ module Euterpea.IO.MUI
   , display             -- :: UISF String ()
   , display'            -- :: Show a => UISF a ()
   , withDisplay         -- :: Show b => UISF a b -> UISF a b
+  , textbox             -- :: Bool -> String -> UISF String String
+  , title               -- :: String -> UISF a b -> UISF a b
   , button              -- :: String -> UISF () Bool
   , checkbox            -- :: String -> Bool -> UISF () Bool
   , radio               -- :: [String] -> Int -> UISF () Int
-  , title               -- :: String -> UISF a b -> UISF a b
   , hSlider, vSlider    -- :: RealFrac a => (a, a) -> a -> UISF () a
   , hiSlider, viSlider  -- :: Integral a => a -> (a, a) -> a -> UISF () a
-  , canvas              -- :: Dimension -> UISF (Event Graphic) ()
-  , realtimeGraph       -- :: RealFrac a => Dimension -> Time -> Int -> Color -> UISF (Time, [(a,Time)]) ()
-  , histogram           -- :: RealFrac a => Dimension -> Int -> UISF (Event [a]) ()
-  , timer               -- :: ArrowInit a => a (Time, Double) Bool
-  , delayt              -- :: ArrowInit a => a (Time, Double, Event b) (Event b)
+  , realtimeGraph       -- :: RealFrac a => Layout -> Time -> Color -> UISF (Time, [(a,Time)]) ()
+  , histogram           -- :: RealFrac a => Layout -> UISF (Event [a]) ()
   , midiIn              -- :: UISF DeviceID (Event [MidiMessage])
   , midiOut             -- :: UISF (DeviceID, Event [MidiMessage]) ()
   , selectInput, selectOutput    -- :: UISF () DeviceID
+  , canvas              -- :: Dimension -> UISF (Event Graphic) ()
+  , canvas'             -- :: Layout -> (a -> Dimension -> Graphic) -> UISF (Event a) ()
+  , timer               -- :: ArrowInit a => a (Time, Double) Bool
+  , delay               -- :: ArrowInit a => Double -> a (Time, Event b) (Event b)
+  , delayt              -- :: ArrowInit a => a (Time, Double, Event b) (Event b)
   ) where
 
 import Euterpea.IO.MUI.UIMonad

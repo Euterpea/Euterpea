@@ -16,10 +16,17 @@ by Conal Elliot.
 > import Control.Concurrent.MonadIO
 
 
+============================================================
+==================== UI Type Definition ====================
+============================================================
+
 A UI widget runs under a given context, with its internal system
-states, and maps input signals to outputs, which consists of 3 parts:
-a signal of actions (to render graphics or sounds), its layout and a
-parametrized output type.
+states, and maps input signals to outputs, which consists of 5 parts:
+ - its layout,
+ - the new internal system state,
+ - the action (to render graphics or/and sounds)
+ - any new ThreadIds to keep track of (for proper shutdown when finished)
+ - the parametrized output type.
 
 > newtype UI a = UI 
 >   { unUI :: (CTX, Sys, Input) -> 
@@ -28,8 +35,9 @@ parametrized output type.
 > addThreadID :: ThreadId -> UI ()
 > addThreadID t = UI (\(_,s,_) -> return (nullLayout, s, nullAction, [t], ()))
 
-Rendering Context
-=================
+============================================================
+===================== Rendering Context ====================
+============================================================
 
 A rendering context specifies the following:
  
@@ -46,6 +54,12 @@ A rendering context specifies the following:
 4. A function that inject inputs into system event queue.
    This is needed to implement some input widgets.
 
+5. A flag to tell whether we are in a conjoined state or not.  
+   A conjoined context will duplicate itself for subcomponents 
+   rather than splitting.  This can be useful for making compound 
+   widgets when one widget takes up space and the other performs 
+   some side effect having to do with that space.
+
 > data CTX = CTX 
 >   { flow   :: Flow
 >   , bounds :: Rect
@@ -59,8 +73,9 @@ A rendering context specifies the following:
 > type Rect = (Point, Dimension)
 
 
-UI Layout
-=========
+============================================================
+========================= UI Layout ========================
+============================================================
 
 The layout of a widget provides data to calculate its actual size
 in a given context.
@@ -77,19 +92,53 @@ in a given context.
 1. hFill/vFill specify how much stretching space (in units) in
    horizontal/vertical direction should be allocated for this widget.
 
-2. hSize/vSize specify how much non-stretching space (width/height in
-   pixels) should be allocated for this widget. 
+2. hFixed/vFixed specify how much non-stretching space (width/height in
+   pixels) should be allocated for this widget.
 
-Layout calculation makes use of lazy evaluation to do it in one pass.
-Although the UI function maps from Context to Layout, both hFill/vFill
-and hSize/vSize must be fixed and independent of the Context.
-Therefore they are avaiable before the UI function is even evaluated.
+3. minW/minH specify minimum values (width/height in pixels) for the widget's 
+   dimensions.
 
-Context and Layout Functions
-============================
+Layout calculation makes use of lazy evaluation to do it in one pass.  
+Although the UI function maps from Context to Layout, all of the fields of 
+Layout must be independent of the Context so that they are avaiable before 
+the UI function is even evaluated.
 
-Divide CTX according to the ratio of a widget's layout and the overall
-layout of the widget that receives this CTX.
+Layouts can end up being quite complicated, but that is usually due to 
+layouts being merged (i.e. for multiple widgets used together).  Layouts 
+for individual widgets typically come in a few standard flavors, so we 
+have the following convenience function for their creation:
+
+----------------
+ | makeLayout | 
+----------------
+This function takes layout information for first the horizontal 
+dimension and then the vertical.  A dimension can be either stretchy 
+(with a minimum size in pixels) or fixed (measured in pixels).
+
+> data LayoutType = Stretchy { minSize :: Int }
+>                 | Fixed { fixedSize :: Int }
+>
+> makeLayout :: LayoutType -> LayoutType -> Layout
+> makeLayout (Fixed h) (Fixed v) = Layout 0 0 h v h v
+> makeLayout (Stretchy minW) (Fixed v) = Layout 1 0 0 v minW v
+> makeLayout (Fixed h) (Stretchy minH) = Layout 0 1 h 0 h minH
+> makeLayout (Stretchy minW) (Stretchy minH) = Layout 1 1 0 0 minW minH
+
+Null layout.
+
+> nullLayout = Layout 0 0 0 0 0 0
+
+
+============================================================
+=============== Context and Layout Functions ===============
+============================================================
+
+---------------
+ | divideCTX | 
+---------------
+Divides the CTX according to the ratio of a widget's layout and the 
+overall layout of the widget that receives this CTX.  Therefore, the 
+first layout argument should basically be a sublayout of the second.
 
 > divideCTX :: CTX -> Layout -> Layout -> (CTX, CTX)
 > divideCTX ctx@(CTX a ((x, y), (w, h)) i f c) 
@@ -110,6 +159,9 @@ layout of the widget that receives this CTX.
 >     div' b 0 = 0
 >     div' b d = div b d
 
+----------------
+ | computeBBX | 
+----------------
 Calculate the actual size of a widget given the context and its layout.
 
 > computeBBX :: CTX -> Layout -> Rect
@@ -123,6 +175,10 @@ Calculate the actual size of a widget given the context and its layout.
 >     w' = max minw $ (if m == 0 then u else w)
 >     h' = max minh $ (if n == 0 then v else h)
 
+
+-----------------
+ | mergeLayout | 
+-----------------
 Merge two layouts into one.
 
 > mergeLayout a (Layout n m u v minw minh) (Layout n' m' u' v' minw' minh') = 
@@ -135,12 +191,10 @@ Merge two layouts into one.
 >     max' 0 0 = 0
 >     max' _ _ = 1
 
-Null layout.
 
-> nullLayout = Layout 0 0 0 0 0 0
-
-Widget ID
-=========
+============================================================
+========================= Widget ID ========================
+============================================================
 
 Widget ID is actually 2-dimensional because we want to support both
 sequential composition and nested wrappers. In the latter case
@@ -155,8 +209,10 @@ a simple ID number wouldn't suffice.
 > nextWidgetID (WidgetID (i:is)) = WidgetID ((i + 1) : is)
 > nextWidgetID _ = error "can't get the next of empty WidgetID"
 
-Input, Action, and System State
-===============================
+
+============================================================
+============= Input, Action, and System State ==============
+============================================================
 
 Input is a union of user events and Midi events, and in addition,
 a timer event is needed to drive time based computations.
@@ -174,13 +230,15 @@ next screen refresh.
 
 > type Action = (Graphic, Sound)
 > type Sound = IO ()
-> mergeAction (g, s) (g', s') = (overGraphic g' g, s >> s')
 > nullSound = return () :: Sound
 > nullAction = (nullGraphic, nullSound) :: Action
 > justSoundAction :: Sound -> Action
 > justSoundAction s = (nullGraphic, s)
 > justGraphicAction :: Graphic -> Action
 > justGraphicAction g = (g, nullSound)
+
+> mergeAction (g, s) (g', s') = (overGraphic g' g, s >> s')
+
 
 System state is hidden from input and output, but shared among
 UI widgets.
@@ -191,8 +249,10 @@ UI widgets.
 >   , nextFocus :: Maybe WidgetID      -- next focus widget
 >   } deriving Show
 
-Monadic Instances
-=================
+
+============================================================
+===================== Monadic Instances ====================
+============================================================
 
 We use Monad compositions to compose two UIs in sequence.
 
