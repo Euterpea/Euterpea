@@ -25,3 +25,9 @@ Desktop.ini
 
 # Mac crap
 .DS_Store
+
+############
+## fftw files (should these be in the repo?)
+############
+fftw3.dll
+fftw3.h

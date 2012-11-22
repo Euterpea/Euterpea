@@ -145,7 +145,8 @@ However, it uses init internally, so there should be no fear of a blackhole.
 >   returnA -< s'
 >  where
 >   amend s (Just (c, True)) | ord c == 8 = take (length s - 1) s
->                            | otherwise  = s ++ [c]
+>                            | isPrint c  = s ++ [c]
+>                            | otherwise  = s
 >   amend s _ = s
 
 
@@ -391,6 +392,42 @@ the first one performs better for some reason.
        maybeEmptyList b _ [] = b
        buffer = truncate $ fromIntegral h / 10
 
+--------------
+ | List Box | 
+--------------
+The listbox widget creates a box with selectable entries.
+The input stream is the list of entries as well as which entry is 
+currently selected, and the output stream is the index of the newly 
+selected entry.  Note that the index can be greater than the length 
+of the list (simply indicating no choice selected).
+
+> listbox :: (Eq a, Show a) => UISF ([a], Int) Int
+> listbox = init 0 <<< mkWidget ([], 0) layout draw (const nullSound) pair
+>     process (\(lst,i) -> (i, (lst,i)))
+>     where
+>       layout = makeLayout (Stretchy 80) (Stretchy 16)
+>       -- takes the rectangle to draw in and a tuple of the list of choices and the index selected
+>       lineheight = 16
+>       --draw :: Show a => Rect -> ([a], Int) -> Graphic
+>       draw rect@((x,y),(w,h)) (lst, i) = 
+>           genTextGraphic rect i lst // 
+>             (box pushed rect) // (withColor White $ block rect)
+>           where
+>             n = (w - padding * 2) `div` 8
+>             genTextGraphic _ _ [] = nullGraphic
+>             genTextGraphic ((x,y),(w,h)) i (v:vs) = (if i == 0
+>                   then withColor White (text (x + padding, y + padding) (take n (show v))) //
+>                        withColor Blue (block ((x,y),(w,lineheight)))
+>                   else withColor Black (text (x + padding, y + padding) (take n (show v)))) //
+>               genTextGraphic ((x,y+lineheight),(w,h-lineheight)) (i - 1) vs
+>       process (((lst,i), olds), (ctx, sys, inp)) = ((lst,i'), markDirty sys (olds == (lst,i'))) where
+>         i' = case inp of
+>           UIEvent (Button pt True True) -> if pt `inside` bbx
+>             then pt2index pt else i
+>           _ -> i
+>         bbx@((x,y),(w,h)) = bounds ctx
+>         pt2index (px,py) = (py-y) `div` lineheight
+
 
 -------------------
  | Midi Controls | 
@@ -502,8 +539,8 @@ The mkSlider widget builder is useful in the creation of all sliders.
 >     rotR r@(p@(x,y),(w,h)) bbx = if hori then r else (rotP p bbx, (h,w))
 >     (minw, minh) = (16 + padding * 2, 16 + padding * 2)
 >     (tw, th) = (16, 8)
->     d = if hori then Layout (Stretchy minw) (Fixed minh)
->                 else Layout (Fixed minh) (Stretchy minw)
+>     d = if hori then makeLayout (Stretchy minw) (Fixed minh)
+>                 else makeLayout (Fixed minh) (Stretchy minw)
 >     val2pt val ((bx,by), (bw,bh)) = 
 >       let p = val2pos val (bw - padding * 2 - tw)
 >       in (bx + p + padding, by + 8 - th `div` 2 + padding) 
