@@ -7,7 +7,7 @@ by Conal Elliot.
 
 > import Euterpea.IO.MUI.SOE 
 > import Control.Monad (when, unless)
-> import qualified Graphics.UI.GLFW as GLFW 
+> import qualified Graphics.UI.GLFW as GLFW (sleep, SpecialKey (..))
 
 > import Sound.PortMidi hiding (time)
 > import Euterpea.IO.MIDI.MidiIO
@@ -223,7 +223,7 @@ Some default parameters we start with.
 >     case mev of
 >       Nothing -> return False
 >       Just e  -> case e of
->         Key '\033' True -> return True
+>         SKey GLFW.ESC True -> return True
 >         Key '\00'  True -> return True
 >         Closed          -> return True
 >         _               -> addEv (UIEvent e) >> loop

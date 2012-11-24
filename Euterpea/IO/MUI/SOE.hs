@@ -129,17 +129,18 @@ openWindowEx title position size (RedrawMode useDoubleBuffer) = do
      
   let charCallback char state =  
         writeChan eventsChan (Key { char = char, isDown = (state == GLFW.Press) })
+  let keyCallBack key state = case key of
+        GLFW.SpecialKey sk -> writeChan eventsChan (SKey { skey = sk, isDown = (state == GLFW.Press) })
+--      GLFW.SpecialKey GLFW.ESC -> charCallback '\033' state
+--      GLFW.SpecialKey GLFW.BACKSPACE -> charCallback '\08' state
+--      GLFW.SpecialKey GLFW.DEL   -> charCallback '\0177' state
+--      GLFW.SpecialKey GLFW.LEFT  -> charCallback '\0208' state
+--      GLFW.SpecialKey GLFW.RIGHT -> charCallback '\0214' state
+--      GLFW.SpecialKey GLFW.UP    -> charCallback '\0213' state
+--      GLFW.SpecialKey GLFW.DOWN  -> charCallback '\0200' state
+        _ -> return ()
   GLFW.charCallback $= charCallback 
-  GLFW.keyCallback  $= (\key state -> 
-    case key of
-      GLFW.SpecialKey GLFW.ESC -> charCallback '\033' state
-      GLFW.SpecialKey GLFW.BACKSPACE -> charCallback '\08' state
-      GLFW.SpecialKey GLFW.DEL   -> charCallback '\0177' state
-      GLFW.SpecialKey GLFW.LEFT  -> charCallback '\0208' state
-      GLFW.SpecialKey GLFW.RIGHT -> charCallback '\0214' state
-      GLFW.SpecialKey GLFW.UP    -> charCallback '\0213' state
-      GLFW.SpecialKey GLFW.DOWN  -> charCallback '\0200' state
-      _ -> return ())
+  GLFW.keyCallback  $= keyCallBack
   GLFW.enableSpecial GLFW.KeyRepeat
 
   GLFW.mouseButtonCallback $= (\but state -> do
@@ -471,6 +472,10 @@ combineRegion operator a b =
 
 data Event = Key {
                char :: Char,
+               isDown :: Bool
+             }
+           | SKey {
+               skey :: GLFW.SpecialKey,
                isDown :: Bool
              }
            | Button {

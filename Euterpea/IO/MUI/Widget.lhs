@@ -17,6 +17,7 @@ The monadic UI concept is borrowed from Phooey by Conal Elliott.
 > import Control.Monad (when)
 > import Euterpea.IO.MIDI.MidiIO
 > import Sound.PortMidi hiding (time)
+> import qualified Graphics.UI.GLFW as SK (SpecialKey (..))
 
 > import Control.SF.AuxFunctions
 
@@ -121,7 +122,7 @@ so that it also displays its output value.
 > withDisplay :: Show b => UISF a b -> UISF a b
 > withDisplay sf = proc a -> do
 >   b <- sf -< a
->   _ <- display -< show b
+>   display -< show b
 >   returnA -< b
 
 
@@ -141,13 +142,45 @@ However, it uses init internally, so there should be no fear of a blackhole.
 > textbox startingFocus startingVal = withFocusStatus startingFocus $ proc (inFocus, s) -> do
 >   k <- getKeyStrokes -< ()
 >   s' <- init startingVal -< if inFocus then amend s k else s
->   _ <- display  -< s'
+>   display -< s'
 >   returnA -< s'
 >  where
->   amend s (Just (c, True)) | ord c == 8 = take (length s - 1) s
->                            | isPrint c  = s ++ [c]
->                            | otherwise  = s
+>   amend s (Just (Left c, True)) = s ++ [c]
+>   amend s (Just (Right SK.BACKSPACE, True)) = take (length s - 1) s
 >   amend s _ = s
+
+The cursored textbox is like a textbox except that it also has a cursor.  
+It supports left, right, end, home, delete, and backspace.
+
+> cursoredTextbox :: Bool -> (String, Int) -> UISF (String, Int) (String, Int)
+> cursoredTextbox startingFocus startingVal = withFocusStatus startingFocus $ 
+>   conjoin $ proc (inFocus, (s, i)) -> do
+>     k <- getKeyStrokes -< ()
+>     (s', i') <- init startingVal -< if inFocus then update s i k else (s, i)
+>     display -< s'
+>     t <- time -< ()
+>     b <- timer -< (t, 0.5)
+>     rec willDraw <- init True -< willDraw'
+>         let willDraw' = if b then not willDraw else willDraw
+>     canvas' displayLayout drawCursor -< Just (willDraw && inFocus, i)
+>     returnA -< (s', i')
+>   where
+>     minh = 16 + padding * 2
+>     displayLayout = makeLayout (Stretchy 8) (Fixed minh)
+>     update s i (Just (Left c, True)) = (take i s ++ [c] ++ drop i s, i+1)
+>     update s i (Just (Right SK.BACKSPACE, True)) = (take (i-1) s ++ drop i s, max (i-1) 0)
+>     update s i (Just (Right SK.DEL, True)) = (take i s ++ drop (i+1) s, i)
+>     update s i (Just (Right SK.LEFT, True)) = (s, max (i-1) 0)
+>     update s i (Just (Right SK.RIGHT, True)) = (s, min (i+1) (length s))
+>     update s i (Just (Right SK.END, True)) = (s, length s)
+>     update s i (Just (Right SK.HOME, True)) = (s, 0)
+>     update s i _ = (s, i)
+>     drawCursor (False, _) _ = nullGraphic
+>     drawCursor (True, i) (w,h) = 
+>         let n = (w - padding * 2) `div` 8
+>             linew = padding + i*8
+>         in if linew > w then nullGraphic else withColor Black $
+>             line (linew, padding) (linew, 16+padding)
 
 
 -----------
@@ -402,28 +435,33 @@ selected entry.  Note that the index can be greater than the length
 of the list (simply indicating no choice selected).
 
 > listbox :: (Eq a, Show a) => UISF ([a], Int) Int
-> listbox = init 0 <<< mkWidget ([], 0) layout draw (const nullSound) pair
->     process (\(lst,i) -> (i, (lst,i)))
->     where
->       layout = makeLayout (Stretchy 80) (Stretchy 16)
->       -- takes the rectangle to draw in and a tuple of the list of choices and the index selected
->       lineheight = 16
->       --draw :: Show a => Rect -> ([a], Int) -> Graphic
->       draw rect@((x,y),(w,h)) (lst, i) = 
->           genTextGraphic rect i lst // 
->             (box pushed rect) // (withColor White $ block rect)
->           where
->             n = (w - padding * 2) `div` 8
->             genTextGraphic _ _ [] = nullGraphic
->             genTextGraphic ((x,y),(w,h)) i (v:vs) = (if i == 0
->                   then withColor White (text (x + padding, y + padding) (take n (show v))) //
->                        withColor Blue (block ((x,y),(w,lineheight)))
->                   else withColor Black (text (x + padding, y + padding) (take n (show v)))) //
->               genTextGraphic ((x,y+lineheight),(w,h-lineheight)) (i - 1) vs
->       process (((lst,i), olds), (ctx, sys, inp)) = ((lst,i'), markDirty sys (olds == (lst,i'))) where
->         i' = case inp of
->           UIEvent (Button pt True True) -> if pt `inside` bbx
->             then pt2index pt else i
+> listbox = withFocusStatus False $ init (-1) <<< mkWidget 
+>   ([], -1) layout draw (const nullSound) pair
+>   process (\(lst,i) -> (i, (lst,i)))
+>   where
+>     layout = makeLayout (Stretchy 80) (Stretchy 16)
+>     -- takes the rectangle to draw in and a tuple of the list of choices and the index selected
+>     lineheight = 16
+>     --draw :: Show a => Rect -> ([a], Int) -> Graphic
+>     draw rect@((x,y),(w,h)) (lst, i) = 
+>         genTextGraphic rect i lst // 
+>           (box pushed rect) // (withColor White $ block rect)
+>         where
+>           n = (w - padding * 2) `div` 8
+>           genTextGraphic _ _ [] = nullGraphic
+>           genTextGraphic ((x,y),(w,h)) i (v:vs) = (if i == 0
+>                 then withColor White (text (x + padding, y + padding) (take n (show v))) //
+>                      withColor Blue (block ((x,y),(w,lineheight)))
+>                 else withColor Black (text (x + padding, y + padding) (take n (show v)))) //
+>             genTextGraphic ((x,y+lineheight),(w,h-lineheight)) (i - 1) vs
+>     process (((inFocus, (lst,i)), olds), (ctx, sys, inp)) = 
+>       ((lst,i'), markDirty sys (olds == (lst,i')))
+>         where
+>         i' = case (inFocus, inp) of
+>           (_, UIEvent (Button pt True True)) -> if pt `inside` bbx
+>               then pt2index pt else i
+>           (True, UIEvent (SKey SK.DOWN True)) -> min (i+1) (length lst - 1)
+>           (True, UIEvent (SKey SK.UP   True)) -> max (i-1) 0
 >           _ -> i
 >         bbx@((x,y),(w,h)) = bounds ctx
 >         pt2index (px,py) = (py-y) `div` lineheight
@@ -482,7 +520,6 @@ that just the radio button index as the radio widget would return.
 > selectDev t f = title t $ proc _ -> do
 >   r <- radio (map name $ snd $ unzip devs) defaultChoice -< ()
 >   let devId = if r == -1 then r else fst (devs !! r)
->   --_ <- display -< show devId
 >   returnA -< devId
 >       where devs = filter (\(i,d) -> f d && name d /= "Microsoft MIDI Mapper") $ 
 >                      zip [0..] $ unsafePerformIO getAllDeviceInfo
@@ -723,9 +760,10 @@ how focus will work.
 >   f _ (_, s, UIEvent (Button pt left down)) = (nullLayout, s, nullAction, [], Just (pt, left, down))
 >   f _ (_, s, _) = (nullLayout, s, nullAction, [], Nothing)
 
-> getKeyStrokes :: UISF () (Event (Char, Bool))
+> getKeyStrokes :: UISF () (Event (Either Char SK.SpecialKey, Bool))
 > getKeyStrokes = mkUISF f where
->   f _ (_, s, UIEvent (Key c down)) = (nullLayout, s, nullAction, [], Just (c, down))
+>   f _ (_, s, UIEvent (Key  c down)) = (nullLayout, s, nullAction, [], Just (Left c,  down))
+>   f _ (_, s, UIEvent (SKey k down)) = (nullLayout, s, nullAction, [], Just (Right k, down))
 >   f _ (_, s, _) = (nullLayout, s, nullAction, [], Nothing)
 
 > getMousePosition :: UISF () Point
