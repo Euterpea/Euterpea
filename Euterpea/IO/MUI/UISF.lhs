@@ -53,21 +53,23 @@ UISF constructors, transformers, and converters
 These fuctions are various shortcuts for creating UISFs.
 The types pretty much say it all for how they work.
 
-> mkUISF :: (a -> (CTX, Sys, Input) -> (Layout, Sys, Action, [ThreadId], b)) -> UISF a b
-> mkUISF f = pipe (\a -> UI $ (\csi -> return $ f a csi))
+> mkUISF :: (a -> (CTX, Focus, Input) -> (Layout, DirtyBit, Focus, Action, [ThreadId], b)) -> UISF a b
+> mkUISF f = pipe (\a -> UI $ (\cfa -> return $ f a cfa))
 
-> mkUISF' :: (a -> (CTX, Sys, Input) -> IO (Layout, Sys, Action, [ThreadId], b)) -> UISF a b
+> mkUISF' :: (a -> (CTX, Focus, Input) -> IO (Layout, DirtyBit, Focus, Action, [ThreadId], b)) -> UISF a b
 > mkUISF' f = pipe (\a -> UI $ f a)
 
-> expandUISF :: UISF a b -> a -> (CTX, Sys, Input) -> IO (Layout, Sys, Action, [ThreadId], (b, UISF a b))
-> expandUISF (MSF f) a = unUI (f a)
+> expandUISF :: UISF a b -> a -> (CTX, Focus, Input) -> IO (Layout, DirtyBit, Focus, Action, [ThreadId], (b, UISF a b))
+> {-# INLINE expandUISF #-}
+> expandUISF (MSF f) = unUI . f
 
-> compressUISF :: (a -> (CTX, Sys, Input) -> IO (Layout, Sys, Action, [ThreadId], (b, UISF a b))) -> UISF a b
+> compressUISF :: (a -> (CTX, Focus, Input) -> IO (Layout, DirtyBit, Focus, Action, [ThreadId], (b, UISF a b))) -> UISF a b
+> {-# INLINE compressUISF #-}
 > compressUISF f = MSF sf
 >   where
 >     sf a = UI mf
 >       where
->         mf csi = f a csi
+>         mf cfa = f a cfa
 
 > transformUISF :: (UI (c, UISF b c) -> UI (c, UISF b c)) -> UISF b c -> UISF b c
 > transformUISF f (MSF sf) = MSF sf'
@@ -123,7 +125,7 @@ Thes functions are UISF transformers that modify the flow in the context.
 > unconjoin = modifyFlow (\ctx -> ctx {isConjoined = False})
 
 > modifyFlow  :: (CTX -> CTX) -> UISF a b -> UISF a b
-> modifyFlow h sf = transformUISF (modifyFlow' h) sf
+> modifyFlow h = transformUISF (modifyFlow' h)
 
 > modifyFlow' :: (CTX -> CTX) -> UI a -> UI a
 > modifyFlow' h (UI f) = UI g where g (c,s,i) = f (h c,s,i)
@@ -132,29 +134,29 @@ Thes functions are UISF transformers that modify the flow in the context.
 Set fixed size (in pixels) for UI widget. 
 
 > setSize  :: Dimension -> UISF a b -> UISF a b
-> setSize dim sf = transformUISF (setSize' dim) sf
+> setSize dim = transformUISF (setSize' dim)
 
 > setSize' :: Dimension -> UI a -> UI a
 > setSize' (w, h) (UI f) = UI aux
 >   where
->     aux (ctx@(CTX i bbx myid m c), sys, inp) = do
+>     aux (ctx@(CTX i bbx m c), foc, inp) = do
 >       let d = Layout 0 0 0 0 w h
->       (_, s, a, ts, v) <- f (CTX i (computeBBX ctx d) myid m c, sys, inp)
->       return (d, s, a, ts, v)
+>       (_, db, foc, a, ts, v) <- f (CTX i (computeBBX ctx d) m c, foc, inp)
+>       return (d, db, foc, a, ts, v)
 
 Add space padding around a widget.
 
 > pad  :: (Int, Int, Int, Int) -> UISF a b -> UISF a b
-> pad args sf = transformUISF (pad' args) sf
+> pad args = transformUISF (pad' args)
 
 > pad' :: (Int, Int, Int, Int) -> UI a -> UI a
 > pad' (w,n,e,s) (UI f) = UI aux
 >   where
->     aux (ctx@(CTX i _ myid m c), sys, inp) = do
->       rec (l, sys', a, ts, v) <- f (CTX i ((x + w, y + n),(bw,bh)) myid m c, sys, inp)
+>     aux (ctx@(CTX i _ m c), foc, inp) = do
+>       rec (l, db, foc', a, ts, v) <- f (CTX i ((x + w, y + n),(bw,bh)) m c, foc, inp)
 >           let d = l { hFixed = hFixed l + w + e, vFixed = vFixed l + n + s }
 >               ((x,y),(bw,bh)) = computeBBX ctx d
->       return (d, sys', a, ts, v)
+>       return (d, db, foc', a, ts, v)
 
 
 Execute UI Program
@@ -165,9 +167,9 @@ Some default parameters we start with.
 > defaultSize :: Dimension
 > defaultSize = (300, 300)
 > defaultCTX :: Dimension -> (Input -> IO ()) -> CTX
-> defaultCTX size inj = CTX TopDown ((0,0), size) firstWidgetID inj False
-> defaultSys :: Sys
-> defaultSys = Sys True Nothing Nothing
+> defaultCTX size inj = CTX TopDown ((0,0), size) inj False
+> defaultFocus :: Focus
+> defaultFocus = NoFocus
 
 > runUI   ::              String -> UISF () () -> IO ()
 > runUI = runUIEx defaultSize
@@ -180,30 +182,28 @@ Some default parameters we start with.
 >   pollEvents <- windowUser w addEv
 >   -- poll events before we start to make sure event queue isn't empty
 >   pollEvents
->   let inp = events
->       uiStream = streamMSF sf (repeat undefined)
->       render drawit' (inp:inps) (Sys dirty f n) uistream tids = do
+>   let uiStream = streamMSF sf (repeat undefined)
+>       render drawit' (inp:inps) lastFocus uistream tids = do
 >         wSize <- getWindowSize w
 >         let ctx = defaultCTX wSize addEv
->             cleanSys = Sys False (maybe f Just n) Nothing
->         (_, sys', (graphic, sound), tids', (_, uistream')) <- (unUI $ stream uistream) (ctx, cleanSys, inp)
+>         (_, dirty, foc, (graphic, sound), tids', (_, uistream')) <- (unUI $ stream uistream) (ctx, lastFocus, inp)
 >         -- always output sound
 >         sound
 >         -- and delay graphical output when event queue is not empty
 >         setGraphic' w graphic
 >         let drawit = dirty || drawit'
 >             newtids = tids'++tids
->         f `seq` n `seq` newtids `seq` case inp of
+>         foc `seq` newtids `seq` case inp of
 >           -- Timer only comes in when we are done processing user events
 >           Timer _ -> do 
 >             -- output graphics 
 >             when drawit $ setDirty w
 >             quit <- pollEvents
 >             if quit then return newtids
->                     else render False inps sys' uistream' newtids
->           _ -> render drawit inps sys' uistream' newtids
+>                     else render False inps foc uistream' newtids
+>           _ -> render drawit inps foc uistream' newtids
 >       render _ [] _ _ tids = return tids
->   tids <- render True inp defaultSys uiStream []
+>   tids <- render True events defaultFocus uiStream []
 >   -- wait a little while before all Midi messages are flushed
 >   GLFW.sleep 0.5
 >   terminateMidi
@@ -223,8 +223,8 @@ Some default parameters we start with.
 >     case mev of
 >       Nothing -> return False
 >       Just e  -> case e of
->         SKey GLFW.ESC True -> return True
->         Key '\00'  True -> return True
+> --        SKey GLFW.ESC True -> return True
+> --        Key '\00'  True -> return True
 >         Closed          -> return True
 >         _               -> addEv (UIEvent e) >> loop
 

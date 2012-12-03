@@ -9,6 +9,7 @@ import Control.SF.AuxFunctions (edge, fftA, Event)
 import Euterpea hiding (Event)
 import Euterpea.IO.MUI
 import Euterpea.IO.MUI.SOE (withColor', rgb, polygon, Color(..))
+import Euterpea.IO.MUI.UIMonad (makeLayout, LayoutType (..))
 import Euterpea.IO.Audio.BasicSigFuns (osc, tableSinesN)
 import Euterpea.IO.Audio.Types (rate, SigFun, CtrRate, AudRate)
 
@@ -21,13 +22,13 @@ fftEx = proc _ -> do
     _ <- leftRight (label "Freq 1: " >>> display') -< f1
     f2 <- hSlider (1, 2000) 440 -< ()
     _ <- leftRight (label "Freq 2: " >>> display') -< f2
-    (d,suc) <- convertToUISF 100 myPureSignal -< (f1, f2)
-    let (s,fftData) = unzip d
---    _ <- display' -< suc
---    _ <- display' -< length s
-    _ <- histogram (500,150) 20 -< listToMaybe $ catMaybes fftData
-    _ <- realtimeGraph' (500,150) 200 20 Black -< s
-    returnA -< ()
+    d <- convertToUISF 0.1 myPureSignal -< (f1, f2)
+    t <- time -< ()
+    let fft = listToMaybe $ catMaybes $ map (snd . fst) d
+        s = map (\((s, _), t) -> (s,t)) d
+    _ <- histogram (makeLayout (Stretchy 10) (Fixed 150)) -< fft
+    _ <- realtimeGraph (makeLayout (Stretchy 10) (Fixed 150)) 2 Black -< (t, s)
+    outA -< ()
   where
     squareTable = tableLinearN 2048 0 [(1024,0),(1,1),(1023,1)]
     myPureSignal :: SigFun CtrRate (Double, Double) (Double, Event [Double])
@@ -91,6 +92,14 @@ colorDemo = setSize (300, 220) $ title "Color" $ pad (4,0,4,0) $ leftRight $ pro
       _ <- display -< showHex v ""
       returnA -< v
     box ((x,y), (w, h)) = polygon [(x, y), (x + w, y), (x + w, y + h), (x, y + h)]
+
+textboxdemo = proc _ -> do
+  rec
+    (fStr) <- leftRight $ label "text: " >>> textbox ("") -< (fStr)
+    b <- button "display" -< ()
+    str <- init "" -< if b then fStr else str
+    display -< str
+  outA -< ()
 
 main = runUIEx (500,500) "UI Demo" $ 
   (leftRight $ (bottomUp $ timeEx >>> buttonEx) >>> checkboxEx >>> radioButtonEx) >>>
