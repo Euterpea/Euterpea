@@ -135,51 +135,42 @@ strings.  It takes one static arguments:
 The textbox widget will often be used with ArrowLoop (the rec keyword).  
 However, it uses init internally, so there should be no fear of a blackhole.
 
+The textbox widget supports mouse clicks and typing as well as the 
+left, right, end, home, delete, and backspace special keys.
+
 > textbox :: String -> UISF String String
-> textbox startingVal = focusable $ proc s -> do
->   inFocus <- isInFocus -< ()
->   k <- getEvents -< ()
->   s' <- init startingVal -< if inFocus then amend s k else s
->   display -< s'
->   returnA -< s'
->  where
->   amend s (UIEvent (Key c True)) = s ++ [c]
->   amend s (UIEvent (SKey SK.BACKSPACE True)) = take (length s - 1) s
->   amend s _ = s
-
-The cursored textbox is like a textbox except that it also has a cursor.  
-It supports left, right, end, home, delete, and backspace.
-
-> cursoredTextbox :: (String, Int) -> UISF (String, Int) (String, Int)
-> cursoredTextbox startingVal = focusable $ 
->   conjoin $ proc (s, i) -> do
+> textbox startingVal = focusable $ 
+>   conjoin $ proc s -> do
 >     inFocus <- isInFocus -< ()
 >     k <- getEvents -< ()
->     (s', i') <- init startingVal -< if inFocus then update s i k else (s, i)
+>     ctx <- getCTX -< ()
+>     rec (s', i) <- init (startingVal, 0) -< if inFocus then update s i ctx k else (s, i)
 >     display -< s'
 >     t <- time -< ()
 >     b <- timer -< (t, 0.5)
 >     rec willDraw <- init True -< willDraw'
 >         let willDraw' = if b then not willDraw else willDraw
 >     canvas' displayLayout drawCursor -< Just (willDraw && inFocus, i)
->     returnA -< (s', i')
+>     returnA -< s'
 >   where
 >     minh = 16 + padding * 2
 >     displayLayout = makeLayout (Stretchy 8) (Fixed minh)
->     update s i (UIEvent (Key c True)) = (take i s ++ [c] ++ drop i s, i+1)
->     update s i (UIEvent (SKey SK.BACKSPACE True)) = (take (i-1) s ++ drop i s, max (i-1) 0)
->     update s i (UIEvent (SKey SK.DEL       True)) = (take i s ++ drop (i+1) s, i)
->     update s i (UIEvent (SKey SK.LEFT      True)) = (s, max (i-1) 0)
->     update s i (UIEvent (SKey SK.RIGHT     True)) = (s, min (i+1) (length s))
->     update s i (UIEvent (SKey SK.END       True)) = (s, length s)
->     update s i (UIEvent (SKey SK.HOME      True)) = (s, 0)
->     update s i _ = (s, i)
+>     update s i _ (UIEvent (Key c True)) = (take i s ++ [c] ++ drop i s, i+1)
+>     update s i _ (UIEvent (SKey SK.BACKSPACE True)) = (take (i-1) s ++ drop i s, max (i-1) 0)
+>     update s i _ (UIEvent (SKey SK.DEL       True)) = (take i s ++ drop (i+1) s, i)
+>     update s i _ (UIEvent (SKey SK.LEFT      True)) = (s, max (i-1) 0)
+>     update s i _ (UIEvent (SKey SK.RIGHT     True)) = (s, min (i+1) (length s))
+>     update s i _ (UIEvent (SKey SK.END       True)) = (s, length s)
+>     update s i _ (UIEvent (SKey SK.HOME      True)) = (s, 0)
+>     update s i ctx (UIEvent (Button (x,_) True True)) = (s, min (length s) $ (x - xoffset ctx) `div` 8)
+>     update s i _ _ = (s, max 0 $ min i $ length s)
 >     drawCursor (False, _) _ = nullGraphic
 >     drawCursor (True, i) (w,h) = 
 >         let n = (w - padding * 2) `div` 8
 >             linew = padding + i*8
 >         in if linew > w then nullGraphic else withColor Black $
 >             line (linew, padding) (linew, 16+padding)
+>     xoffset = fst . fst . bounds
 
 
 -----------
@@ -761,11 +752,9 @@ can be achieved with the following signal function.
 ======================= UISF Getters =======================
 ============================================================
 
-> withCTX :: UISF (CTX, a) b -> UISF a b
-> withCTX sf = conjoin $ arr (\a -> ((),a)) >>> first getCTX >>> (unconjoin sf)
->   where getCTX :: UISF () CTX
->         getCTX = mkUISF f where
->           f _ (c, foc, _) = (nullLayout, False, foc, nullAction, [], c)
+> getCTX :: UISF () CTX
+> getCTX = mkUISF f where
+>   f _ (c, foc, _) = (nullLayout, False, foc, nullAction, [], c)
 
 > getEvents :: UISF () Input
 > getEvents = mkUISF f where

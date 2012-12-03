@@ -56,7 +56,7 @@ crud = runUIEx (350, 400) "CRUD" (crudUISF defaultnames)
 crudUISF :: Database NameEntry -> UISF () ()
 crudUISF initnamesDB = proc _ -> do
   rec
-    (fStr,fi) <- leftRight $ label "Filter text: " >>> cursoredTextbox ("",0) -< (fStr,fi)
+    fStr <- leftRight $ label "Filter text: " >>> textbox "" -< fStr
     (i, db, fdb, nameStr, surnStr) <- (| leftRight (do
         (i, db, fdb) <- (| topDown (do
             rec i <- listbox -< (fdb, i')
@@ -64,8 +64,8 @@ crudUISF initnamesDB = proc _ -> do
                 let fdb = filter (filterFun fStr) db
             returnA -< (i, db, fdb)) |)
         (nameStr, surnStr) <- (| topDown (do
-            rec (nameStr, ni) <- leftRight $ label "Name:    " >>> cursoredTextbox ("",0) -< (nameStr', ni)
-                (surnStr, si) <- leftRight $ label "Surname: " >>> cursoredTextbox ("",0) -< (surnStr', si)
+            rec nameStr <- leftRight $ label "Name:    " >>> textbox "" -< nameStr'
+                surnStr <- leftRight $ label "Surname: " >>> textbox "" -< surnStr'
                 let nameStr' = if previ == i' then nameStr else firstName ((filter (filterFun fStr) db') `at` i')
                     surnStr' = if previ == i' then surnStr else lastName  ((filter (filterFun fStr) db') `at` i')
             returnA -< (nameStr, surnStr)) |)

@@ -15,7 +15,6 @@ module Euterpea.IO.MUI
   , display'            -- :: Show a => UISF a ()
   , withDisplay         -- :: Show b => UISF a b -> UISF a b
   , textbox             -- :: String -> UISF String String
-  , cursoredTextbox     -- :: (String, Int) -> UISF (String, Int) (String, Int)
   , title               -- :: String -> UISF a b -> UISF a b
   , button              -- :: String -> UISF () Bool
   , checkbox            -- :: String -> Bool -> UISF () Bool

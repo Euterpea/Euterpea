@@ -95,10 +95,10 @@ colorDemo = setSize (300, 220) $ title "Color" $ pad (4,0,4,0) $ leftRight $ pro
 
 textboxdemo = proc _ -> do
   rec
-    (fStr) <- leftRight $ label "text: " >>> textbox ("") -< (fStr)
+    str <- leftRight $ label "text: " >>> textbox ("") -< str
     b <- button "display" -< ()
-    str <- init "" -< if b then fStr else str
-    display -< str
+    str' <- init "" -< if b then str else str'
+    display -< str'
   outA -< ()
 
 main = runUIEx (500,500) "UI Demo" $ 
