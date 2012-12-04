@@ -61,7 +61,7 @@ A helper function to make stateful Widgets easier to write.
 >         where
 >           (s2, db) = comp (s1, (ctx, inp))
 >           (y, s') = prj s2
->           action = (draw bbx (f == FullFocus) `cross` buzz) s'
+>           action = (draw bbx (snd f == HasFocus) `cross` buzz) s'
 >           bbx = computeBBX ctx layout
 
 A few useful shorthands for creating widgets with mkWidget
@@ -223,6 +223,10 @@ it also shows a static text label.
 >             _ -> s
 >           UIEvent (MouseMove pt) -> if pt `inside` bbx then s else False
 >           UIEvent (SKey SK.ENTER down) -> down
+> -- Currently, non-special keys are implemented such that there is only a 
+> -- Press event and no Release event.  To work with buttons, we will need 
+> -- to add some state or something.
+> --          UIEvent (Key ' ' down) -> down
 >           _ -> s
 >           where
 >             bbx = bounds ctx --computeBBX ctx d
@@ -538,6 +542,7 @@ returns whether the toggle is being clicked.
 >         on = case evt of
 >           UIEvent (Button pt True down) -> down
 >           UIEvent (SKey SK.ENTER down) -> down
+>           UIEvent (Key ' ' down) -> down
 >           _ -> False 
 
 --------------
@@ -723,21 +728,28 @@ focusable = id
 >       (y, hasFocus') <- compressUISF (h widget) -< (x, hasFocus)
 >   returnA -< y
 >  where
->   h w (a, hasFocus) (ctx, focus, inp) = do
->     let (f, hasFocus') = case (focus, hasFocus, inp) of
->           (FullFocus, _, _) -> (FullFocus, True)
->           (OneFocus,  _, _) -> (NoFocus, True)
->           (NoFocus, _,    UIEvent (Button pt _ True)) -> (NoFocus, pt `inside` bounds ctx) --computeBBX ctx layout
->           (NoFocus, True, UIEvent (SKey SK.TAB True)) -> (OneFocus, False)
->           (NoFocus, _, _) -> (NoFocus, hasFocus)
->         focus' = if hasFocus' then FullFocus else NoFocus
->         inp' = if hasFocus' then inp else (case inp of 
+>   h w (a, hasFocus) (ctx, (myid,focus), inp) = do
+>     lshift <- isKeyPressed SK.LSHIFT
+>     rshift <- isKeyPressed SK.RSHIFT
+>     let isShift = lshift || rshift
+>         (f, hasFocus') = case (focus, hasFocus, inp) of
+>           (HasFocus, _, _) -> (HasFocus, True)
+>           (SetFocusTo n, _, _) | n == myid -> (NoFocus, True)
+>           (_, _,    UIEvent (Button pt _ True)) -> (NoFocus, pt `inside` bounds ctx) --computeBBX ctx l
+>           (_, True, UIEvent (SKey SK.TAB True)) -> if isShift then (SetFocusTo (myid-1), False) 
+>                                                               else (SetFocusTo (myid+1), False)
+>           (_, _, _) -> (focus, hasFocus)
+>         focus' = if hasFocus' then HasFocus else NoFocus
+>         inp' = if hasFocus' then (case inp of 
+>               UIEvent (SKey SK.TAB True)-> NoEvent
+>               _ -> inp)
+>                else (case inp of 
 >               UIEvent (Button pt _ True) -> NoEvent
 >               UIEvent (Key  _ _) -> NoEvent
 >               UIEvent (SKey _ _) -> NoEvent
 >               _ -> inp)
->     (l, db, _, act, tids, (b, w')) <- expandUISF w a (ctx, focus', inp')
->     return $! (l, db, f, act, tids, ((b, hasFocus'), compressUISF (h w')))
+>     (l, db, _, act, tids, (b, w')) <- expandUISF w a (ctx, (myid,focus'), inp')
+>     return $! (l, db, (myid+1,f), act, tids, ((b, hasFocus'), compressUISF (h w')))
 
 Although mouse button clicks and keystrokes will be available once a 
 widget marks itself as focusable, the widget may also simply want to 
@@ -745,7 +757,7 @@ know whether it is currently in focus to change its appearance.  This
 can be achieved with the following signal function.
 
 > isInFocus :: UISF () Bool
-> isInFocus = mkUISF (\_ (_, foc, _) -> (nullLayout, False, foc, nullAction, [], foc == FullFocus))
+> isInFocus = mkUISF (\_ (_, foc, _) -> (nullLayout, False, foc, nullAction, [], snd foc == HasFocus))
 
 
 ============================================================

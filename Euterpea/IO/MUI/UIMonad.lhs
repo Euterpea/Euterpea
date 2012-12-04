@@ -220,18 +220,26 @@ next screen refresh.
 > mergeAction (g, s) (g', s') = (overGraphic g' g, s >> s')
 
 
-These last two types are for system state.
-The Focus data type helps focusable widgets communicate with each 
-other about which widget is in focus.
-- A signal of FullFocus indicates that this widget is a subwidget of 
+The Focus and DirtyBit types are for system state.
+
+The Focus type helps focusable widgets communicate with each 
+other about which widget is in focus.  It consists of a WidgetID 
+and a FocusInfo.  The WidgetID for any given widget is dynamic based 
+on how many focusable widgets are active at the moment.  It is designed 
+basically as a counter that focusable widgets will automaticall (via the 
+focusable function) increment.  The FocusInfo means one of the following.
+- A signal of HasFocus indicates that this widget is a subwidget of 
   a widget that is in focus.  Thus, this widget too is in focus, and 
-  this widget should pass FullFocus forward.
-- A signal of OneFocus indicates that the next focusable widget should 
-  accept focus.  That widget should then pass NoFocus onward.
+  this widget should pass HasFocus forward.
 - A signal of NoFocus indicates that there is no focus information to 
   communicate between widgets.
+- A signal of (SetFocusTo n) indicates that the widget whose id equals 
+  n should take focus.  That widget should then pass NoFocus onward.
 
-> data Focus = FullFocus | OneFocus | NoFocus
+> type Focus = (WidgetID, FocusInfo)
+> type WidgetID = Int
+
+> data FocusInfo = HasFocus | NoFocus | SetFocusTo WidgetID
 >   deriving (Show, Eq)
 
 The dirty bit is a bit to indicate if the widget needs to be redrawn.

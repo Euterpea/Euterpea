@@ -169,7 +169,9 @@ Some default parameters we start with.
 > defaultCTX :: Dimension -> (Input -> IO ()) -> CTX
 > defaultCTX size inj = CTX TopDown ((0,0), size) inj False
 > defaultFocus :: Focus
-> defaultFocus = NoFocus
+> defaultFocus = (0, SetFocusTo 0)
+> resetFocus (n,SetFocusTo i) = (0, SetFocusTo $ (i+n) `rem` n)
+> resetFocus (_,_) = (0,NoFocus)
 
 > runUI   ::              String -> UISF () () -> IO ()
 > runUI = runUIEx defaultSize
@@ -193,15 +195,16 @@ Some default parameters we start with.
 >         setGraphic' w graphic
 >         let drawit = dirty || drawit'
 >             newtids = tids'++tids
->         foc `seq` newtids `seq` case inp of
+>             foc' = resetFocus foc
+>         foc' `seq` newtids `seq` case inp of
 >           -- Timer only comes in when we are done processing user events
 >           Timer _ -> do 
 >             -- output graphics 
 >             when drawit $ setDirty w
 >             quit <- pollEvents
 >             if quit then return newtids
->                     else render False inps foc uistream' newtids
->           _ -> render drawit inps foc uistream' newtids
+>                     else render False inps foc' uistream' newtids
+>           _ -> render drawit inps foc' uistream' newtids
 >       render _ [] _ _ tids = return tids
 >   tids <- render True events defaultFocus uiStream []
 >   -- wait a little while before all Midi messages are flushed
@@ -223,6 +226,8 @@ Some default parameters we start with.
 >     case mev of
 >       Nothing -> return False
 >       Just e  -> case e of
+> -- There's a bug somewhere with GLFW that makes pressing ESC freeze up 
+> -- GHCi, so I've removed this.
 > --        SKey GLFW.ESC True -> return True
 > --        Key '\00'  True -> return True
 >         Closed          -> return True

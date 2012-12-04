@@ -56,7 +56,8 @@ module Euterpea.IO.MUI.SOE (
   getWindowEvent,
   Word32,
   timeGetTime,
-  word32ToInt
+  word32ToInt,
+  isKeyPressed
   ) where
 
 import Data.Ix (Ix)
@@ -572,6 +573,14 @@ timeGetTime = GL.get GLFW.time
 
 word32ToInt :: Word32 -> Int
 word32ToInt = fromIntegral
+
+-- Designed to be used with GLFW.Key, GLFW.CharKey, or GLFW.SpecialKey
+isKeyPressed :: Enum a => a -> IO Bool
+isKeyPressed k = do
+    kbs <- GLFW.getKey k
+    return $ case kbs of
+        GLFW.Press   -> True
+        GLFW.Release -> False
 
 ----------------------
 -- Auxiliary Functions
