@@ -27,4 +27,8 @@ lhs2tex --poly Bitans.lhs > Bitans.tex
 lhs2tex --poly Patterns.lhs > Patterns.tex
 
 latex HSoM
+bibtex HSoM
+latex HSoM
+latex HSoM
 dvips HSoM
+ps2pdf HSoM.ps

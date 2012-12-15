@@ -2,7 +2,7 @@
 -- Created by: Daniel Winograd-Cort
 -- Created on: 11/21/2012
 -- Last Modified by: Daniel Winograd-Cort
--- Last Modified on: 11/22/2012
+-- Last Modified on: 12/15/2012
 
 -- -- DESCRIPTION --
 -- This code was inspired by a blog post by Heinrich Apfelmus on 
@@ -17,8 +17,7 @@
 module Crud where
 import Prelude hiding (init, exp)
 import Euterpea
-import Euterpea.IO.MUI.Widget
-import Euterpea.IO.MUI.UISF
+import Euterpea.IO.MUI
 import Control.Arrow
 import Control.CCA.Types
 import Control.SF.AuxFunctions (edge)
@@ -49,6 +48,7 @@ defaultnames = [
 
 -- | This function will run the crud GUI with the default names.
 crud = runUIEx (350, 400) "CRUD" (crudUISF defaultnames)
+main = crud
 
 -- | This is the main function that creates the crud GUI.  It takes an 
 --   initial database of names as an argument.

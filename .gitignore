@@ -27,6 +27,15 @@ Desktop.ini
 .DS_Store
 
 ############
+## HSoM LaTeX files
+############
+HSoM/*.tex
+HSoM/*.log
+HSoM/*.dvi
+HSoM/*.ps
+HSoM/*.pdf
+
+############
 ## fftw files (should these be in the repo?)
 ############
 fftw3.dll
