@@ -95,18 +95,15 @@
 >         
 >   return $ PrioChannel get push pop peek
 
-
 > getOutDev devId = do
 >   inits <- readIORef outDevMap
 >   case lookup devId inits of
 >     Just f -> return f
 >     Nothing -> do
->         x <- midiOutRealTime' devId -- Changes made by Donya Quick: this line used to pattern match against Just.
+>         Just (mout,stop) <- midiOutRealTime' devId
 >         pChan <- makePriorityChannel
->         case x of Just (mout,stop) -> do -- Case statement added.
->         				modifyIORef outDevMap ((devId,(pChan,mout,stop)):)
->         				return (pChan,mout,stop)
->                   Nothing -> return (pChan, const (return ()), return ()) -- Nothing case added
+>         modifyIORef outDevMap ((devId,(pChan,mout,stop)):)
+>         return (pChan,mout,stop)
 
 
 

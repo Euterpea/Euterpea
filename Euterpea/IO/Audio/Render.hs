@@ -9,8 +9,8 @@ module Euterpea.IO.Audio.Render (
 ) where
 
 import Control.Arrow
-import Control.CCA.Types
-import Control.CCA.ArrowP
+import Control.ArrowInit
+import Control.ArrowInit.ArrowP
 import Control.SF.SF
 
 import Euterpea.Music.Note.Music
@@ -64,7 +64,7 @@ eventToEvtPair imap (Event {eTime, eInst, ePitch, eDur, eVol, eParams}) nid =
 -- For each note, generate a unique id to tag the NoteOn and NoteOffs.
 -- The tag is used as the key to the collection of signal functions
 -- for efficient insertion/removal.
-toEvtSF :: Clock p => Performance -> InstrMap a -> Signal p () [Evt a]
+toEvtSF :: (Clock p, ArrowInit cca, ArrowInitP cca p) => Performance -> InstrMap a -> ArrowP cca p () [Evt a]
 toEvtSF pf imap = 
     let evts = sortBy (comparing fst) $ concat $ 
                  zipWith (eventToEvtPair imap) pf [0..]
@@ -92,12 +92,12 @@ modSF = foldl' mod
 -- needs to use runSF to run all the signal functions in the collection.
 
 pSwitch :: forall p col a. (Clock p, Functor col) =>
-           col (Signal p () a)  -- Initial SF collection.
-        -> Signal p () [Evt (Signal p () a)]    -- Input event stream.
-        -> (col (Signal p () a) -> [Evt (Signal p () a)] -> col (Signal p () a))
+           col (ArrowP SF p () a)  -- Initial SF collection.
+        -> ArrowP SF p () [Evt (ArrowP SF p () a)]    -- Input event stream.
+        -> (col (ArrowP SF p () a) -> [Evt (ArrowP SF p () a)] -> col (ArrowP SF p () a))
            -- A Modifying function that modifies the collection of SF
            --   based on the event that is occuring.
-        -> Signal p () (col a)  
+        -> ArrowP SF p () (col a)  
            -- The resulting collection of output values obtained from
            --   running all SFs in the collection.
 
@@ -108,14 +108,14 @@ pSwitch col esig mod =
         -- perhaps this can be run at a lower rate using upsample
         sfcol <- init col -< mod sfcol' evts  
         let rs = fmap (\s -> runSF (strip s) ()) sfcol :: col (a, SF () a)
-            (as, sfcol' :: col (Signal p () a)) = (fmap fst rs, fmap (ArrowP . snd) rs)
+            (as, sfcol' :: col (ArrowP SF p () a)) = (fmap fst rs, fmap (ArrowP . snd) rs)
       outA -< as
 
 
 renderSF :: (Clock p, Performable a, AudioSample b) => 
             Music a 
-         -> InstrMap (Signal p () b) 
-         -> (Double, Signal p () b)
+         -> InstrMap (ArrowP SF p () b) 
+         -> (Double, ArrowP SF p () b)
             -- ^ Duration of the music in seconds, 
             -- and a signal function that plays the music.
 

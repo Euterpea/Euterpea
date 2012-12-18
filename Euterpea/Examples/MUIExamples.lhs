@@ -1,10 +1,10 @@
-> {-# LANGUAGE Arrows, TupleSections #-}
-
 > module Euterpea.Examples.MUIExamples where
 
 > import Prelude hiding (init)
 > import Control.Arrow
-> import Control.CCA.Types (init)
+> import Control.ArrowInit (init)
+> import Control.SF.MSF
+
 
 > import Data.Maybe (mapMaybe)
 
@@ -99,7 +99,7 @@ specified by slider f.  This is the signal that will drive the
 simulation.  The timer function takes in a time signal and a frequency.
 
 The next thing we need is a time-varying population.  This is where 
-the init function and the rec keyword come in handy.  We initialize 
+the initUI function and the rec keyword come in handy.  We initialize 
 the 'pop' signal with the value 0.1, and then on every tick, we 
 grow it with the instantaneous value of the growth rate signal.
 
@@ -119,7 +119,7 @@ popToNote, and send the result to the selected Midi output device.
 >   r  <- title "Growth rate" $ withDisplay (hSlider (2.4, 4.0) 2.4) -< ()
 >   
 >   tick <- timer -< (t, 1.0 / f)
->   rec pop <- init 0.1 -< if tick then grow r pop else pop
+>   rec pop <- initUI 0.1 -< if tick then grow r pop else pop
 >       
 >   _ <- title "Population" $ display' -< pop
 >   midiOut -< (mo, if tick then Just (popToNote pop) else Nothing)

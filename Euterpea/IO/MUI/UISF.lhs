@@ -7,7 +7,7 @@ by Conal Elliot.
 
 > import Euterpea.IO.MUI.SOE 
 > import Control.Monad (when, unless)
-> import qualified Graphics.UI.GLFW as GLFW (sleep, SpecialKey (..))
+> import qualified Graphics.UI.GLFW as GLFW 
 
 > import Sound.PortMidi hiding (time)
 > import Euterpea.IO.MIDI.MidiIO
@@ -18,11 +18,11 @@ by Conal Elliot.
 > import Euterpea.IO.MUI.UIMonad
 
 > import Euterpea.IO.Audio.Types (Clock, rate)
-> import Control.CCA.ArrowP (ArrowP(..))
+> import Control.ArrowInit
+> import Control.ArrowInit.ArrowP
 
 > import Prelude hiding (init)
 > import Control.Arrow
-> import Control.CCA.Types
 > import Control.Concurrent.MonadIO
 > import Control.DeepSeq
 
@@ -53,23 +53,21 @@ UISF constructors, transformers, and converters
 These fuctions are various shortcuts for creating UISFs.
 The types pretty much say it all for how they work.
 
-> mkUISF :: (a -> (CTX, Focus, Input) -> (Layout, DirtyBit, Focus, Action, [ThreadId], b)) -> UISF a b
-> mkUISF f = pipe (\a -> UI $ (\cfa -> return $ f a cfa))
+> mkUISF :: (a -> (CTX, Sys, Input) -> (Layout, Sys, Action, [ThreadId], b)) -> UISF a b
+> mkUISF f = pipe (\a -> UI $ (\csi -> return $ f a csi))
 
-> mkUISF' :: (a -> (CTX, Focus, Input) -> IO (Layout, DirtyBit, Focus, Action, [ThreadId], b)) -> UISF a b
+> mkUISF' :: (a -> (CTX, Sys, Input) -> IO (Layout, Sys, Action, [ThreadId], b)) -> UISF a b
 > mkUISF' f = pipe (\a -> UI $ f a)
 
-> expandUISF :: UISF a b -> a -> (CTX, Focus, Input) -> IO (Layout, DirtyBit, Focus, Action, [ThreadId], (b, UISF a b))
-> {-# INLINE expandUISF #-}
-> expandUISF (MSF f) = unUI . f
+> expandUISF :: UISF a b -> a -> (CTX, Sys, Input) -> IO (Layout, Sys, Action, [ThreadId], (b, UISF a b))
+> expandUISF (MSF f) a = unUI (f a)
 
-> compressUISF :: (a -> (CTX, Focus, Input) -> IO (Layout, DirtyBit, Focus, Action, [ThreadId], (b, UISF a b))) -> UISF a b
-> {-# INLINE compressUISF #-}
+> compressUISF :: (a -> (CTX, Sys, Input) -> IO (Layout, Sys, Action, [ThreadId], (b, UISF a b))) -> UISF a b
 > compressUISF f = MSF sf
 >   where
 >     sf a = UI mf
 >       where
->         mf cfa = f a cfa
+>         mf csi = f a csi
 
 > transformUISF :: (UI (c, UISF b c) -> UI (c, UISF b c)) -> UISF b c -> UISF b c
 > transformUISF f (MSF sf) = MSF sf'
@@ -93,19 +91,15 @@ The buffer is the number of time steps the given signal function is allowed
 to get ahead of real time.  The real amount of time that it can get ahead is
 the buffer divided by the clockrate seconds.
 The output signal function takes and returns values in real time.  The return 
-values are the list of bs generated in the given time step, each time stamped.
+values are the list of bs generated in the given time step and a boolean 
+that is true when time is synced and false when the simulation is running slower 
+than real time.
 
-Note that the returned list may be long if the clockrate is much 
-faster than real time and potentially empty if it's slower.
-Note also that the caller can check the time stamp on the element 
-at the end of the list to see if the inner, "simulated" signal 
-function is performing as fast as it should.
-
-> convertToUISF :: forall a b p . (Clock p, NFData b) => Double -> ArrowP SF p a b -> UISF a [(b, Time)]
+> convertToUISF :: forall a b p . (Clock p, NFData b) => Int -> ArrowP SF p a b -> UISF a ([b], Bool)
 > convertToUISF buffer (ArrowP sf) = convertToUISF' r buffer sf
 >   where r = rate (undefined :: p)
 
-> convertToUISF' :: NFData b => Double -> Double -> SF a b -> UISF a [(b, Time)]
+> convertToUISF' :: NFData b => Double -> Int -> SF a b -> UISF a ([b], Bool)
 > convertToUISF' clockrate buffer sf = proc a -> do
 >   t <- time -< ()
 >   toRealTimeMSF clockrate buffer addThreadID sf -< (a, t)
@@ -121,11 +115,9 @@ Thes functions are UISF transformers that modify the flow in the context.
 > bottomUp  = modifyFlow (\ctx -> ctx {flow = BottomUp})
 > leftRight = modifyFlow (\ctx -> ctx {flow = LeftRight})
 > rightLeft = modifyFlow (\ctx -> ctx {flow = RightLeft})
-> conjoin   = modifyFlow (\ctx -> ctx {isConjoined = True})
-> unconjoin = modifyFlow (\ctx -> ctx {isConjoined = False})
 
 > modifyFlow  :: (CTX -> CTX) -> UISF a b -> UISF a b
-> modifyFlow h = transformUISF (modifyFlow' h)
+> modifyFlow h sf = transformUISF (modifyFlow' h) sf
 
 > modifyFlow' :: (CTX -> CTX) -> UI a -> UI a
 > modifyFlow' h (UI f) = UI g where g (c,s,i) = f (h c,s,i)
@@ -134,29 +126,29 @@ Thes functions are UISF transformers that modify the flow in the context.
 Set fixed size (in pixels) for UI widget. 
 
 > setSize  :: Dimension -> UISF a b -> UISF a b
-> setSize dim = transformUISF (setSize' dim)
+> setSize dim sf = transformUISF (setSize' dim) sf
 
 > setSize' :: Dimension -> UI a -> UI a
 > setSize' (w, h) (UI f) = UI aux
 >   where
->     aux (ctx@(CTX i bbx m c), foc, inp) = do
+>     aux (ctx@(CTX i bbx myid m), sys, inp) = do
 >       let d = Layout 0 0 0 0 w h
->       (_, db, foc, a, ts, v) <- f (CTX i (computeBBX ctx d) m c, foc, inp)
->       return (d, db, foc, a, ts, v)
+>       (_, s, a, ts, v) <- f (CTX i (computeBBX ctx d) myid m, sys, inp)
+>       return (d, s, a, ts, v)
 
 Add space padding around a widget.
 
 > pad  :: (Int, Int, Int, Int) -> UISF a b -> UISF a b
-> pad args = transformUISF (pad' args)
+> pad args sf = transformUISF (pad' args) sf
 
 > pad' :: (Int, Int, Int, Int) -> UI a -> UI a
 > pad' (w,n,e,s) (UI f) = UI aux
 >   where
->     aux (ctx@(CTX i _ m c), foc, inp) = do
->       rec (l, db, foc', a, ts, v) <- f (CTX i ((x + w, y + n),(bw,bh)) m c, foc, inp)
+>     aux (ctx@(CTX i _ myid m), sys, inp) = do
+>       rec (l, sys', a, ts, v) <- f (CTX i ((x + w, y + n),(bw,bh)) myid m, sys, inp)
 >           let d = l { hFixed = hFixed l + w + e, vFixed = vFixed l + n + s }
 >               ((x,y),(bw,bh)) = computeBBX ctx d
->       return (d, db, foc', a, ts, v)
+>       return (d, sys', a, ts, v)
 
 
 Execute UI Program
@@ -167,11 +159,9 @@ Some default parameters we start with.
 > defaultSize :: Dimension
 > defaultSize = (300, 300)
 > defaultCTX :: Dimension -> (Input -> IO ()) -> CTX
-> defaultCTX size inj = CTX TopDown ((0,0), size) inj False
-> defaultFocus :: Focus
-> defaultFocus = (0, SetFocusTo 0)
-> resetFocus (n,SetFocusTo i) = (0, SetFocusTo $ (i+n) `rem` n)
-> resetFocus (_,_) = (0,NoFocus)
+> defaultCTX size inj = CTX TopDown ((0,0), size) firstWidgetID inj
+> defaultSys :: Sys
+> defaultSys = Sys True Nothing Nothing
 
 > runUI   ::              String -> UISF () () -> IO ()
 > runUI = runUIEx defaultSize
@@ -184,29 +174,29 @@ Some default parameters we start with.
 >   pollEvents <- windowUser w addEv
 >   -- poll events before we start to make sure event queue isn't empty
 >   pollEvents
->   let uiStream = streamMSF sf (repeat undefined)
->       render drawit' (inp:inps) lastFocus uistream tids = do
+>   let inp = events
+>       uiStream = streamMSF sf (repeat undefined)
+>       render drawit' (inp:inps) (Sys dirty f n) uistream tids = do
 >         wSize <- getWindowSize w
 >         let ctx = defaultCTX wSize addEv
->         (_, dirty, foc, (graphic, sound), tids', (_, uistream')) <- (unUI $ stream uistream) (ctx, lastFocus, inp)
+>             cleanSys = Sys False (maybe f Just n) Nothing
+>         (_, sys', (graphic, sound), tids', (_, uistream')) <- (unUI $ stream uistream) (ctx, cleanSys, inp)
 >         -- always output sound
 >         sound
 >         -- and delay graphical output when event queue is not empty
 >         setGraphic' w graphic
 >         let drawit = dirty || drawit'
->             newtids = tids'++tids
->             foc' = resetFocus foc
->         foc' `seq` newtids `seq` case inp of
+>         f `seq` n `seq` case inp of
 >           -- Timer only comes in when we are done processing user events
 >           Timer _ -> do 
 >             -- output graphics 
 >             when drawit $ setDirty w
 >             quit <- pollEvents
->             if quit then return newtids
->                     else render False inps foc' uistream' newtids
->           _ -> render drawit inps foc' uistream' newtids
+>             if quit then return (tids++tids')
+>                     else render False inps sys' uistream' (tids++tids')
+>           _ -> render drawit inps sys' uistream' (tids++tids')
 >       render _ [] _ _ tids = return tids
->   tids <- render True events defaultFocus uiStream []
+>   tids <- render True inp defaultSys uiStream []
 >   -- wait a little while before all Midi messages are flushed
 >   GLFW.sleep 0.5
 >   terminateMidi
@@ -222,14 +212,12 @@ Some default parameters we start with.
 >     addEv (Timer rt)
 >     return quit
 >   loop = do
->     mev <- maybeGetWindowEvent 0.001 w
+>     mev <- maybeGetWindowEvent w
 >     case mev of
 >       Nothing -> return False
 >       Just e  -> case e of
-> -- There's a bug somewhere with GLFW that makes pressing ESC freeze up 
-> -- GHCi, so I've removed this.
-> --        SKey GLFW.ESC True -> return True
-> --        Key '\00'  True -> return True
+>         Key '\033' True -> return True
+>         Key '\00'  True -> return True
 >         Closed          -> return True
 >         _               -> addEv (UIEvent e) >> loop
 

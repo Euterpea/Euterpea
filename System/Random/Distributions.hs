@@ -21,7 +21,7 @@ is given by
 >      = 0       otherwise
 
 -}
-linear :: (RandomGen g, Floating a, Random a, Ord a) => g -> (a,g)
+linear :: (RandomGen g, Floating a, Random a, Ord a, Eq a) => g -> (a,g)
 linear g0 = 
     let (r1, g1) = randomR (0, 1) g0
         (r2, g2) = randomR (0, 1) g1
@@ -44,7 +44,7 @@ The probability density function is given by
 
 > f(x) = lambda e^(-lambda * x)
 -}
-exponential :: (RandomGen g, Floating a, Random a, Eq a) => 
+exponential :: (RandomGen g, Eq a, Floating a, Random a) => 
             a  -- ^ horizontal spread of the function.
          -> g  -- ^ a random number generator.
          -> (a,g)
@@ -56,7 +56,7 @@ Similar to exponential, but the mean of the distribution is 0 and
 50% of the results fall between (-1/lambda, 1/lambda).
 
 -}
-bilExp :: (Floating a, Ord a, Random a, RandomGen g) =>
+bilExp :: (Floating a, Eq a, Ord a, Random a, RandomGen g) =>
           a    -- ^ horizontal spread of the function.
        -> g    -- ^ a random number generator.
        -> (a,g)
@@ -82,7 +82,7 @@ gaussian stddev center g0 =
 The distribution is symmetric with a mean of 0.  
 
 -}
-cauchy :: (Floating a, Random a, RandomGen g, Eq a) =>
+cauchy :: (Floating a, Eq a, Random a, RandomGen g) =>
           a   -- ^ alpha (density).
        -> g   -- ^ a random number generator.
        -> (a,g)

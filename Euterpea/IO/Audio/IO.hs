@@ -7,8 +7,8 @@ module Euterpea.IO.Audio.IO (
     maxSample) where
 
 import Prelude hiding (init)
-import Control.CCA.Types
-import Control.CCA.ArrowP
+import Control.ArrowInit
+import Control.ArrowInit.ArrowP
 import Control.Arrow
 
 import Control.SF.SF
@@ -31,13 +31,13 @@ import Foreign.Ptr
 import Foreign.Storable
 --import Sound.RtAudio
 
-type Signal clk a b = ArrowP SF clk a b
+-- type Signal clk a b = ArrowP SF clk a b
 
 -- | Writes sound to a wave file (.wav)
 outFile :: forall a p. (AudioSample a, Clock p) => 
            String              -- ^ Filename to write to.
         -> Double              -- ^ Duration of the wav in seconds.
-        -> Signal p () a       -- ^ Signal representing the sound.
+        -> ArrowP SF p () a       -- ^ Signal representing the sound.
         -> IO ()
 outFile = outFileHelp id
 
@@ -53,7 +53,7 @@ normList xs = map (/ mx) xs
 outFileNorm :: forall a p. (AudioSample a, Clock p) => 
             String              -- ^ Filename to write to.
          -> Double              -- ^ Duration of the wav in seconds.
-         -> Signal p () a       -- ^ Signal representing the sound.
+         -> ArrowP SF p () a       -- ^ Signal representing the sound.
          -> IO ()
 outFileNorm = outFileHelp normList
 
@@ -61,7 +61,7 @@ outFileHelp :: forall a p. (AudioSample a, Clock p) =>
             ([Double] -> [Double]) -- ^ Post-processing function.
          -> String              -- ^ Filename to write to.
          -> Double              -- ^ Duration of the wav in seconds.
-         -> Signal p () a       -- ^ Signal representing the sound.
+         -> ArrowP SF p () a       -- ^ Signal representing the sound.
          -> IO ()
 outFileHelp f filepath dur sf = 
   let sr          = rate (undefined :: p)
@@ -101,7 +101,7 @@ outFileHelpA f filepath sr =
   let numChannels = numChans (undefined :: a)
       writeWavSink = sink (writeWav f filepath sr numChannels)
   in proc (a, rs) -> do
-        rec dat <- init [] -< dat'
+        rec dat <- initUI [] -< dat'
             dat' <- case rs of
                         Pause  -> returnA -< dat
                         Record -> returnA -< a:dat
@@ -127,7 +127,7 @@ writeWav f filepath sr numChannels adat =
   
 
 toSamples :: forall a p. (AudioSample a, Clock p) =>
-             Double -> Signal p () a -> [Double]
+             Double -> ArrowP SF p () a -> [Double]
 toSamples dur sf = 
   let sr          = rate     (undefined :: p)
       numChannels = numChans (undefined :: a)
@@ -136,7 +136,7 @@ toSamples dur sf =
 
 -- | Compute the maximum sample of an SF in the first 'dur' seconds.
 maxSample :: forall a p. (AudioSample a, Clock p) =>
-             Double -> Signal p () a -> Double
+             Double -> ArrowP SF p () a -> Double
 maxSample dur sf = maximum (map abs (toSamples dur sf))
 
 

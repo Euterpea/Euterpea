@@ -32,4 +32,15 @@
 To make things easier, we'll declare both Music and Primitive as members of
 Functor class. Eventually this will be moved into a separate module.
 
+> instance Functor Music where
+>   fmap f (Prim x) = Prim (fmap f x)
+>   fmap f (x :+: y) = fmap f x :+: fmap f y
+>   fmap f (x :=: y) = fmap f x :=: fmap f y
+>   -- fmap f (x :=/ y) = fmap f x :=/ fmap f y
+>   fmap f (Modify c x) = Modify c (fmap f x)
+
+> instance Functor Primitive where
+>   fmap f (Note d x) = Note d (f x)
+>   fmap f (Rest d) = Rest d
+
 

@@ -475,14 +475,14 @@ at:\footnote{The use of the name ``|fold|'' for this function is
   ``unfold'' in Chapter~\ref{ch:intro} to describe steps in a
   calculation.}
 \begin{spec}
-fold op init []      = init
-fold op init (x:xs)  = x `op` fold op init xs
+fold op initUI []      = init
+fold op initUI (x:xs)  = x `op` fold op initUI xs
 \end{spec}
 \syn{Any normal binary function name can be used as an infix operator
   by enclosing it in backquotes; |x `f` y| is equivalent to |f x y|.
   Using infix application here for |op| better reflects the
   structure of the repeating pattern that is being abstracted, but
-  could also have been written |op x (fold op init xs)|.}
+  could also have been written |op x (fold op initUI xs)|.}
 
 With this definition of |fold| one can now rewrite the definitions of
 \indexwdhs{line}, \indexwdhs{chord}, and \indexwdhs{maxPitch} as:
@@ -543,15 +543,15 @@ Prelude.  The first is called \indexwdhs{foldr}
 |fold| given earlier:
 \begin{spec}
 foldr                 :: (a->b->b) -> b -> [a] -> b
-foldr op init []      = init
-foldr op init (x:xs)  = x `op` foldr op init xs
+foldr op initUI []      = init
+foldr op initUI (x:xs)  = x `op` foldr op initUI xs
 \end{spec}
 A good way to think about |foldr| is that it replaces all
 occurrences of the list operator |(:)| with its first argument (a
 function), and replaces |[]| with its second argument.  In other
 words:
 \begin{spec}
-foldr op init (x1 : x2 : ... : xn : [])  
+foldr op initUI (x1 : x2 : ... : xn : [])  
 ===> x1 `op` (x2 `op` (...(xn `op` init)...))
 \end{spec}
 This might help in better understanding the type of |foldr|, and also
@@ -565,14 +565,14 @@ foldr (:) [] xs  ===>  xs
 Haskell's second version of |fold| is called \indexwdhs{foldl}:
 \begin{spec}
 foldl                 :: (b->a->b) -> b -> [a] -> b
-foldl op init []      = init
-foldl op init (x:xs)  = foldl op (init `op` x) xs
+foldl op initUI []      = init
+foldl op initUI (x:xs)  = foldl op (initUI `op` x) xs
 \end{spec}
 A good way to think about |foldl| is to imagine ``folding the list
 from the left:''
 \begin{spec}
-foldl op init (x1 : x2 : ... : xn : [])
-===> (...((init `op` x1) `op` x2)...) `op` xn
+foldl op initUI (x1 : x2 : ... : xn : [])
+===> (...((initUI `op` x1) `op` x2)...) `op` xn
 \end{spec}
 
 \subsection{[Advanced] Why Two Folds?}
@@ -732,8 +732,8 @@ improve upon.
 But now, compare the definition of |rev| with the definition of
 |foldl|:
 \begin{spec}
-foldl op init []      = init
-foldl op init (x:xs)  = foldl op (init `op` x) xs
+foldl op initUI []      = init
+foldl op initUI (x:xs)  = foldl op (initUI `op` x) xs
 \end{spec}
 They are somewhat similar.  In fact, suppose one were to slightly
 rewrite |rev|, yielding:

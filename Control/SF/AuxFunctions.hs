@@ -1,5 +1,3 @@
-{-# LANGUAGE Arrows, ScopedTypeVariables #-}
-
 module Control.SF.AuxFunctions (
     Event, edge, quantize,
     presentFFT, fftA, 
@@ -9,7 +7,7 @@ module Control.SF.AuxFunctions (
 
 import Prelude hiding (init)
 import Control.Arrow
-import Control.CCA.Types
+import Control.ArrowInit
 
 import Numeric.FFT (fft)
 import Data.Complex
@@ -17,10 +15,10 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 
 -- | Alternative for working with Math.FFT instead of Numeric.FFT
---import qualified Math.FFT as FFT
---import Data.Array.IArray
---import Data.Array.CArray
---myFFT n lst = elems $ (FFT.dft) (listArray (0, n-1) lst)
+-- import qualified Math.FFT as FFT
+-- import Data.Array.IArray
+-- import Data.Array.CArray
+-- myFFT n lst = elems $ (FFT.dft) (listArray (0, n-1) lst)
 
 -- For use with SF Conversions
 import Control.Monad.Fix
@@ -40,9 +38,9 @@ import Control.DeepSeq
 
 type Event a = Maybe a
 
-edge :: ArrowInit a => a Bool Bool
+edge :: MonadFix m => MSF m Bool Bool
 edge = proc b -> do
-    prev <- init False -< b
+    prev <- initUI False -< b
     returnA -< prev && not b
 
 -- | Scrutinizes n samples at a time, updating after k new values from a signal function
@@ -91,18 +89,18 @@ toMSF (SF sf) = MSF h
         where (b, sf') = sf a
 
 -- | The clockrate is the simulated rate of the input signal function.
---   The buffer is the amount of time the given signal function is 
---   allowed to get ahead of real time.  The threadHandler is where the 
---   ThreadId of the forked thread is sent.
+--   The buffer is the number of time steps the given signal function is 
+--   allowed to get ahead of real time.  Thus, the real amount of time 
+--   that it can get ahead is the buffer divided by the clockrate seconds.
+--   The threadHandler is a where the ThreadId of the forked thread is sent.
 --
 --   The output signal function takes and returns values in real time.  
 --   The input must be paired with time, and the return values are the 
---   list of bs generated in the given time step, each time stamped.  
---   Note that the returned list may be long if the clockrate is much 
---   faster than real time and potentially empty if it's slower.
---   Note also that the caller can check the time stamp on the element 
---   at the end of the list to see if the inner, "simulated" signal 
---   function is performing as fast as it should.
+--   list of bs generated in the given time step and a boolean that is 
+--   true when time is synced and false when the simulation is running 
+--   slower than real time.  Note that the returned list will be long 
+--   if the clockrate is much faster than real time and potentially 
+--   empty if it's slower.
 toRealTimeMSF :: forall m a b . (Monad m, MonadIO m, MonadFix m, NFData b) => 
                  Double -> Double -> (ThreadId -> m ()) -> SF a b 
               -> MSF m (a, Double) [(b, Double)]

@@ -48,16 +48,15 @@ module Euterpea.IO.MUI.SOE (
   xorRegion,
   diffRegion,
   drawRegion,
---  getKey,  -- See note at definition for why these are left out
---  getLBP,
---  getRBP,
+  getKey,
+  getLBP,
+  getRBP,
   Event (..),
   maybeGetWindowEvent,
   getWindowEvent,
   Word32,
   timeGetTime,
-  word32ToInt,
-  isKeyPressed
+  word32ToInt
   ) where
 
 import Data.Ix (Ix)
@@ -92,8 +91,8 @@ initialized = unsafePerformIO (newMVar False)
 opened = unsafePerformIO (newMVar False)
 
 initialize = do
-  init <- readMVar initialized
-  if init then return ()
+  initUI <- readMVar initialized
+  if initUI then return ()
     else do
       GLFW.initialize
       modifyMVar_ initialized (\_ -> return True)
@@ -130,19 +129,17 @@ openWindowEx title position size (RedrawMode useDoubleBuffer) = do
      
   let charCallback char state =  
         writeChan eventsChan (Key { char = char, isDown = (state == GLFW.Press) })
-  let keyCallBack key state = case key of
-        GLFW.SpecialKey sk -> writeChan eventsChan (SKey { skey = sk, isDown = (state == GLFW.Press) })
---      GLFW.SpecialKey GLFW.ESC -> charCallback '\033' state
---      GLFW.SpecialKey GLFW.BACKSPACE -> charCallback '\08' state
---      GLFW.SpecialKey GLFW.DEL   -> charCallback '\0177' state
---      GLFW.SpecialKey GLFW.LEFT  -> charCallback '\0208' state
---      GLFW.SpecialKey GLFW.RIGHT -> charCallback '\0214' state
---      GLFW.SpecialKey GLFW.UP    -> charCallback '\0213' state
---      GLFW.SpecialKey GLFW.DOWN  -> charCallback '\0200' state
-        _ -> return ()
   GLFW.charCallback $= charCallback 
-  GLFW.keyCallback  $= keyCallBack
-  GLFW.enableSpecial GLFW.KeyRepeat
+  GLFW.keyCallback  $= (\key state -> 
+    case key of
+      GLFW.SpecialKey GLFW.ESC -> charCallback '\033' state
+      GLFW.SpecialKey GLFW.BACKSPACE -> charCallback '\08' state
+      GLFW.SpecialKey GLFW.DEL   -> charCallback '\0177' state
+      GLFW.SpecialKey GLFW.LEFT  -> charCallback '\0208' state
+      GLFW.SpecialKey GLFW.RIGHT -> charCallback '\0214' state
+      GLFW.SpecialKey GLFW.UP    -> charCallback '\0213' state
+      GLFW.SpecialKey GLFW.DOWN  -> charCallback '\0200' state
+      _ -> return ())
 
   GLFW.mouseButtonCallback $= (\but state -> do
     GL.Position x y <- GL.get GLFW.mousePos
@@ -475,10 +472,6 @@ data Event = Key {
                char :: Char,
                isDown :: Bool
              }
-           | SKey {
-               skey :: GLFW.SpecialKey,
-               isDown :: Bool
-             }
            | Button {
               pt :: Point,
               isLeft :: Bool,
@@ -492,24 +485,17 @@ data Event = Key {
            | Closed
   deriving Show
 
+getWindowEvent :: Window -> IO Event
+getWindowEvent win = do
+  event <- maybeGetWindowEvent win
+  maybe (getWindowEvent win) return event
 
--- | getWindowEvent and maybeGetWindowEvent both take an additional argument 
---  sleepTime that tells how long to sleep in the case where there are no
---  window events to return.  This is used to allow the cpu to take other 
---  tasks at these times rather than needlessly spinning.  The sleepTime 
---  parameter used to be fixed at 0.01.
-
-getWindowEvent :: Double -> Window -> IO Event
-getWindowEvent sleepTime win = do
-  event <- maybeGetWindowEvent sleepTime win
-  maybe (getWindowEvent sleepTime win) return event
-
-maybeGetWindowEvent :: Double -> Window -> IO (Maybe Event)
-maybeGetWindowEvent sleepTime win = do
+maybeGetWindowEvent :: Window -> IO (Maybe Event)
+maybeGetWindowEvent win = do
   updateWindowIfDirty win
   noEvents <- isEmptyChan (eventsChan win)
   if noEvents 
-    then GLFW.sleep sleepTime >> GLFW.pollEvents >> return Nothing
+    then GLFW.sleep 0.01 >> GLFW.pollEvents >> return Nothing
     else do
       event <- readChan (eventsChan win)
       case event of
@@ -517,7 +503,7 @@ maybeGetWindowEvent sleepTime win = do
           (Graphic io, _) <- readMVar (graphicVar win)
           io
           GLFW.swapBuffers
-          maybeGetWindowEvent sleepTime win
+          maybeGetWindowEvent win
         Resize size@(GL.Size w h) -> do
           GL.viewport $= (GL.Position 0 0, size)
           GL.matrixMode $= GL.Projection
@@ -525,18 +511,9 @@ maybeGetWindowEvent sleepTime win = do
           GL.ortho2D 0 (realToFrac w) (realToFrac h) 0
 	  -- force a refresh, needed for OS X
 	  writeChan (eventsChan win) Refresh
-          maybeGetWindowEvent sleepTime win
+          maybeGetWindowEvent win
         e -> return (Just e)
 
-
--- | getKeyEx, getKey, getButton, getLBP, and getRBP are defined here but 
---  never used in Euterpea.  Furthermore, due to the change in getWindowEvent 
---  so that it now requires a sleepTime argument (previously fixed at 0.01), 
---  they either need to be parameterized over sleepTime or set.  I'm not 
---  sure which is the better solution, so I will leave them commented out 
---  until they're needed.
-
-{-
 getKeyEx :: Window -> Bool -> IO Char
 getKeyEx win down = loop
   where loop = do e <- getWindowEvent win
@@ -565,7 +542,6 @@ getLBP w = getButton w 1 True
 
 getRBP :: Window -> IO Point
 getRBP w = getButton w 2 True
--}
 
 -- use GLFW's high resolution timer
 timeGetTime :: IO Double
@@ -573,14 +549,6 @@ timeGetTime = GL.get GLFW.time
 
 word32ToInt :: Word32 -> Int
 word32ToInt = fromIntegral
-
--- Designed to be used with GLFW.Key, GLFW.CharKey, or GLFW.SpecialKey
-isKeyPressed :: Enum a => a -> IO Bool
-isKeyPressed k = do
-    kbs <- GLFW.getKey k
-    return $ case kbs of
-        GLFW.Press   -> True
-        GLFW.Release -> False
 
 ----------------------
 -- Auxiliary Functions

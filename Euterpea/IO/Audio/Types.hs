@@ -5,10 +5,9 @@
 
 module Euterpea.IO.Audio.Types where
 
-import Control.CCA.Types
-import Control.CCA.CCNF
-import Control.CCA.ArrowP
+import Control.ArrowInit
 import Control.SF.SF
+import Control.ArrowInit.ArrowP
 
 
 class Clock p where
@@ -25,7 +24,6 @@ instance Clock CtrRate where
 
 type Signal clk a b = ArrowP SF clk a b
 type SigFun clk a b = ArrowP SF clk a b
-type SignalSyn clk a b = ArrowP ASyn clk a b
 
 
 -- Arbitrary number of channels (say, 5.1) can be supported by just adding more
@@ -70,7 +68,7 @@ instance Unlifted a => Unlifted [a]
 
 instance (Unlifted a, Unlifted b) => Unlifted (a -> b)
 
-data (Unlifted a, Unlifted b) => a :!: b = !a :!: !b
+data a :!: b = !a :!: !b
 instance (Unlifted a, Unlifted b) => Unlifted (a :!: b) where
   expose (a :!: b) s = expose a (expose b s)
   {-# INLINE expose #-}

@@ -1,4 +1,4 @@
-> {-# LANGUAGE Arrows, TemplateHaskell, BangPatterns, 
+> {-# LANGUAGE Arrows, BangPatterns, 
 >              ExistentialQuantification, FlexibleContexts, 
 >              FunctionalDependencies, ScopedTypeVariables,
 >              NoMonomorphismRestriction #-}
@@ -62,8 +62,7 @@ versions of the unit generators.
 >   envASR,
 >   envCSEnvlpx,
 >   noiseWhite, noiseBLI, noiseBLH,
->   delayLine, delayLine1, delayLineT,
->   samples, milliseconds, seconds, countTime
+>   delayLine, delayLine1, delayLineT
 >   ) where
 
 > -- oscil, oscili, oscils, oscil1, oscil1i,
@@ -91,18 +90,12 @@ versions of the unit generators.
 > import Euterpea.IO.Audio.Basics
 > import Euterpea.IO.Audio.Types
 > import Control.Arrow
-> import Control.CCA.ArrowP
-> import Control.CCA.Types
-> import Control.CCA.CCNF
-> import Control.SF.AuxFunctions (Event)
+> import Control.ArrowInit
+> import Control.ArrowInit.ArrowP
 > import Data.Array.Base (unsafeAt)
 > import Data.Array.Unboxed
 
 > import Debug.Trace
-
-> import Language.Haskell.TH
-> import Language.Haskell.TH.Instances
-> import Language.Haskell.TH.Syntax
 
 > import Foreign.Marshal
 > import Foreign.Marshal.Alloc
@@ -115,7 +108,7 @@ versions of the unit generators.
 Helper Functions
 ----------------
 
-> constA  :: Clock c => b -> SigFun c a b
+> constA  :: (Clock p, ArrowInit cca) => b -> ArrowP cca p a b -- Clock c => b -> SigFun c a b
 > constA y = arr (\_ -> y)
 
 > wrap val bound = if val > bound then wrap val (val-bound) else val
@@ -141,42 +134,36 @@ A Table is essentially a UArray.
 > data Table = Table 
 >     !Int                   -- size
 >     !(UArray Int Double)   -- table implementation
->     ExpQ                   -- TH expression to construct 
->                            -- the table at compile time
 >     !Bool                  -- Whether the table is normalized
 
 > instance Show Table where
->     show (Table sz a _ n) = "Table with " ++ show sz ++ " entries: " ++ 
+>     show (Table sz a n) = "Table with " ++ show sz ++ " entries: " ++ 
 >                             show a
 
-> instance Language.Haskell.TH.Syntax.Lift Table where
->     lift (Table sz uarr fexp norm) =
->          [| funToTable ($(fexp)) fexp norm sz |]
-
-> funToTable :: (Double->Double) -> ExpQ -> Bool -> Int -> Table
-> funToTable f f' normalize size = 
+> funToTable :: (Double->Double) -> Bool -> Int -> Table
+> funToTable f normalize size = 
 >     let delta = 1 / fromIntegral size
 >         ys = take size (map f [0, delta.. ]) ++ [head ys]
 >              -- make table one size larger as an extended guard point
 >         zs = if normalize then map (/ maxabs ys) ys else ys
 >         maxabs = maximum . map abs
->     in Table size (listArray (0, size) zs) f' normalize
+>     in Table size (listArray (0, size) zs) normalize
 
 > readFromTable :: Table -> Double -> Double
-> readFromTable (Table sz array _ _) pos = 
+> readFromTable (Table sz array _) pos = 
 >     let idx = truncate (fromIntegral sz * pos)  -- range must be [0,size]
 >     in array `unsafeAt` idx
 > {-# INLINE [0] readFromTable #-}
 
-> readFromTableA t = arr' [| readFromTable t |] (readFromTable t)
+> readFromTableA t = arr (readFromTable t)
 
 > readFromTableRaw :: Table -> Int -> Double
-> readFromTableRaw (Table _ a _ _) idx = a `unsafeAt` idx
+> readFromTableRaw (Table _ a _) idx = a `unsafeAt` idx
 
 Like readFromTable, but with linear interpolation.
 
 > readFromTablei :: Table -> Double -> Double
-> readFromTablei (Table sz array _ _) pos = 
+> readFromTablei (Table sz array _) pos = 
 >     let idx  = fromIntegral sz * pos  -- fractional "index" in table ([0,sz])
 >         idx0 = (truncate idx) `mod` sz       :: Int
 >         idx1 = idx0 + 1                      :: Int
@@ -185,7 +172,7 @@ Like readFromTable, but with linear interpolation.
 >     in val0 + (val1 - val0) * (idx - fromIntegral idx0)
 > {-# INLINE [0] readFromTablei #-}
 
-> readFromTableiA t = arr' [| readFromTablei t |] (readFromTablei t)
+> readFromTableiA t = arr (readFromTablei t)
 
 Accesses table values by direct indexing with linear interpolation.
 The index 'pos' is expected to be normalized (between 0 and 1).  Values
@@ -219,13 +206,13 @@ and (size of table - 1), inclusive).
 
 > tableiIx :: (Clock p, ArrowInit a) => 
 >             Table -> Bool -> ArrowP a p Double Double
-> tableiIx tab@(Table sz array _ _) True =
+> tableiIx tab@(Table sz array _) True =
 >     proc idx -> do
 >       let idx0 = (truncate idx) `mod` sz
 >           val0 = readFromTableRaw tab idx0
 >           val1 = readFromTableRaw tab (idx0 + 1)
 >       outA -< val0 + (val1 - val0) * (idx - fromIntegral idx0)
-> tableiIx tab@(Table sz _ _ _) False =
+> tableiIx tab@(Table sz _ _) False =
 >     proc idx -> do
 >       let pos = idx / fromIntegral (sz-1)
 >       outA -< readFromTablei tab (clip pos 0 1)
@@ -233,10 +220,10 @@ and (size of table - 1), inclusive).
 Like table, but index interpreted as raw value.
 
 > tableIx :: (Clock p, ArrowInit a) => Table -> Bool -> ArrowP a p Double Double
-> tableIx tab@(Table sz array _ _) True =
+> tableIx tab@(Table sz array _) True =
 >     proc idx -> do
 >       outA -< readFromTableRaw tab (truncate idx `mod` (sz-1))
-> tableIx tab@(Table sz array _ _) False =
+> tableIx tab@(Table sz array _) False =
 >     proc idx -> do
 >       outA -< readFromTableRaw tab (clip (truncate idx) 0 (sz-1))
 
@@ -264,7 +251,7 @@ simultaneously advanced in accordance with the input signal 'freq'.
 
 Helper function for osc and oscI.
 
-> osc_ :: forall p a. (Clock p, ArrowInit a) => 
+> osc_ :: forall p a . (Clock p, ArrowInit a) => 
 >           Double -> ArrowP a p Double Double
 > osc_ phs = 
 >     let sr = rate (undefined :: p)
@@ -326,7 +313,7 @@ Helper function for oscDur and oscDurI.
 > oscDur_ :: forall p a . (Clock p, ArrowChoice a, ArrowInit a) => 
 >            (Table -> Double -> ArrowP a p Double Double)
 >            -> Table -> Double -> Double -> ArrowP a p () Double
-> oscDur_ osc table@(Table sz _ _ _) del dur =
+> oscDur_ osc table@(Table sz _ _) del dur =
 >   let sr = rate (undefined :: p)
 >       t1 = del * sr
 >       t2 = t1 + dur * sr
@@ -343,7 +330,7 @@ Helper function for oscDur and oscDurI.
 
 These are not implemented.
 
-> foscil, foscili :: (Clock p, ArrowInit a) => 
+> foscil, foscili :: (Clock p, ArrowInit a) =>
 >                    Table -> ArrowP a p (Double,Double,Double,Double) Double
 > foscil table =
 >     proc (freq,carfreq,modfreq,modindex) -> do
@@ -360,12 +347,12 @@ These are not implemented.
 
 Output a set of harmonically related sine partials.
 
-> oscPartials :: forall p . Clock p => 
+> oscPartials :: forall p cca . (Clock p, ArrowInit cca) =>
 >         Table   -- table containing a sine wave;
 >                 -- a table size of at least 8192 is recommended.
 >      -> Double  -- initial phase of the fundamental frequency,
 >                 -- expressed as a fraction of a cycle (0 to 1).
->      -> Signal p (Double,Int) Double 
+>      -> ArrowP cca p (Double,Int) Double 
 >                 -- 'freq' is the fundamental frequency in cycles per 
 >                 -- second; 'nharms' is the number of harmonics requested.
 > oscPartials table initialPhase =
@@ -381,11 +368,6 @@ Output a set of harmonically related sine partials.
 
 Pluck
 -----
-
-> instance Lift PluckDecayMethod where
->     lift SimpleAveraging = [| SimpleAveraging |]
->     lift (WeightedAveraging a b) = [| WeightedAveraging a b |]
->     -- TODO: rest of the methods
 
 > data PluckDecayMethod
 >     = SimpleAveraging
@@ -408,8 +390,8 @@ Pluck
 >       -- 1st order recursive filter, with coefs .5. Unaffected by
 >       -- parameter values.
 
-> pluck :: forall p . Clock p => 
->          Table -> Double -> PluckDecayMethod -> Signal p Double Double
+> pluck :: forall p cca . (Clock p, ArrowInit cca) =>
+>          Table -> Double -> PluckDecayMethod -> ArrowP cca p Double Double
 > pluck table pitch method = 
 >     let sr = rate (undefined :: p) 
 >     in proc cps -> do
@@ -439,7 +421,7 @@ Not implemented.
 >          -- If 'True', all grains will begin reading from the
 >          -- beginning of the 'gfn' table.  If 'False', grains
 >          -- will start reading from random 'gfn' table positions.
->       -> Signal p (Double,Double,Double,Double,Double) Double
+>       -> (Clock p, ArrowInit cca) => ArrowP cca p (Double,Double,Double,Double,Double) Double
 > grain gfn wfn mgdur grnd = 
 >     proc (pitch,dens,ampoff,pitchoff,gdur) -> do
 >         outA -< 0
@@ -452,9 +434,6 @@ a fixed-time delay with native recursive arrow syntax to achieve
 modified feedback loops.
 
 > data Buf = Buf !Int !(Ptr Double)
-
-> instance Lift Buf where
->     lift (Buf sz _) = [| mkArr sz |]
 
 > updateBuf :: Buf -> Int -> Double -> IO Double
 > updateBuf (Buf _ a) i u = a `seq` i `seq` u `seq` do
@@ -477,8 +456,8 @@ TODO: deal with pre-initialized buffers
 
 A fixed-length delay line, initialized using a table.
 
-> delayLineT :: forall p . Clock p => 
->           Int -> Table -> Signal p Double Double
+> delayLineT :: forall p cca . (Clock p, ArrowInit cca) =>
+>           Int -> Table -> ArrowP cca p Double Double
 > delayLineT size table =
 >     let sr = rate (undefined :: p)
 >         buf = mkArrWithTable size table
@@ -493,8 +472,7 @@ A fixed-length delay line, initialized using a table.
 
 A fixed-length delay line.
 
-> delayLine :: forall p . Clock p => 
->          Double -> Signal p Double Double
+> delayLine :: forall p cca . (Clock p, ArrowInit cca) => Double -> ArrowP cca p Double Double
 > delayLine maxdel =
 >     let sr = rate (undefined :: p)
 >         sz = truncate (sr * maxdel)
@@ -508,7 +486,7 @@ A fixed-length delay line.
 
 delay line with one tap.
 
-> delayLine1 :: forall p . Clock p => Double -> Signal p (Double, Double) Double
+> delayLine1 :: forall p cca . (Clock p, ArrowInit cca) => Double -> ArrowP cca p (Double, Double) Double
 > delayLine1 maxdel =
 >     let sr = rate (undefined :: p)
 >         sz = truncate (sr * maxdel)
@@ -528,27 +506,24 @@ delay line with one tap.
 
 delay line with two taps.
 
-> delay2 :: Double -> Signal p (Double, Double, Double) Double
+> delay2 :: (Clock p, ArrowInit cca) => Double -> ArrowP cca p (Double, Double, Double) Double
 > delay2 maxdel = 
 >     proc (sig, dlt1, dlt2) -> do
 >       outA -< 0
 
 delay line with three taps.
 
-> delay3 :: Double -> Signal p (Double, Double, Double, Double) Double
+> delay3 :: (Clock p, ArrowInit cca) => Double -> ArrowP cca p (Double, Double, Double, Double) Double
 > delay3 maxdel = 
 >     proc (sig, dlt1, dlt2, dlt3) -> do
 >       outA -< 0
 
 delay line with four taps.
 
-> delay4 :: Double -> Signal p (Double, Double, Double, Double, Double) Double
+> delay4 :: (Clock p, ArrowInit cca) => Double -> ArrowP cca p (Double, Double, Double, Double, Double) Double
 > delay4 maxdel = 
 >     proc (sig, dlt1, dlt2, dlt3, dlt4) -> do
 >       outA -< 0
-
-> instance Language.Haskell.TH.Syntax.Lift StdGen where
->     lift g = [| g |]
 
 Noise Generators
 ----------------
@@ -558,7 +533,7 @@ Analogous to rand, randi, and randh in csound.
 Generate uniform white noise with an R.M.S value of 1 / sqrt 2, where
 'seed' is the random seed.
 
-> noiseWhite :: Int -> Signal p () Double
+> noiseWhite :: (Clock p, ArrowInit cca) => Int -> ArrowP cca p () Double
 > noiseWhite seed =
 >     let gen = mkStdGen seed
 >     in proc () -> do
@@ -572,7 +547,7 @@ number, and with an RMS value of 1 / sqrt 2.
 'cps' controls how fast the new numbers are generated.
 'seed' is the random seed.
 
-> noiseBLI :: forall p . Clock p => Int -> Signal p Double Double
+> noiseBLI :: forall p cca . (Clock p, ArrowInit cca) => Int -> ArrowP cca p Double Double
 > noiseBLI seed =
 >     let sr = rate (undefined :: p)
 >         gen = mkStdGen seed
@@ -596,7 +571,7 @@ previous value instead), and with an RMS value of 1 / sqrt 2.
 'cps' controls how fast the new numbers are generated.
 'seed' is the random seed.
 
-> noiseBLH :: forall p . Clock p => Int -> Signal p Double Double
+> noiseBLH :: forall p cca . (Clock p, ArrowInit cca) => Int -> ArrowP cca p Double Double
 > noiseBLH seed =
 >     let sr = rate (undefined :: p)
 >         gen = mkStdGen seed
@@ -618,8 +593,8 @@ Gain Adjustment
 
 Adjusts RMS amplitude of 'sig' so that it matches RMS amplitude of 'ref'.
 
-> balance :: forall p a . Clock p =>
->            Int -> Signal p (Double, Double) Double
+> balance :: forall p cca . (Clock p, ArrowInit cca) =>
+>            Int -> ArrowP cca p (Double, Double) Double
 > balance ihp =
 >     proc (sig, ref) -> do
 >       rec
@@ -655,14 +630,14 @@ A second-order resonant (band pass) filter.
 
 Analogous to csound's 'reson' routine.
 
-> filterBandPass :: forall p . Clock p =>
+> filterBandPass :: forall p cca . (Clock p, ArrowInit cca, ArrowChoice cca) =>
 >          Int -- 'scale': 1 signifies a peak response factor of 1, i.e. all
 >              -- frequencies other than kcf are attenuated in accordance with
 >              -- the (normalized) response curve; 2 raises the response
 >              -- factor so that its overall RMS value equals 1; 0 ignifies
 >              -- no scaling of the signal, leaving that to some later
 >              -- adjustment (like balance).
->       -> Signal p (Double, Double, Double) Double
+>       -> ArrowP cca p (Double, Double, Double) Double
 >              -- 'sig' is the signal to be filtered,
 >              -- 'kcf' is the center frequency of the filter,
 >              -- and 'kbw' is the bandwidth of it.
@@ -756,7 +731,7 @@ signal to be filtered, and 'freq' is the cutoff center frequency.
 
 Analogous to csound's 'butterlp' routine.
 
-> filterLowPassBW :: forall p . Clock p => Signal p (Double, Double) Double
+> filterLowPassBW :: forall p cca . (Clock p, ArrowInit cca) => ArrowP cca p (Double, Double) Double
 > filterLowPassBW = 
 >   let sr = rate (undefined :: p) 
 >   in proc (sig, freq) -> do
@@ -766,7 +741,7 @@ A high-pass Butterworth filter.
 
 Analogous to csound's 'butterhp' routine.
 
-> filterHighPassBW :: forall p . Clock p => Signal p (Double, Double) Double
+> filterHighPassBW :: forall p cca . (Clock p, ArrowInit cca) => ArrowP cca p (Double, Double) Double
 > filterHighPassBW = 
 >   let sr = rate (undefined :: p)
 >   in proc (sig, freq) -> do
@@ -777,8 +752,7 @@ A band-pass Butterworth filter where 'band' is the bandwidth.
 
 Analogous to csound's 'butterbp' routine.
 
-> filterBandPassBW :: forall p . Clock p => 
->                     Signal p (Double, Double, Double) Double
+> filterBandPassBW :: forall p cca . (Clock p, ArrowInit cca) => ArrowP cca p (Double, Double, Double) Double
 > filterBandPassBW = 
 >   let sr = rate (undefined :: p)
 >   in proc (sig, freq, band) -> do
@@ -790,8 +764,7 @@ between 3500 to 4500 Hz are rejected.
 
 Analogous to csound's 'butterbr' routine.
 
-> filterBandStopBW :: forall p . Clock p => 
->                     Signal p (Double, Double, Double) Double
+> filterBandStopBW :: forall p cca . (Clock p, ArrowInit cca) => ArrowP cca p (Double, Double, Double) Double
 > filterBandStopBW = 
 >   let sr = rate (undefined :: p)
 >   in proc (sig, freq, band) -> do
@@ -799,7 +772,7 @@ Analogous to csound's 'butterbr' routine.
 
 Helper function for various Butterworth filters.
 
-> butter :: Clock p => Signal p (Double,ButterData) Double
+> butter :: (Clock p, ArrowInit cca) => ArrowP cca p (Double,ButterData) Double
 > butter = proc (sig, ButterData a1 a2 a3 a4 a5) -> do
 >     rec let t = sig - a4 * y' - a5 * y''
 >             y = t * a1 + a2 * y' + a3 * y''
@@ -824,7 +797,7 @@ Analogous to csound's 'comb' routine.
 >                -- sr/2 peaks spaced evenly between 0 and sr/2 (the
 >                -- Nyquist frequency).  Loop time can be as large as
 >                -- available memory will permit.
->      -> Signal p (Double, Double) Double
+>      -> (Clock p, ArrowInit cca) => ArrowP cca p (Double, Double) Double
 > filterComb looptime = 
 >     let log001 = -6.9078
 >         del = delayLine looptime
@@ -840,7 +813,7 @@ Half power is defined as peak power / sqrt 2.
 
 Analogous to csound's tone routine.
 
-> filterLowPass :: forall p . Clock p => Signal p (Double,Double) Double
+> filterLowPass :: forall p a . Clock p => (Clock p, ArrowInit cca) => ArrowP cca p (Double,Double) Double
 > filterLowPass = 
 >     let sr = rate (undefined :: p)
 >     in proc (sig, hp) -> do
@@ -860,7 +833,7 @@ true complement of filterLowPass.  Thus an audio signal, filtered by
 parallel matching 'filterLowPass' and 'filterHighPass', would under
 addition simply reconstruct the original spectrum.
 
-> filterHighPass :: Clock p => Signal p (Double,Double) Double
+> filterHighPass :: (Clock p, ArrowInit cca) => ArrowP cca p (Double,Double) Double
 > filterHighPass = proc (sig, hp) -> do
 >        y <- filterLowPass -< (sig, hp)
 >        outA -< sig - y
@@ -877,11 +850,11 @@ resulting value will not come to rest at 'b', but will instead
 continue to rise or fall with the same rate. If a rise (or fall) and
 then hold is required then 'envLineSeg' should be considered instead.
 
-> envLine :: forall p . Clock p => 
+> envLine :: forall p a . Clock p => 
 >         Double  -- Starting value.
 >      -> Double  -- Duration in seconds.
 >      -> Double  -- Value after 'dur' seconds.
->      -> Signal p () Double
+>      -> (Clock p, ArrowInit cca) => ArrowP cca p () Double
 > envLine a dur b =
 >     let sr = rate (undefined :: p)
 >     in proc () -> do
@@ -891,12 +864,12 @@ then hold is required then 'envLineSeg' should be considered instead.
 
 Trace an exponential curve between specified points. 
 
-> envExpon :: forall p . Clock p => 
+> envExpon :: forall p a . Clock p => 
 >         Double  -- Starting value.  Zero is illegal for exponentials. 
 >      -> Double  -- Duration in seconds.                
 >      -> Double  -- Value after 'dur' seconds.  For exponentials,
 >                 -- must be non-zero and must agree in sign with 'a'.
->      -> Signal p () Double
+>      -> (Clock p, ArrowInit cca) => ArrowP cca p () Double
 > envExpon a dur b =
 >     let sr = rate (undefined :: p)
 >     in proc () -> do
@@ -909,19 +882,15 @@ function because Template Haskell doesn't like higher-order functions.
 
 > data Tab = Tab [Double] !Int !(UArray Int Double)
 
-> instance Language.Haskell.TH.Syntax.Lift Tab where
->     lift (Tab xs sz uarr) =
->         [| Tab xs sz (listArray (0, sz-1) xs) |]
-
 > aAt (Tab _ sz a) i = unsafeAt a (min (sz-1) i)
 
 Helper function for envLineSeg and envExponSeg.
 
-> seghlp :: forall p . Clock p =>
+> seghlp :: forall p a . Clock p =>
 >            [Double]  -- List of points to trace through.
 >         -> [Double]  -- List of durations for each line segment.
 >                      -- Needs to be one element fewer than 'iamps'.
->         -> Signal p () (Double,Double,Double,Double)
+>         -> (Clock p, ArrowInit cca) => ArrowP cca p () (Double,Double,Double,Double)
 > seghlp iamps idurs =
 >     let sr = rate (undefined :: p)
 >         sz = length iamps
@@ -946,7 +915,7 @@ Trace a series of line segments between specified points.
 >            [Double]  -- List of points to trace through.
 >         -> [Double]  -- List of durations for each line segment.
 >                      -- Needs to be one element fewer than 'amps'.
->         -> Signal p () Double
+>         -> (Clock p, ArrowInit cca) => ArrowP cca p () Double
 > envLineSeg amps durs = 
 >     let sf = seghlp amps durs
 >     in proc () -> do
@@ -959,7 +928,7 @@ Trace a series of exponential segments between specified points.
 >            [Double]  -- List of points to trace through.
 >         -> [Double]  -- List of durations for each line segment.
 >                      -- Needs to be one element fewer than 'amps'.
->         -> Signal p () Double
+>         -> (Clock p, ArrowInit cca) => ArrowP cca p () Double
 > envExponSeg (a:amps) durs = 
 >     let amps' = max 0.001 a : amps 
 >         sf = seghlp amps' durs
@@ -974,11 +943,11 @@ state during which the output will remain constant. If the overall
 duration idur is exceeded in performance, the final decay will
 continue on in the same direction, going negative.
 
-> envASR :: (Clock p) =>
+> envASR :: (Clock p, ArrowInit cca) =>
 >          Double  -- rise time in seconds.
 >       -> Double  -- overall duration in seconds.
 >       -> Double  -- decay time in seconds.
->       -> Signal p () Double
+>       -> ArrowP cca p () Double
 > envASR rise dur dec = 
 >     let sf = envLineSeg [0,1,1,0] [rise, dur-rise-dec, dec]
 >     in proc () -> do
@@ -998,7 +967,7 @@ that time. If the overall duration 'dur' is exceeded in performance,
 the final decay will continue on in the same direction, tending
 asymptotically to zero.
 
-> envCSEnvlpx :: forall p . Clock p =>
+> envCSEnvlpx :: forall p cca .(Clock p, ArrowInit cca, ArrowChoice cca) =>
 >           Double  -- rise time in seconds.
 >        -> Double  -- overall duration in seconds.
 >        -> Double  -- decay time in seconds.
@@ -1022,7 +991,7 @@ asymptotically to zero.
 >           -- the order of .01. A large or excessively small value is
 >           -- apt to produce a cutoff which is audible. A zero or
 >           -- negative value is illegal.
->        -> Signal p () Double
+>        -> ArrowP cca p () Double
 > envCSEnvlpx rise dur dec tab atss atdec = 
 >     let sr     = rate (undefined :: p)
 >         cnt1   = (dur - rise - dec) * sr + 0.5 
@@ -1076,7 +1045,6 @@ Analgous to csound's gen05 routine.
 > tableExponN  size sp segs = tableExp_ sp segs True size
 > tableExpon size sp segs   = tableExp_ sp segs False size
 > tableExp_ sp segs = funToTable (interpLine sp segs interpExpLine) 
->                                [| interpLine sp segs interpExpLine |]
 
 Analogous to csound's gen07 routine.
 
@@ -1093,7 +1061,6 @@ Analogous to csound's gen07 routine.
 > tableLinearN  size sp segs = tableLin_ sp segs True size
 > tableLinear   size sp segs = tableLin_ sp segs False size
 > tableLin_     sp segs  = funToTable (interpLine sp segs interpStraightLine) 
->                             [| interpLine sp segs interpStraightLine |]
 
 Make a table from a collection of sine waves at different offsets and
 strengths.
@@ -1109,7 +1076,6 @@ Analogous to csound's gen09 routine.
 > tableSines3N  size ps = tableSines3_ ps True size
 > tableSines3   size ps = tableSines3_ ps False size
 > tableSines3_ ps = funToTable (makeCompositeSineFun ps) 
->                        [| makeCompositeSineFun ps |]
 
 > tableSinesF pss x = let phase = 2 * pi * x 
 >                in sum (zipWith (*) [ sin (phase * pn) | pn <- [1..] ] pss)
@@ -1119,7 +1085,7 @@ Analogous to csound's gen10 routine.
 > tableSinesN :: TableSize -> [PartialStrength] -> Table
 > tableSinesN  size pss = tableSinesN_ pss True size
 > tableSines   size pss = tableSinesN_ pss False size
-> tableSinesN_ pss = funToTable (tableSinesF pss) [| tableSinesF pss |]
+> tableSinesN_ pss = funToTable (tableSinesF pss)
 
 Generates the log of a modified Bessel function of the second kind,
 order 0, suitable for use in amplitude-modulated FM.
@@ -1132,7 +1098,7 @@ Analogous to csound's gen12 routine.
 >       -> Table
 > tableBesselN  size xint = tableBess_ xint True size
 > tableBessel   size xint = tableBess_ xint False size
-> tableBess_ xint = funToTable (tableBessF xint) [| tableBessF xint |]
+> tableBess_ xint = funToTable (tableBessF xint)
 > tableBessF xint x =
 >     log $ 1 +
 >         let tsquare = x * x * xint * xint / 3.75 / 3.75
@@ -1225,29 +1191,3 @@ For a particular point, sum all partials.
 > makeCompositeSineFun (p:ps) x = makeSineFun p x + makeCompositeSineFun ps x
 
 
---------------------------------------
--- Time events
---------------------------------------
-
-> samples :: forall p . Clock p => Signal p () (Event ())
-> samples = constA (Just ())
-
-> timeBuilder :: forall p . Clock p => Double -> Signal p () (Event ())
-> timeBuilder d =
->     let r = (rate (undefined :: p))*d
->     in proc _ -> do
->         rec i <- init 0 -< if i >= r then i-r else i+1
->         outA -< if i < 1 then Just () else Nothing
-
-> milliseconds :: Clock p => Signal p () (Event ())
-> milliseconds = timeBuilder (1/1000)
-
-> seconds :: Clock p => Signal p () (Event ())
-> seconds = timeBuilder 1
-
-> countTime :: Clock p => Int -> Signal p () (Event ()) -> Signal p () (Event ())
-> countTime n t = proc _ -> do
->   e <- t -< ()
->   rec i <- init 0 -< maybe i' (const $ i'+1) e
->       let (i',o) = if i == n then (0, Just ()) else (i, Nothing)
->   outA -< o

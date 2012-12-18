@@ -155,20 +155,13 @@ funkGroove
         (  (  p1 :+: qnr :+: p2 :+: qnr :+: p2 :+:
               p1 :+: p1 :+: qnr :+: p2 :+: enr)
            :=: roll en (perc ClosedHiHat 2) )
-
-instance Functor Primitive where
-    fmap = pMap
 pMap               :: (a -> b) -> Primitive a -> Primitive b
 pMap f (Note d x)  = Note d (f x)
 pMap f (Rest d)    = Rest d
-
-instance Functor Music where
-    fmap = mMap
 mMap                 :: (a -> b) -> Music a -> Music b
 mMap f (Prim p)      = Prim (pMap f p)
 mMap f (m1 :+: m2)   = mMap f m1 :+: mMap f m2
 mMap f (m1 :=: m2)   = mMap f m1 :=: mMap f m2
--- mMap f (m1 :=/ m2)   = mMap f m1 :=/ mMap f m2
 mMap f (Modify c m)  = Modify c (mMap f m)
 type Volume = Int
 addVolume    :: Volume -> Music Pitch -> Music (Pitch,Volume)
@@ -176,12 +169,12 @@ addVolume v  = mMap (\p -> (p,v))
 mFold ::  (Primitive a -> b) -> (b->b->b) -> (b->b->b) -> 
           (Control -> b -> b) -> Music a -> b
 mFold f (+:) (=:) g m =
-  let rec = mFold f (+:) (=:) g
+  let r = mFold f (+:) (=:) g
   in case m of
        Prim p      -> f p
-       m1 :+: m2   -> rec m1 +: rec m2
-       m1 :=: m2   -> rec m1 =: rec m2
-       Modify c m  -> g c (rec m)
+       m1 :+: m2   -> r m1 +: r m2
+       m1 :=: m2   -> r m1 =: r m2
+       Modify c m  -> g c (r m)
 rep ::  (Music a -> Music a) -> (Music a -> Music a) -> Int 
         -> Music a -> Music a
 rep f g 0 m  = rest 0

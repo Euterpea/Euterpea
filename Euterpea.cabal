@@ -1,10 +1,10 @@
-name:		Euterpea
-version:	1.0.0
+name:       Euterpea
+version:    1.0.0
 Cabal-Version:  >= 1.8
-license:	BSD3
-license-file:	License
+license:    BSD3
+license-file:   License
 copyright:      Copyright (c) 2008-2012 Paul Hudak
-category:	Sound
+category:   Sound
 stability:      experimental
 build-type:     Custom
 author:         Paul Hudak <paul.hudak@cs.yale.edu>, 
@@ -15,7 +15,7 @@ maintainer:     Paul Hudak <paul.hudak@cs.yale.edu>,
                 Dan Winograd-Cort <daniel.winograd-cort@yale.edu>
 bug-reports:    mailto:paul.hudak@yale.edu
 homepage:       http://haskell.cs.yale.edu/
-synopsis:	Library for computer music research and education.
+synopsis:   Library for computer music research and education.
 description:
         Euterpea is a domain-specific language embedded in Haskell for 
         computer music research, education, and development, providing
@@ -32,15 +32,14 @@ description:
         able to develop real-time applications, using both MIDI and a 
         high-performance back-end for real-time audio.  
 extra-source-files:
-	ReadMe.txt,
-        ArrowWrap.hs,
+    ReadMe.txt,
         Examples/EuterpeaExamples.lhs,
         Examples/NewResolutions.lhs,
         Examples/SSF.lhs,
         Examples/UIExamples.hs,
         Examples/GUIExamples.lhs,
-	Examples/SoundCheck.hs,
-	Examples/EnableGUI.hs,
+    Examples/SoundCheck.hs,
+    Examples/EnableGUI.hs,
         HSoM/Preface.lhs,
         HSoM/Intro.lhs,
         HSoM/Music.lhs,
@@ -71,9 +70,27 @@ extra-source-files:
 Library
   hs-source-dirs: .
   ghc-options: -O2 -funbox-strict-fields -fexcess-precision
+  extensions:
+          CPP
+          BangPatterns
+          FlexibleInstances
+          FlexibleContexts
+          TypeSynonymInstances
+          ScopedTypeVariables
+          MultiParamTypeClasses
+          FunctionalDependencies
+          Arrows
+          DoRec
+          TypeOperators
+          EmptyDataDecls
+          NamedFieldPuns
+          ExistentialQuantification
+          TupleSections
+
   exposed-modules: 
         Euterpea,
-        Control.CCA.ArrowP,
+        Control.ArrowInit
+        Control.ArrowInit.ArrowP,
         Control.SF.SF,
         Control.SF.AuxFunctions,
         Control.SF.MSF,
@@ -114,9 +131,8 @@ Library
   build-depends:
         base >= 3 && < 5, array, bytestring, random,
         mtl, containers, markov-chain, 
-        CCA >= 0.1.3, GLFW == 0.5.*, OpenGL, PortMidi, 
+        GLFW == 0.5.*, OpenGL, PortMidi, 
         HCodecs >= 0.2, heap == 0.6.0, 
-        template-haskell, haskell-src-exts,
         monadIO, deepseq,
         pure-fft,
         stm

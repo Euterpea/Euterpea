@@ -44,7 +44,7 @@ time = integral <<< constA 1
 simpleInstr :: InstrumentName
 simpleInstr = Custom "Simple Instrument"
 myInstr :: Instr (AudSF () Double)
-  -- |Dur -> AbsPitch -> Volume -> [Double] -> (AudSF () Double)|
+  -- Dur -> AbsPitch -> Volume -> [Double] -> (AudSF () Double)|
 myInstr dur ap vol [vfrq,dep] =
   proc () -> do
        vib  <- osc tab1  0 -< vfrq

@@ -1,5 +1,3 @@
-> {-# LANGUAGE CPP, DoRec, FlexibleInstances, MultiParamTypeClasses #-}
-
 > module Control.SF.MSF where
 
 #if __GLASGOW_HASKELL__ >= 610
@@ -10,7 +8,7 @@
 #endif
 > import Control.Arrow
 > import Control.Monad.Fix
-> import Control.CCA.Types
+> import Control.ArrowInit
 
 
 > data MSF m a b = MSF { msfFun :: (a -> m (b, MSF m a b)) }
@@ -85,10 +83,8 @@
 >                       Right c -> do (d, MSF g') <- g c
 >                                     return (d, MSF (h f g'))
 
-> 
-> instance MonadFix m => ArrowInit (MSF m) where
->   init i = MSF (h i) where h i x = return (i, MSF (h x))
-> 
+> initUI :: MonadFix m => b -> MSF m b b
+> initUI i = MSF (h i) where h i x = return (i, MSF (h x))
 
 > source :: Monad m => m c ->         MSF m () c
 > sink   :: Monad m => (b -> m ()) -> MSF m b  ()

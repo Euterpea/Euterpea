@@ -28,7 +28,7 @@
 %% widgets:
 
 %% time :: UISF () Time
-%% timer :: ArrowInit a => a (Time, Double) (Event ())
+%% timer :: UISF (Time, Double) (Event ())
 %% label :: String -> UISF a a
 %% display :: UISF String ()
 %% button :: String -> UISF () Bool
