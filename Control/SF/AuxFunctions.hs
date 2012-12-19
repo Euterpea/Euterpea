@@ -43,7 +43,7 @@ type Event a = Maybe a
 edge :: ArrowInit a => a Bool Bool
 edge = proc b -> do
     prev <- init False -< b
-    returnA -< prev && not b
+    returnA -< not prev && b
 
 -- | Scrutinizes n samples at a time, updating after k new values from a signal function
 quantize :: ArrowInit a => Int -> Int -> a b (Event [b])

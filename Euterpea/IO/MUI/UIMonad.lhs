@@ -142,35 +142,21 @@ first layout argument should basically be a sublayout of the second.
 >           ~(Layout m n u v minw minh) ~(Layout m' n' u' v' minw' minh') =
 >   if c then (ctx, ctx) else
 >   case a of
->     TopDown   -> (CTX a ((x, y), (w, h')) f c, 
+>     TopDown   -> (CTX a ((x, y), (w'', h')) f c, 
 >                   CTX a ((x, y + h'), (w, h - h')) f c)
->     BottomUp  -> (CTX a ((x, y + h - h'), (w, h')) f c, 
+>     BottomUp  -> (CTX a ((x, y + h - h'), (w'', h')) f c, 
 >                   CTX a ((x, y), (w, h - h')) f c)
->     LeftRight -> (CTX a ((x, y), (w', h)) f c, 
+>     LeftRight -> (CTX a ((x, y), (w', h'')) f c, 
 >                   CTX a ((x + w', y), (w - w', h)) f c)
->     RightLeft -> (CTX a ((x + w - w', y), (w', h)) f c, 
+>     RightLeft -> (CTX a ((x + w - w', y), (w', h'')) f c, 
 >                   CTX a ((x, y), (w - w', h)) f c)
 >   where
->     w' = min (w - (minw' - minw)) $ max minw $ (m * div' (w - u') m' + u)
->     h' = min (h - (minh' - minh)) $ max minh $ (n * div' (h - v') n' + v)
+>     w' = max minw $ (m * div' (w - u') m' + u)
+>     h' = max minh $ (n * div' (h - v') n' + v)
+>     w'' = max minw $ (if m == 0 then u else w)
+>     h'' = max minh $ (if n == 0 then v else h)
 >     div' b 0 = 0
 >     div' b d = div b d
-
-----------------
- | computeBBX | 
-----------------
-Calculate the actual size of a widget given the context and its layout.
-
-> computeBBX :: CTX -> Layout -> Rect
-> computeBBX (CTX a ((x, y), (w, h)) _ _) ~(Layout m n u v minw minh) = 
->   case a of
->     TopDown   -> ((x, y), (w', h')) 
->     BottomUp  -> ((x, y + h - h'), (w', h'))
->     LeftRight -> ((x, y), (w', h'))
->     RightLeft -> ((x + w - w', y), (w', h'))
->   where
->     w' = max minw $ (if m == 0 then u else w)
->     h' = max minh $ (if n == 0 then v else h)
 
 
 -----------------

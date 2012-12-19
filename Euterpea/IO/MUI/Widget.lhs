@@ -62,7 +62,7 @@ A helper function to make stateful Widgets easier to write.
 >           (s2, db) = comp (s1, (ctx, inp))
 >           (y, s') = prj s2
 >           action = (draw bbx (snd f == HasFocus) `cross` buzz) s'
->           bbx = computeBBX ctx layout
+>           bbx = bounds ctx --computeBBX ctx layout
 
 A few useful shorthands for creating widgets with mkWidget
 
@@ -90,7 +90,7 @@ Labels are always left aligned and vertically centered.
 >     aux a (ctx,f,inp) = (d, False, f, action, [], a)
 >       where 
 >         action = justGraphicAction $ drawit bbx
->         bbx = computeBBX ctx d
+>         bbx = bounds ctx --computeBBX ctx d
 
 -----------------
  | Display Box | 
@@ -598,7 +598,7 @@ The mkSlider widget builder is useful in the creation of all sliders.
 >           UIEvent (SKey SK.HOME  True) -> (jump minBound bw val, s)
 >           UIEvent (SKey SK.END   True) -> (jump maxBound bw val, s)
 >           _ -> (val, s)
->         bbx@((bx,by),(bw,bh)) = let b = computeBBX ctx d in rotR b b
+>         bbx@((bx,by),(bw,bh)) = let b = bounds ctx {-computeBBX ctx d-} in rotR b b
 >         bar' = let ((x,y),(w,h)) = bar bbx in ((x,y-4),(w,h+8))
 >         target = (val2pt val bbx, (tw, th)) 
 >         ptDiff (x, y) val = 
@@ -748,8 +748,9 @@ focusable = id
 >               UIEvent (Key  _ _) -> NoEvent
 >               UIEvent (SKey _ _) -> NoEvent
 >               _ -> inp)
+>         redraw = hasFocus /= hasFocus'
 >     (l, db, _, act, tids, (b, w')) <- expandUISF w a (ctx, (myid,focus'), inp')
->     return $! (l, db, (myid+1,f), act, tids, ((b, hasFocus'), compressUISF (h w')))
+>     return $! (l, db || redraw, (myid+1,f), act, tids, ((b, hasFocus'), compressUISF (h w')))
 
 Although mouse button clicks and keystrokes will be available once a 
 widget marks itself as focusable, the widget may also simply want to 

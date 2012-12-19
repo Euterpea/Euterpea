@@ -131,18 +131,25 @@ Thes functions are UISF transformers that modify the flow in the context.
 > modifyFlow' h (UI f) = UI g where g (c,s,i) = f (h c,s,i)
 
 
-Set fixed size (in pixels) for UI widget. 
+Set a new layout for this widget.
+
+> setLayout  :: Layout -> UISF a b -> UISF a b
+> setLayout l = transformUISF (setLayout' l)
+
+> setLayout' :: Layout -> UI a -> UI a
+> setLayout' d (UI f) = UI aux
+>   where
+>     aux inps = do
+>       (_, db, foc, a, ts, v) <- f inps
+>       return (d, db, foc, a, ts, v)
+
+A convenience function for setLayout, setSize sets the layout to a 
+fixed size (in pixels).
 
 > setSize  :: Dimension -> UISF a b -> UISF a b
-> setSize dim = transformUISF (setSize' dim)
+> setSize (w,h) = setLayout $ makeLayout (Fixed w) (Fixed h)
 
-> setSize' :: Dimension -> UI a -> UI a
-> setSize' (w, h) (UI f) = UI aux
->   where
->     aux (ctx@(CTX i bbx m c), foc, inp) = do
->       let d = Layout 0 0 0 0 w h
->       (_, db, foc, a, ts, v) <- f (CTX i (computeBBX ctx d) m c, foc, inp)
->       return (d, db, foc, a, ts, v)
+
 
 Add space padding around a widget.
 
@@ -155,7 +162,7 @@ Add space padding around a widget.
 >     aux (ctx@(CTX i _ m c), foc, inp) = do
 >       rec (l, db, foc', a, ts, v) <- f (CTX i ((x + w, y + n),(bw,bh)) m c, foc, inp)
 >           let d = l { hFixed = hFixed l + w + e, vFixed = vFixed l + n + s }
->               ((x,y),(bw,bh)) = computeBBX ctx d
+>               ((x,y),(bw,bh)) = bounds ctx --computeBBX ctx d
 >       return (d, db, foc', a, ts, v)
 
 

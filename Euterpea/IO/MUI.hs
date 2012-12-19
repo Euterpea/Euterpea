@@ -5,8 +5,9 @@ module Euterpea.IO.MUI
   , Dimension           -- type Dimension = (Int, Int)
   , Rect                -- type Rect = (Point, Dimension)
   , topDown, bottomUp, leftRight, rightLeft    -- :: UISF a b -> UISF a b
-  , setSize             -- :: Dimension -> :: UISF a b -> UISF a b
-  , pad                 -- :: (Int, Int, Int, Int) -> :: UISF a b -> UISF a b
+  , setSize             -- :: Dimension -> UISF a b -> UISF a b
+  , setLayout           -- :: Layout -> UISF a b -> UISF a b
+  , pad                 -- :: (Int, Int, Int, Int) -> UISF a b -> UISF a b
   , runUI               -- :: String -> UISF () () -> IO ()
   , runUIEx             -- :: Dimension -> String -> UISF () () -> IO ()
   , time                -- :: UISF () Time
