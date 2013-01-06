@@ -19,6 +19,7 @@ module Euterpea.IO.MUI
   , textbox             -- :: String -> UISF String String
   , title               -- :: String -> UISF a b -> UISF a b
   , button              -- :: String -> UISF () Bool
+  , stickyButton        -- :: String -> UISF () Bool
   , checkbox            -- :: String -> Bool -> UISF () Bool
   , radio               -- :: [String] -> Int -> UISF () Int
   , hSlider, vSlider    -- :: RealFrac a => (a, a) -> a -> UISF () a

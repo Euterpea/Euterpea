@@ -145,7 +145,7 @@ left, right, end, home, delete, and backspace special keys.
 >     k <- getEvents -< ()
 >     ctx <- getCTX -< ()
 >     rec (s', i) <- init (startingVal, 0) -< if inFocus then update s i ctx k else (s, i)
->     display -< s'
+>     display -< ctx `seq` k `seq` i `seq` s'
 >     t <- time -< ()
 >     b <- timer -< (t, 0.5)
 >     rec willDraw <- init True -< willDraw'
@@ -230,6 +230,36 @@ it also shows a static text label.
 >           _ -> s
 >           where
 >             bbx = bounds ctx --computeBBX ctx d
+
+------------
+ | Sticky Button | 
+------------
+The Sticky Button is like the button, but when it is pressed, it remains 
+depressed until it is clicked again to be released.  Thus, it looks like a 
+button, but it behaves more like a checkbox.
+
+> stickyButton :: String -> UISF () Bool
+> stickyButton label = focusable $ 
+>   mkWidget False d draw (const nullSound) (const id)
+>        process dup
+>   where
+>     (tw, th) = (8 * length label, 16) 
+>     (minw, minh) = (tw + padding * 2, th + padding * 2)
+>     d = makeLayout (Stretchy minw) (Fixed minh)
+>     draw b@((x,y), (w,h)) inFocus down = 
+>       let x' = x + (w - tw) `div` 2 + if down then 0 else -1
+>           y' = y + (h - th) `div` 2 + if down then 0 else -1
+>       in (withColor Black $ text (x', y') label) // 
+>          (if inFocus then box marked b else nullGraphic) //
+>          (box (if down then pushed else popped) b)
+>     process (s, (ctx, evt)) = (s', s /= s')
+>       where 
+>         s' = case evt of
+>           UIEvent (Button pt True True) -> not s
+>           UIEvent (SKey SK.ENTER True) -> not s
+>           _ -> s
+>           where
+>             bbx = bounds ctx
 
 
 ---------------
@@ -471,9 +501,7 @@ of MidiMessages and sends the MidiMessages to the device.
 >     aux dev (ctx,foc,inp) = (nullLayout, False, foc, action, [], v)
 >       where 
 >         v = case inp of
->               MidiEvent d m -> if d == dev
->                                then Just [Std m]
->                                else Nothing
+>               MidiEvent d m | d == dev -> Just [Std m]
 >               _ -> Nothing
 >         action = justSoundAction $ do
 >           valid <- isValidInputDevice dev
