@@ -147,10 +147,10 @@ The main UI:
 >         midiMsgs = progChan .|. mergeWithE (++) note0 note1
 >     -- Display results:
 >     (| leftRight (do
->         title "Score:"   $ setSize (120,50) $ 
+>         title "Score:"   $ setSize (120,25) $ 
 >                             display -< showScore correct total
->         title "Repeats:" $ setSize (120,50) $ display -< show repeats
->         title "Answer:"  $ setSize (120,50) $ display -< 
+>         title "Repeats:" $ setSize (120,25) $ display -< show repeats
+>         title "Answer:"  $ setSize (120,25) $ display -< 
 >                 interval `seq` if state==Guessed then intNameList!!(snd interval) else ""
 >         returnA -< () )|)
 >     -- Midi output
