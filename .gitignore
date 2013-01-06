@@ -9,6 +9,11 @@ cabal-dev
 
 
 ############
+## File Editor temp files
+############
+*~
+
+############
 ## Windows
 ############
 
