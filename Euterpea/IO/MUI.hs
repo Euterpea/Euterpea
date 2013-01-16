@@ -28,8 +28,13 @@ module Euterpea.IO.MUI
   , histogram           -- :: RealFrac a => Layout -> UISF (Event [a]) ()
   , listbox             -- :: (Eq a, Show a) => UISF ([a], Int) Int
   , midiIn              -- :: UISF DeviceID (Event [MidiMessage])
+  , midiInM             -- :: UISF [(DeviceID, Bool)] (Event [MidiMessage])
   , midiOut             -- :: UISF (DeviceID, Event [MidiMessage]) ()
+  , midiOutB            -- :: UISF (DeviceID, Event [(Time, MidiMessage)]) Bool
+  , midiOutM            -- :: UISF ([(DeviceID, Bool)], Event [MisiMessage]) ()
+  , musicToMsgs         -- Bool -> [InstrumentName] -> Music1 -> [(Time, MidiMessage)]
   , selectInput, selectOutput    -- :: UISF () DeviceID
+  , selectInputM, selectOutputM  -- :: UISF () [(DeviceID, Bool)]
   , canvas              -- :: Dimension -> UISF (Event Graphic) ()
   , canvas'             -- :: Layout -> (a -> Dimension -> Graphic) -> UISF (Event a) ()
   -- Widget Utilities
