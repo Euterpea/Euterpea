@@ -28,6 +28,12 @@ The monadic UI concept is borrowed from Phooey by Conal Elliott.
 > import Data.Map (Map)
 > import qualified Data.Map as Map
 > import Data.Char (isPrint, ord)
+> import Codec.Midi
+> import Euterpea.IO.MIDI.ToMidi
+> import Euterpea.IO.MIDI.GeneralMidi
+> import Euterpea.Music.Note.Performance hiding (Event)
+> import Euterpea.Music.Note.Music
+> import Data.List hiding (init)
 
 ============================================================
 ============== Shorthand and Helper Functions ==============
@@ -292,6 +298,25 @@ It has a static label as well as an initial state.
 >             else nullGraphic) //
 >       box pushed b // (withColor White $ block b)
 
+
+--------------------
+ | Checkbox Group | 
+--------------------
+
+The checkGroup widget creates a group of check boxes that
+all send to the same output stream. It takes a list of 
+labels for the check boxes.
+
+> checkGroup :: [String] -> UISF () [Bool]
+> checkGroup (s:ss) = proc _ -> do
+>     c <- checkbox s False -< ()
+>     cs <- checkGroup ss -< ()
+>     returnA -< (c:cs)
+> checkGroup [] = proc _ -> do
+>     returnA -< []
+
+
+
 -------------------
  | Radio Buttons | 
 -------------------
@@ -520,7 +545,119 @@ of MidiMessages and sends the MidiMessages to the device.
 >                              mapM_ (\m -> outputMidi dev (0, m)) msgs
 >                 Nothing   -> tryOutputMidi dev
 
+ 
+The midiInM widget takes input from multiple devices and combines 
+it into a single stream. 
 
+> midiInM :: UISF ([(DeviceID, Bool)]) (Event [MidiMessage])
+> midiInM = proc ds -> do
+>   midiInGroup (map fst devs) -< ds
+>       where devs = filter (\(i,d) -> input d && name d /= "Microsoft MIDI Mapper") $ 
+>                      zip [0..] $ unsafePerformIO getAllDeviceInfo
+
+> midiInGroup :: [DeviceID] -> UISF ([(DeviceID, Bool)]) (Event [MidiMessage])
+> midiInGroup [] = proc bs -> do
+>     returnA -< Nothing
+> midiInGroup (i:is) = proc bs -> do 
+>     m <- midiIn -< i
+>     let m' = if elem (i, True) bs then m else Nothing
+>     ms <- midiInGroup is -< bs
+>     returnA -< merge m' ms where
+>     merge :: Maybe [a] -> Maybe [a] -> Maybe [a]
+>     merge Nothing (Just x) = Just x
+>     merge (Just x) Nothing = Just x
+>     merge (Just x) (Just y) = Just (x++y)
+>     merge Nothing Nothing = Nothing
+
+
+A midiOutM widget sends output to multiple MIDI devices by sequencing
+the events through a single midiOut. The same messages are sent to 
+each device. The midiOutM is designed to be hooked up to a stream like
+that from a checkGroup.
+
+> midiOutM :: UISF ([(DeviceID, Bool)], Event [MidiMessage]) ()
+> midiOutM = proc (ds, ms) -> do
+>   midiOutGroup (map fst devs) -< (ds, ms)
+>       where devs = filter (\(i,d) -> output d && name d /= "Microsoft MIDI Mapper") $ 
+>                      zip [0..] $ unsafePerformIO getAllDeviceInfo 
+
+> midiOutGroup :: [Int] -> UISF ([(DeviceID, Bool)], Event [MidiMessage]) ()
+> midiOutGroup [] = proc _ -> do
+>     returnA -< ()
+> midiOutGroup (i:is) = proc (bs, ms) -> do 
+>     midiOut -< (i, if elem (i, True) bs then ms else Nothing)
+>     midiOutGroup is -< (bs, ms)
+
+
+A midiOutB widget wraps the regular midiOut widget with a buffer. 
+This allows for a timed series of messages to be prepared and sent
+to the widget at one time. With the regular midiOut, there is no
+timestamping of the messages and they are assumed to be played "now"
+rather than at some point in the future. Just as MIDI files have the
+events timed based on ticks since the last event, the events here 
+are timed based on seconds since the last event. If an event is 
+to occur 0.0 seconds after the last event, then it is assumed to be
+played at the same time as that other event and all simultaneous 
+events are handed to midiOut at the same timestep. Finally, the 
+widget returns a flat that is True if the buffer is empty and False
+if the buffer is full (meaning that items are still being played).
+
+> midiOutB :: UISF (DeviceID, Event [(Time, MidiMessage)]) (Bool)
+> midiOutB = proc (devID, msgs) -> do
+>   t <- time -< ()
+>   rec tLast <- init 0.0 -< nextT
+>       msgBuffer <- init [] -< msgBuffer''
+>       let (nextMsgs, msgBuffer', nextT) = getNextMsgs tLast t msgBuffer
+>           msgBuffer'' = case msgs of Just ms -> msgBuffer' ++ ms
+>                                      Nothing -> msgBuffer'
+>   midiOut -< (devID, nextMsgs) 
+>   returnA -< null msgBuffer where 
+>       getNextMsgs :: Time -> Time -> [(Time, a)] -> (Maybe [a], [(Time, a)], Time)
+>       getNextMsgs tLast t ms = 
+>           let (x:xs) = head ms : (takeWhile ((<=0).fst) $ tail ms)
+>               nextMs = map snd (x:xs)
+>               tNext = fst x
+>           in  if null ms || t - tLast < fst x then (Nothing, ms, tLast)
+>               else (Just nextMs, drop (length (x:xs)) ms, t)
+
+
+The musicToMsgs function bridges the gap between a Music1 value and
+the input type of midiOutB. It turns a Music1 value into a series 
+of MidiMessages that are timestamped using the number of seconds 
+since the last event. The arguments are as follows:
+
+- True if allowing for an infinite music value, False if the input
+  value is known to be finite. 
+
+- InstrumentName overrides for channels for infinite case. When the
+  input is finite, an empty list can be supplied since the instruments
+  will be pulled from the Music1 value directly (which is obviously 
+  not possible to do in the infinite case).
+
+- The Music1 value to convert to timestamped MIDI messages.
+
+> musicToMsgs :: Bool -> [InstrumentName] -> Music1 -> [(Time, MidiMessage)]
+> musicToMsgs inf is m = 
+>     let p = perform defPMap defCon m -- obtain the performance
+>         instrs = if null is && not inf then nub $ map eInst p else is
+>         chan e = 1 + case findIndex (==eInst e) instrs of 
+>                          Just i -> i
+>                          Nothing -> error ("Instrument "++show (eInst e)++
+>                                     "is not assigned to a channel.")                               
+>         f e = (eTime e, ANote (chan e) (ePitch e) (eVol e) (fromRational $ eDur e))
+>         f2 e = [(eTime e, Std (NoteOn (chan e) (ePitch e) (eVol e))), 
+>                (eTime e + eDur e, Std (NoteOff (chan e) (ePitch e) (eVol e)))]
+>         evs = if inf then map f p else sortBy mOrder $ concatMap f2 p -- convert to MidiMessages
+>         times = map (fromRational.fst) evs -- absolute times
+>         newTimes = zipWith subtract (head times : times) times -- relative times
+>         progChanges = zipWith (\c i -> (0, Std $ ProgramChange c i)) 
+>                       [1..16] $ map toGM instrs
+>     in  if length instrs > 16 then error "too many instruments!" 
+>         else progChanges ++ zip newTimes (map snd evs) where
+>     mOrder (t1,m1) (t2,m2) = compare t1 t2
+
+ 
+ 
 ----------------------
  | Device Selection | 
 ----------------------
@@ -541,6 +678,25 @@ that just the radio button index as the radio widget would return.
 >       where devs = filter (\(i,d) -> f d && name d /= "Microsoft MIDI Mapper") $ 
 >                      zip [0..] $ unsafePerformIO getAllDeviceInfo
 >             defaultChoice = if null devs then (-1) else 0
+
+
+The selectInputM and selectOutputM widgets use checkboxes instead of 
+radio buttons to allow the user to select multiple inputs and outputs.
+These widgets should be used with midiInM and midiOutM respectively.
+
+> selectInputM, selectOutputM :: UISF () [(DeviceID, Bool)]
+> selectInputM = selectDevM "Input devices" input
+> selectOutputM = selectDevM "Output devices" output
+
+> selectDevM :: String -> (DeviceInfo -> Bool) -> UISF () [(DeviceID, Bool)]
+> selectDevM t f = 
+>   let devNames = snd $ unzip devs  -- names
+>       devIDs = map fst devs -- ids
+>   in  title t $ proc _ -> do
+>       cs <- checkGroup (map name $ devNames) -< ()
+>       returnA -< zip devIDs cs
+>         where devs = filter (\(i,d) -> f d && name d /= "Microsoft MIDI Mapper") $ 
+>                        zip [0..] $ unsafePerformIO getAllDeviceInfo
 
 
 
@@ -666,7 +822,6 @@ used in cases with stretchy layouts.
 >     process ((ea, a'), _) = case ea of
 >       Just a  -> (Just a, True)
 >       Nothing -> (a',     False)
-
 
 
 ============================================================
