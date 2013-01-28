@@ -237,9 +237,9 @@ it also shows a static text label.
 >           where
 >             bbx = bounds ctx --computeBBX ctx d
 
-------------
+-------------------
  | Sticky Button | 
-------------
+-------------------
 The Sticky Button is like the button, but when it is pressed, it remains 
 depressed until it is clicked again to be released.  Thus, it looks like a 
 button, but it behaves more like a checkbox.
@@ -779,8 +779,8 @@ The mkSlider widget builder is useful in the creation of all sliders.
 >           UIEvent (SKey SK.RIGHT True) -> if hori then (jump 1    bw val, s) else (val, s)
 >           UIEvent (SKey SK.UP    True) -> if hori then (val, s) else (jump (-1) bw val, s)
 >           UIEvent (SKey SK.DOWN  True) -> if hori then (val, s) else (jump 1    bw val, s)
->           UIEvent (SKey SK.HOME  True) -> (jump minBound bw val, s)
->           UIEvent (SKey SK.END   True) -> (jump maxBound bw val, s)
+>           UIEvent (SKey SK.HOME  True) -> (pos2val 0  (bw - 2 * padding - tw), s)
+>           UIEvent (SKey SK.END   True) -> (pos2val bw (bw - 2 * padding - tw), s)
 >           _ -> (val, s)
 >         bbx@((bx,by),(bw,bh)) = let b = bounds ctx {-computeBBX ctx d-} in rotR b b
 >         bar' = let ((x,y),(w,h)) = bar bbx in ((x,y-4),(w,h+8))
