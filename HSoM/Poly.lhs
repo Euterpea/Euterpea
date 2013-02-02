@@ -9,10 +9,10 @@
 
 Several examples of polymorphic data types were introduced in the last
 couple of chapters.  In this chapter the focus is on {\em polymorphic
-  functions}, which are most commonly functions defined over
-polymorphic data types.  
+  functions}, which are most commonly defined over polymorphic data
+types.
 
-The already familiar {\em list} is the most common example of a
+The already familiar {\em list} is the protoypical example of a
 polymorphic data type, and it will be studied in depth in this
 chapter.  Although lists have no direct musical connection, they are
 perhaps the most commonly used data type in Haskell, and have many
@@ -31,7 +31,7 @@ expression of many musical concepts.  Together with polymorphism,
 higher-order functions substantially increase the programmer's
 expressive power and ability to reuse code.
 
-Both of these new ideas naturally follow the foundations that have
+Both of these new ideas follow naturally the foundations that have
 already been established.
 
 \section{Polymorphic Types}
@@ -41,26 +41,26 @@ already been established.
 
 In previous chapters, examples of lists containing several different
 kinds of elements---integers, characters, pitch classes, and so
-on---were introduced, and one can well imagine situations requiring
-lists of other element types.  Sometimes, however, it isn't necessary
+on---were introduced, and we can well imagine situations requiring
+lists of other element types.  Sometimes, however, it is not necessary
 to be so particular about the type of the elements.  For example,
-suppose one wishes to define a function |length| that determines the
-number of elements in a list.  It doesn't really matter whether the
-list contains integers, pitch classes, or even other lists---one can
+suppose we wish to define a function |length| that determines the
+number of elements in a list.  It does not really matter whether the
+list contains integers, pitch classes, or even other lists---we can
 imagine computing the length in exactly the same way in each case.
 The obvious definition is: \indexhs{length}
 \begin{spec}
 length []      = 0
 length (x:xs)  = 1 + length xs
 \end{spec}
-This recursive definition is self-explanatory.  One can read the
-equations as saying: ``The length of the empty list is 0, and the
-length of a list whose first element is |x| and remainder is
-|xs| is 1 plus the length of |xs|.''
+This recursive definition is self-explanatory.  Indeed, we can read
+the equations as saying: ``The length of the empty list is 0, and the
+length of a list whose first element is |x| and remainder is |xs| is 1
+plus the length of |xs|.''
 
-But what should the type of |length| be?  Intuitively, one would like
+But what should the type of |length| be?  Intuitively, we would like
 to say that, for {\em any} type |a|, the type of |length| is |[a] ->
-Integer|.  In mathematics one might write:
+Integer|.  In mathematics we might write this as:
 \begin{spec}
 length :: (forall a) [a] -> Integer
 \end{spec}
@@ -79,7 +79,7 @@ So |length| can be applied to a list containing elements of {\em
 any} type.  For example:
 \begin{code}
 length [1,2,3]            ===> 3
-length [C,Cs,Df ]         ===> 3
+length [C,D,Ef ]         ===> 3
 length [[1],[],[2,3,4]]   ===> 3
 \end{code}
 %% length "def"              ===> 3
@@ -100,18 +100,18 @@ tail (_:xs)  =  xs
 \end{spec}
 \syn{The |_| on the left-hand side of these equations is called a
   \emph{wildcard} pattern.  It matches any value, and binds no
-  variables.  It is useful as a way of documenting the fact that one
-  does not care about the value in that part of the pattern.  Note
-  that one could (perhaps should) have used a wildcard in place of the
+  variables.  It is useful as a way of documenting the fact that we
+  do not care about the value in that part of the pattern.  Note
+  that we could (perhaps should) have used a wildcard in place of the
   variable |x| in the definition of |length|.  } 
 
 These two functions take the ``head'' and ``tail,'' respectively, of
 any non-empty list.  For example:
 \begin{spec}
 head [ 1, 2, 3 ]    ==> 1
-head [ C, Cs, Df ]  ==> C
+head [ C, D, Ef ]  ==> C
 tail [ 1, 2, 3 ]    ==> [ 2, 3 ]
-tail [ C, Cs, Df ]  ==> [ Cs, Df ]
+tail [ C, D, Ef ]  ==> [ D, Ef ]
 \end{spec}
 Note that, for any non-empty list |xs|, |head| and |tail| obey the
 following law:
@@ -134,15 +134,15 @@ including the |Music| data type defined in the last chapter.
 \section{Abstraction Over Recursive Definitions}
 \label{sec:rec-abstraction}
 
-Given a list of pitches, suppose one wishes to convert each pitch into
-an absolute pitch.  One might write a function:
+Given a list of pitches, suppose we wish to convert each pitch into
+an absolute pitch.  We could define a function:
 \begin{code}
 toAbsPitches         :: [Pitch] -> [AbsPitch]
 toAbsPitches []      = []
 toAbsPitches (p:ps)  = absPitch p : toAbsPitches ps
 \end{code}
 
-One might also want to convert a list of absolute pitches to a list of
+We might also want to convert a list of absolute pitches to a list of
 pitches:
 \begin{code}
 toPitches         :: [AbsPitch] -> [Pitch]
@@ -157,7 +157,7 @@ unclear how to apply the abstraction principle.  What distinguishes
 this situation is that there is a repeating pattern of {\em
   recursion}.
 
-In discerning the nature of a repeating pattern, recall that it's
+In discerning the nature of a repeating pattern, recall that it is
 sometimes helpful to first identify those things that {\em are not}
 repeating---i.e.\ those things that are {\em changing}---since these
 will be the sources of {\em parameterization}: those values that must
@@ -174,7 +174,7 @@ This recursive pattern of operations is so common that |map| is
 predefined in Haskell (and is why the name |map| was chosen in the
 first place).
 
-With |map|, one can now redefine |toAbsPitches| and |toPitches| as:
+With |map|, we can now redefine |toAbsPitches| and |toPitches| as:
 \indexhs{map}
 \begin{spec}
 toAbsPitches     :: [Pitch] -> [AbsPitch]
@@ -231,11 +231,11 @@ a list of |Char|'s.  It is easy to see that in the case of
 |AbsPitch|, whereas in |toPitches|, |a| and |b| are
 instantiated as |AbsPitch| and |Pitch|, respectively.
 
-Note, by the way, that the above reasoning can be viewed as the
-abstraction principle at work at the type level.
+Note, as we did in Section \ref{sec:music}, that the above reasoning
+can be viewed as the abstraction principle at work at the type level.
 
 \syn{In Chapter \ref{ch:intro} it was mentioned that every expression
-  in Haskell has an associated type.  But with polymorphism, one might
+  in Haskell has an associated type.  But with polymorphism, we might
   wonder if there is just one type for every expression.  For example,
   |map| could have any of these types:
 \begin{spec}
@@ -285,11 +285,11 @@ several other functional languages \cite{huda89a}.)}
 %% ==> [circleArea r1, circleArea r2, circleArea r3]
 %% \end{spec}
 
-For a musical example involving the use of |map|, consider the task
-of generating a six-note whole-tone scale starting at a given
-pitch:\footnote{A whole-tone scale is a sequence of six ascending notes,
-  with each adjacent pair of notes separated by two semitones, i.e.\ a
-  whole note.}
+For a musical example involving |map|, consider the task of generating
+a six-note whole-tone scale starting at a given pitch:\footnote{A
+  whole-tone scale is a sequence of six ascending notes, with each
+  adjacent pair of notes separated by two semitones, i.e.\ a whole
+  note.}
 \begin{code}
 wts    :: Pitch -> [Music Pitch]
 wts p  =  let f ap = note qn (pitch (absPitch p + ap))
@@ -306,7 +306,31 @@ wts a440
 %% {\em \indexwd{arithmetic sequence}}, and is special syntax for the
 %% list |[a, a+d, a+2*d, ..., c]| where |d = b-a|.}
 
-\todo{Add exercises involving map.}
+\vspace{.1in}\hrule
+
+\begin{exercise}{\em
+Using |map|, define:
+\begin{enumerate}
+\item A function |f1 :: Int -> [Pitch] -> [Pitch]| that transposes
+  each pitch in its second argument by the amount specified in its
+  first argument.
+\item A function |f2 :: [Dur] -> [Music a]| that turns a list
+  of durations into a list of rests, each having the corresponding
+  duration.
+\item A function |f3 :: [Music Pitch] -> [Music Pitch]| that
+  takes a list of music values (that are assumed to be single notes),
+  and for each such note, halves its duration and places a rest of
+  that same duration after it.  For example:
+\begin{spec}
+f3 [c 4 qn, d 4 en, e 4 hn]
+===> [c 4 en :+: rest en, d 4 sn :+: rest sn, e 4 qn :+: rest qn]
+\end{spec}
+  You can think of this as giving a staccato interpretation of the
+  notes.
+\end{enumerate} }
+\end{exercise} 
+
+\vspace{.1in}\hrule
 
 \section{Append}
 \label{sec:append}
@@ -315,7 +339,7 @@ Consider now the problem of {\em concatenating} or {\em
   appending} two lists together; that is, creating a third list that
 consists of all of the elements from the first list followed by all of
 the elements of the second.  Once again the type of list elements does
-not matter, so one can define this as a polymorphic infix operator
+not matter, so we can define this as a polymorphic infix operator
 |(++)|: \indexhs{(++)}
 \begin{spec}
 (++) :: [a] -> [a] -> [a]
@@ -326,10 +350,10 @@ For example, here are two uses of |(++)| on different types:
 [C,E,G] ++ [D,F,A]   ===>  [C,E,G,D,F,A]
 \end{spec}
 
-As usual, one can approach this problem by considering the various
+As usual, we can approach this problem by considering the various
 possibilities that could arise as input.  But in the case of |(++)|
 there are {\em two} inputs---so which should be considered first?  In
-general this is not an easy question to answer, so one could just try
+general this is not an easy question to answer, so we could just try
 the first list first: it could be empty, or non-empty.  If it is empty
 the answer is easy:
 \begin{spec}
@@ -357,7 +381,7 @@ in Haskell must not contain any numbers or letters of the alphabet,
 and also must not begin with a colon (because those are reserved to be
 infix constructors).}
 
-If one were to have considered instead the second list first, then the
+If we were to consider instead the second list first, then the
 first equation would still be easy:
 \begin{spec}
 xs ++ [] = xs
@@ -417,9 +441,9 @@ will be introduced.
 \label{sec:fold}
 \indexhs{fold}
 
-Suppose one wishes to take a list of notes (each of type |Music a|)
-and convert them into a \emph{line}, or \emph{melody}.  One can define
-a recursive function to do this:
+Suppose we wish to take a list of notes (each of type |Music a|) and
+convert them into a \emph{line}, or \emph{melody}.  We can define a
+recursive function to do this as follows:
 \begin{spec}
 line         :: [Music a] -> Music a
 line []      = rest 0
@@ -428,7 +452,7 @@ line (m:ms)  = m :+: line ms
 Note that this function is polymorphic---the first example so far, in
 fact, of a polymorphic function involving the |Music| data type.
 
-One might also wish to have a function |chord| that operates in an
+We might also wish to have a function |chord| that operates in an
 analogous way, but using |(:=:)| instead of |(:+:)|:
 \begin{spec}
 chord         :: [Music a] -> Music a
@@ -437,11 +461,8 @@ chord (m:ms)  = m :=: chord ms
 \end{spec}
 This function is also polymorphic.
 
-\todo{Consider alternative to |maxPitch|, since it is more properly
-  defined with |fold1|.}
-
-In a completely different context one might wish to compute the highest
-pitch in a list of pitches, which one might capture in the following
+In a completely different context we might wish to compute the highest
+pitch in a list of pitches, which we might capture in the following
 way:
 \begin{code}
 maxPitch         :: [Pitch] -> Pitch
@@ -461,19 +482,19 @@ true, then |cons| (called the {\em consequence}) is the result; if
 |pred| is false, then |alt| (called the {\em alternative}) is
 the result.}
 
-Once again this is a situation where several definitions share
+Once again we have a situation where several definitions share
 something in common: a repeating recursive pattern.  Using the process
-used earlier to discover |map|, one first identifies those things that
+used earlier to discover |map|, we first identify those things that
 are changing.  There are two situations: the |rest 0| and |pitch 0|
 values (for which the generic name |init|, for ``initial value,'' will
 be used), and the |(:+:)|, |(:=:)|, and |(!!!)| operators (for which
 the generic name |op|, for ``operator,'' will be used).  Now rewriting
 any of the above three functions as a new function---call it
-|fold|---that takes extra arguments |op| and |init|, one arrives
+|fold|---that takes extra arguments |op| and |init|, we arrive
 at:\footnote{The use of the name ``|fold|'' for this function is
-  historical, and has nothing to do with the use of ``fold'' and
-  ``unfold'' in Chapter~\ref{ch:intro} to describe steps in a
-  calculation.}
+  historical (within the functional programming community), and has
+  nothing to do with the use of ``fold'' and ``unfold'' in
+  Chapter~\ref{ch:intro} to describe steps in a calculation.}
 \begin{spec}
 fold op init []      = init
 fold op init (x:xs)  = x `op` fold op init xs
@@ -484,7 +505,7 @@ fold op init (x:xs)  = x `op` fold op init xs
   structure of the repeating pattern that is being abstracted, but
   could also have been written |op x (fold op init xs)|.}
 
-With this definition of |fold| one can now rewrite the definitions of
+With this definition of |fold| we can now rewrite the definitions of
 \indexwdhs{line}, \indexwdhs{chord}, and \indexwdhs{maxPitch} as:
 \begin{code}
 line, chord :: [Music a] -> Music a
@@ -497,16 +518,16 @@ maxPitch     :: [Pitch] -> Pitch
 maxPitch ps  = fold (!!!) (pitch 0) ps
 \end{spec}
 
-\syn{Just as one can turn a function into an operator by enclosing it
-  in backquotes, one can turn an operator into a function by enclosing
+\syn{Just as we can turn a function into an operator by enclosing it
+  in backquotes, we can turn an operator into a function by enclosing
   it in parentheses.  This is required in order to pass an operator as
-  a value to another function, as in the examples above.  (If one wrote
-  |fold !!! 0 ps| instead of |fold (!!!) 0 ps| it would look like
-  one were trying to compare |fold| to |0 ps|, which is
+  a value to another function, as in the examples above.  (If we wrote
+  |fold !!! 0 ps| instead of |fold (!!!) 0 ps| it would look like we
+  were trying to apply |(+++)| to |fold| and |0 ps|, which is
   nonsensical and ill-typed.)}
 
-In Chapter \ref{ch:induction}, induction is used to prove that these
-new definitions are equivalent to the old ones.
+In Chapter \ref{ch:induction} we will use induction to prove that
+these new definitions are equivalent to the old.
 
 |fold|, like |map|, is a highly useful---reusable---function, as will
 be seen through several other examples later in the text.  Indeed, it
@@ -516,7 +537,7 @@ that for |map|---is:
 \begin{spec}
 fold :: (a->b->b) -> b -> [a] -> b
 \end{spec}
-This allows one to use |fold| whenever one needs to ``collapse'' a
+This allows us to use |fold| whenever we need to ``collapse'' a
 list of elements using a binary (i.e.\ two-argument) operator.
 
 As a final example, recall the definition of |hList| from Chapter
@@ -531,9 +552,9 @@ A little thought should convince the reader that this can be rewritten as:
 hList d ps =  let f p = hNote d p
               in line (map f ps)
 \end{spec}
-One could argue that this is more modular, since it avoids 
-explicit recursion, and is instead built up from smaller building
-blocks, namely |line| (which uses |fold|) and |map|.
+This version is more modular, in that it avoids explicit recursion,
+and is instead built up from smaller building blocks, namely |line|
+(which uses |fold|) and |map|.
 
 \subsection{Haskell's Folds}
 
@@ -577,20 +598,20 @@ foldl op init (x1 : x2 : ... : xn : [])
 
 \subsection{[Advanced] Why Two Folds?}
 
-Note that if one had used |foldl| instead of |foldr| in the
+Note that if we had used |foldl| instead of |foldr| in the
 definitions given earlier then not much would change; |foldr| and
 |foldl| would give the same result.  Indeed, judging from their types, it
 looks like the only difference between |foldr| and |foldl| is
 that the operator takes its arguments in a different order.
 
-So why does Haskell define two versions of |fold|?  It turns out that
+So why does Haskell have two versions of |fold|?  It turns out that
 there are situations where using one is more efficient, and possibly
-``more defined,'' than the other (that is, the function terminates on
-more values of its input domain) .  \index{efficiency}
+``more defined'' (that is, the function terminates on more values of
+its input domain) than the other.  \index{efficiency}
 
 Probably the simplest example of this is a generalization of the
-associativity of |(++)| discussed in the last section.  Suppose that
-one wishes to collapse a list of lists into one list.  The Standard
+associativity of |(++)| discussed in the last section.  Suppose
+we wish to collapse a list of lists into one list.  The Standard
 Prelude defines the polymorphic function \indexwdhs{concat} for this
 purpose:
 \begin{spec}
@@ -600,10 +621,10 @@ concat xss  = foldr (++) [] xss
 For example:
 \begin{spec}
 concat [[1],[3,4],[],[5,6]]
+===> [1]++([3,4]++([]++([5,6]++[])))
 ===> [1,3,4,5,6]
 \end{spec}
-More importantly, from the earlier discussion it should be clear that
-this property holds:
+More generally, we have that:
 \begin{spec}
 concat [xs1,xs2,...,xsn]
 ==>   foldr (++) [] [xs1,xs2,...,xsn]
@@ -613,7 +634,7 @@ The total cost of this computation is proportional to the sum of the
 lengths of all of the lists.  If each list has the same length
 |len|, and there are |n| lists, then this cost is |(n-1)*len|.
 
-On the other hand, if one had defined |concat| this way:
+On the other hand, if we had defined |concat| this way:
 \begin{spec}
 slowConcat xss = foldl (++) [] xss
 \end{spec}
@@ -645,8 +666,9 @@ choice between |foldr| and |foldl| if efficiency is a concern.
 In certain contexts it may be understood that the functions |line| and
 |chord| should not be applied to an empty list.  For such situations
 the Standard Prelude provides functions |foldr1| and |foldl1|, which
-return an error if applied to an empty list.  And thus one may desire
-to define versions of |line| and |chord| that adopt this behavior:
+return an error if applied to an empty list.  And thus we may also
+desire to define versions of |line| and |chord| that adopt this
+behavior:
 \begin{code}
 line1, chord1  :: [Music a] -> Music a
 line1  ms      = foldr1 (:+:)  ms
@@ -654,11 +676,11 @@ chord1 ms      = foldr1 (:=:)  ms
 \end{code}
 Note that |foldr1| and |foldl1| do not take an |init| argument.
 
-In the case of |maxPitch| one could go a step further and say that the
+In the case of |maxPitch| we could go a step further and say that the
 previous definition is in fact flawed, for who is to say what the
 maximum pitch of an empty list is?  The choice of 0 was indeed
 arbitrary, and in a way it is nonsensical---how can 0 be the maximum
-if it is not even in the list?  In such situations one might wish to
+if it is not even in the list?  In such situations we might wish to
 define only one function, and to have that function return an error
 when presented with an empty list.  For consistency with |line| and
 |chord|, however, that function is defined here with a new name:
@@ -675,7 +697,7 @@ As a final example of a useful list function, consider the problem of
 \indexwdhs{reverse}.  This could be useful, for example, when
 constructing the \emph{retrograde} of a musical passage, i.e.\ the
 music as if it were played backwards.  For example, |reverse
-[C,Cs,Df]| is |[Df,Cs,C]|.
+[C,D,Ef]| is |[Ef,D,C]|.
 
 Thus |reverse| takes a single list argument, whose possibilities
 are the normal ones for a list: it is either empty, or it is not.  And
@@ -697,7 +719,7 @@ reverse a list of length $n-1$.  So the total cost is proportional to
 $(n-1)+(n-2)+\cdots+1 = n(n-1)/2$, which in turn is proportional to
 the square of $n$.
 
-Can one do better than this?  In fact, yes.
+Can we do better than this?  In fact, yes.
 
 There is another algorithm for reversing a list, which can be
 described intuitively as follows: take the first element, and put it
@@ -709,7 +731,7 @@ original list is reached.  At that point the auxiliary list will be
 the reverse of the original one.
 
 This algorithm can be expressed recursively, but the auxiliary list
-implies that one needs a function that takes {\em two} arguments---the
+implies the need for a function that takes {\em two} arguments---the
 original list and the auxiliary one---yet |reverse| only takes one.
 This can be solved by creating an auxiliary function |rev|:
 \begin{spec}
@@ -726,7 +748,7 @@ the original list is reached.
 A little thought should convince the reader that this function does
 not have the quadratic ($n^2$) behavior of the first algorithm, and
 indeed can be shown to execute a number of steps that is directly
-proportional to the length of the list, which one can hardly expect to
+proportional to the length of the list, which we can hardly expect to
 improve upon.
 
 But now, compare the definition of |rev| with the definition of
@@ -735,8 +757,8 @@ But now, compare the definition of |rev| with the definition of
 foldl op init []      = init
 foldl op init (x:xs)  = foldl op (init `op` x) xs
 \end{spec}
-They are somewhat similar.  In fact, suppose one were to slightly
-rewrite |rev|, yielding:
+They are somewhat similar.  In fact, suppose we were to slightly
+revise the definition of |rev| as follows:
 \begin{spec}
 rev op acc []      = acc
 rev op acc (x:xs)  = rev op (acc `op` x) xs
@@ -756,9 +778,9 @@ acc `revOp` x
 \end{spec}
 So |reverse| can be rewritten as:
 \begin{spec}
-reverse xs = let  rev op acc []      = acc
-                  rev op acc (x:xs)  = rev op (acc `op` x) xs
-             in rev revOp [] xs
+reverse xs =  let  rev op acc []      = acc
+                   rev op acc (x:xs)  = rev op (acc `op` x) xs
+              in rev revOp [] xs
 \end{spec}
 which is the same as:
 \begin{spec}
@@ -772,7 +794,7 @@ beauty of functional programming!
 \label{sec:currying}
 
 \index{function!currying||(}
-One can improve further upon some of the definitions given in this
+We can improve further upon some of the definitions given in this
 chapter using a technique called \emph{currying simplification}.  To
 understand this idea, first look closer at the notation used to write
 function applications, such as |simple x y z|.  Although, as noted
@@ -796,8 +818,8 @@ multSumByFive = simple 5
 \end{spec}
 What is |simple 5|?  From the above argument it is clear that it must
 be a function.  And from the definition of |simple| in Section
-\ref{ch:intro} one might guess that this function takes two arguments,
-and returns 5 times their sum.  Indeed, one can {\em calculate} this
+\ref{ch:intro} we might guess that this function takes two arguments,
+and returns 5 times their sum.  Indeed, we can {\em calculate} this
 result as follows:
 \begin{spec}
 multSumByFive a b 
@@ -838,34 +860,34 @@ next chapter.
 \subsection{Currying Simplification}
 \label{sec:currying-simplification}
 
-One can also use currying to improve some of the previous function
-definitions as follows.  Suppose that the expressions |f x| and |g x|
+We can also use currying to improve some of the previous function
+definitions as follows.  Suppose that the values of |f x| and |g x|
 are the same, for all values of |x|.  Then it seems clear that the
-functions |f| and |g| are equivalent.\footnote{In mathematics, one
-  would say that the two functions are \emph{extensionally}
-  equivalent.}  So, if one wishes to define |f| in terms of |g|,
+functions |f| and |g| are equivalent.\footnote{In mathematics, we
+  would say that the two functions are \emph{extensionally
+  equivalent}.}  So, if we wish to define |f| in terms of |g|,
 instead of writing:
 \begin{spec}
 f x = g x
 \end{spec}
-one could instead simply write:
+We could instead simply write:
 \begin{spec}
 f = g
 \end{spec}
 
-One can Apply this reasoning to the definitions of |line| and |chord|
+We can apply this reasoning to the definitions of |line| and |chord|
 from Section \ref{sec:fold}:
 \begin{spec}
 line  ms  = fold (:+:)  (rest 0) ms
 chord ms  = fold (:=:)  (rest 0) ms
 \end{spec}
-Since function application is left associative, one can rewrite these as:
+Since function application is left associative, we can rewrite these as:
 \begin{spec}
 line  ms  = (fold (:+:)  (rest 0)) ms
 chord ms  = (fold (:=:)  (rest 0)) ms
 \end{spec}
 But now applying the same reasoning here as was used for |f| and |g|
-above means that one can write these simply as:
+above means that we can write these simply as:
 \begin{spec}
 line   = fold (:+:)  (rest 0)
 chord  = fold (:=:)  (rest 0)
@@ -893,8 +915,8 @@ can be rewritten as:
 hList d ps =  let f = hNote d
               in line (map f ps)
 \end{spec}
-and since the definition of |f| is now so simple, one might as well
-in-line it:
+and since the definition of |f| is now so simple, we might as well
+``in-line'' it:
 \begin{spec}
 hList d ps = line (map (hNote d) ps)
 \end{spec}
@@ -931,7 +953,7 @@ But now currying simplification can be used twice to reveal that:
 \begin{spec}
 revOp = flip (:)
 \end{spec}
-This, along with a third use of currying, allows one to rewrite the
+This, along with a third use of currying, allows us to rewrite the
 definition of \indexwdhs{reverse} simply as:
 \begin{spec}
 reverse = foldl (flip (:)) []
@@ -995,15 +1017,16 @@ The last section suggested the idea of ``returning an error'' when the
 argument to |foldr1| is the empty list.  As you might imagine, there
 are other situations where an error result is also warranted.
 
-\index{errors}\index{bottom}
+\index{errors}\index{bottom} 
 There are many ways to deal with such situations, depending on the
-application, but sometimes one wishes to literally stop the program,
-signalling to the user that some kind of an {\em error} has occurred.
+application, but sometimes all we want to do is stop the program,
+signalling to the user that some kind of an error has occurred.
 In Haskell this is done with the Standard Prelude function
 \indexhs{error}|error :: String -> a|.  Note that |error| is
 polymorphic, meaning that it can be used with any data type.  The
 value of the expression |error s| is |bottom|, the completely
-undefined, or ``bottom'' value.  As an example of its use, here is the
+undefined, or ``bottom'' value that was discussed in Section
+\ref{sec:expressions}.  As an example of its use, here is the
 definition of |foldr1| from the Standard Prelude:
 \begin{spec}
 foldr1           :: (a -> a -> a) -> [a] -> a
@@ -1056,6 +1079,18 @@ addPairsPointwise [(1,2),(3,4),(5,6)] ===> (9,12)
 }
 \end{exercise}
 
+\begin{exercise}{\em
+Define a polymorphic function |fuse :: [Dur] -> [Dur -> Music a] ->
+[Music a]| that combines a list of durations with a list of notes
+lacking a duration, to create a list of complete notes.  For example:
+\begin{spec}
+fuse [qn, hn, sn] [c 4, d 4, e 4]
+===> [c 4 qn, d 4 hn, e 4 sn]
+\end{spec}
+You may signal an error if the lists have unequal lengths. }
+\label{ex:fuse}
+\end{exercise}
+
 In the next two exercises, give both recursive and (if possible)
 non-recursive definitions, and be sure to include type signatures.
 
@@ -1091,8 +1126,8 @@ intervallic structure |ints|.}
 \begin{exercise}{\em
 Define an enumerated data type that captures each of the standard
 major scale modes: Ionian, Dorian, Phrygian, Lydian, Mixolydian,
-Aeolian, and Locrian.  Then define a function |genScale| that, given one
-of these contructors, generates a scale in the intervalic form
+Aeolian, and Locrian.  Then define a function |genScale| that, given
+one of these contructors, generates a scale in the intervalic form
 described in Exercise \ref{ex:mkscale}.}
 \end{exercise}
 
@@ -1112,17 +1147,18 @@ not that large, so they agree on this simple strategy: each character
 in the text shall be converted to the character ``one greater'' than
 it, based on the representation described below (with wrap-around from
 255 to 0).  Define functions |encrypt| and |decrypt| that will
-allow Freddie and Francine to communicate using this strategy.
-
-Characters are often represented inside a computer as some kind of an
-integer; in the case of Haskell, a 16-bit unicode representation is
-used.  However, the standard keyboard is adequately represented by a
-standard byte (eight bits), and thus one only needs to consider the
-first 256 codes in the unicode representation.  For this exercise, you
-will want to use two Haskell functions, |toEnum| and |fromEnum|.
-The first will convert an integer into a character, the second will
-convert a character into an integer.}
+allow Freddie and Francine to communicate using this strategy.}
 \end{exercise} 
+
+\syn{Characters are often represented inside a computer as some kind
+  of an integer; in the case of Haskell, a 16-bit unicode
+  representation is used.  However, the standard keyboard is
+  adequately represented by a standard byte (eight bits), and thus we
+  only need to consider the first 256 codes in the unicode
+  representation.  For the above exercise, you will want to use two
+  Haskell functions, |toEnum| and |fromEnum|.  The first will convert
+  an integer into a character, the second will convert a character
+  into an integer.}
 
 \out{
 \begin{exercise}{\em
@@ -1137,7 +1173,7 @@ makeChange 99 [5,1] ==> [19,4]
 \end{spec}
 where |99| is the amount and |[5,1]| represents the types of coins
 (say, nickels and pennies in US currency) that are available.  The
-answer |[19,4]| means that one can make the exact change with |19|
+answer |[19,4]| means that we can make the exact change with |19|
 |5|-unit coins and |4| single-unit coins; this is the best possible
 solution (in terms of the total number of coins).
 

@@ -44,7 +44,6 @@ pr1 p =  tempo (5/6)
                                            mkLn 1 p qn     ) :+:
                             mkLn 1 p qn) :+:
             tempo (3/2)  (  mkLn 6 p en))
-
 pr2 p = 
    let  m1   = tempo (5/4) (tempo (3/2) m2 :+: m2)
         m2   = mkLn 3 p en
@@ -76,18 +75,48 @@ revM (m1 :=: m2)   =
    in if d1>d2  then revM m1 :=: (rest (d1-d2) :+: revM m2)
                 else (rest (d2-d1) :+: revM m1) :=: revM m2
  
-cut :: Dur -> Music a -> Music a
-cut d m | d <= 0            = rest 0
-cut d (Prim (Note oldD p))  = note (min oldD d) p
-cut d (Prim (Rest oldD))    = rest (min oldD d)
-cut d (m1 :=: m2)           = cut d m1 :=: cut d m2
-cut d (m1 :+: m2)           =  let  m'1  = cut d m1
-                                    m'2  = cut (d - dur m'1) m2
-                               in m'1 :+: m'2
-cut d (Modify (Tempo r) m)  = tempo r (cut (d*r) m)
-cut d (Modify c m)          = Modify c (cut d m)
+takeM :: Dur -> Music a -> Music a
+takeM d m | d <= 0            = rest 0
+takeM d (Prim (Note oldD p))  = note (min oldD d) p
+takeM d (Prim (Rest oldD))    = rest (min oldD d)
+takeM d (m1 :=: m2)           = takeM d m1 :=: takeM d m2
+takeM d (m1 :+: m2)           =  let  m'1  = takeM d m1
+                                      m'2  = takeM (d - dur m'1) m2
+                                 in m'1 :+: m'2
+takeM d (Modify (Tempo r) m)  = tempo r (takeM (d*r) m)
+takeM d (Modify c m)          = Modify c (takeM d m)
+cut = takeM
+type LazyDur = [Dur]
+durL :: Music a -> LazyDur
+durL m@(Prim _)            =  [dur m]
+durL (m1 :+: m2)           =  let d1 = durL m1
+                              in d1 ++ map (+(last d1)) (durL m2)
+durL (m1 :=: m2)           =  mergeLD (durL m1) (durL m2)
+durL (Modify (Tempo r) m)  =  map (/r) (durL m)
+durL (Modify _ m)          =  durL m 
+mergeLD :: LazyDur -> LazyDur -> LazyDur
+mergeLD [] ld = ld
+mergeLD ld [] = ld
+mergeLD ld1@(d1:ds1) ld2@(d2:ds2) = 
+  if d1<d2  then  d1 : mergeLD ds1 ld2
+            else  d2 : mergeLD ld1 ds2
+minL :: LazyDur -> Dur -> Dur
+minL [d]     d' = min d d'
+minL (d:ds)  d' = if d < d' then minL ds d' else d'
+takeML :: LazyDur -> Music a -> Music a
+takeML [] m                     = rest 0
+takeML (d:ds) m | d <= 0        = takeML ds m
+takeML ld (Prim (Note oldD p))  = note (minL ld oldD) p
+takeML ld (Prim (Rest oldD))    = rest (minL ld oldD)
+takeML ld (m1 :=: m2)           = takeML ld m1 :=: takeML ld m2
+takeML ld (m1 :+: m2)           =  
+   let  m'1 = takeML ld m1
+        m'2 = takeML (map (\d -> d - dur m'1) ld) m2
+   in m'1 :+: m'2
+takeML ld (Modify (Tempo r) m)  = tempo r (takeML (map (*r) ld) m)
+takeML ld (Modify c m)          = Modify c (takeML ld m)
 (/=:)      :: Music a -> Music a -> Music a
-m1 /=: m2  = cut (min (dur m1) (dur m2)) (m1 :=: m2)
+m1 /=: m2  = takeML (durL m2) m1 :=: takeML (durL m1) m2
 trill :: Int -> Dur -> Music Pitch -> Music Pitch
 trill i sDur (Prim (Note tDur p)) =
    if sDur >= tDur  then note tDur p
@@ -146,33 +175,35 @@ data PercussionSound =
      |  MuteCuica      | OpenCuica     | MuteTriangle
      |  OpenTriangle      -- MIDI Key 82
    deriving (Show,Eq,Ord,Enum)
+
 perc :: PercussionSound -> Dur -> Music Pitch
 perc ps dur = note dur (pitch (fromEnum ps + 35))
 funkGroove
-  = let  p1  = perc LowTom         qn
-         p2  = perc AcousticSnare  en
-    in  tempo 3 $ instrument Percussion $ cut 8 $ repeatM
-        (  (  p1 :+: qnr :+: p2 :+: qnr :+: p2 :+:
-              p1 :+: p1 :+: qnr :+: p2 :+: enr)
-           :=: roll en (perc ClosedHiHat 2) )
-
-instance Functor Primitive where
-    fmap = pMap
+  =  let  p1  = perc LowTom         qn
+          p2  = perc AcousticSnare  en
+     in  tempo 3 $ instrument Percussion $ takeM 8 $ repeatM
+         (  (  p1 :+: qnr :+: p2 :+: qnr :+: p2 :+:
+               p1 :+: p1 :+: qnr :+: p2 :+: enr)
+            :=: roll en (perc ClosedHiHat 2) )
 pMap               :: (a -> b) -> Primitive a -> Primitive b
 pMap f (Note d x)  = Note d (f x)
 pMap f (Rest d)    = Rest d
-
-instance Functor Music where
-    fmap = mMap
 mMap                 :: (a -> b) -> Music a -> Music b
 mMap f (Prim p)      = Prim (pMap f p)
 mMap f (m1 :+: m2)   = mMap f m1 :+: mMap f m2
 mMap f (m1 :=: m2)   = mMap f m1 :=: mMap f m2
--- mMap f (m1 :=/ m2)   = mMap f m1 :=/ mMap f m2
 mMap f (Modify c m)  = Modify c (mMap f m)
 type Volume = Int
 addVolume    :: Volume -> Music Pitch -> Music (Pitch,Volume)
 addVolume v  = mMap (\p -> (p,v))
+addVol    :: Volume -> Music Pitch -> Music (Pitch, [NoteAttribute])
+addVol v  = mMap (\p -> (p, [Volume v]))
+data NoteAttribute = 
+        Volume  Int   -- MIDI convention: 0=min, 127=max
+     |  Fingering Integer
+     |  Dynamics String
+     |  Params [Double]
+   deriving (Eq, Show)
 mFold ::  (Primitive a -> b) -> (b->b->b) -> (b->b->b) -> 
           (Control -> b -> b) -> Music a -> b
 mFold f (+:) (=:) g m =

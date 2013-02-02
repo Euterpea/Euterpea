@@ -473,14 +473,14 @@ players can be derived.
 In order to provide the most flexibility, we exploit poymorphism to
 define a version of |Music| that in addition to pitch, carries a list
 of ``note attributes'' for each individual note:
-\begin{code}
+\begin{spec}
 data NoteAttribute = 
         Volume  Int   -- MIDI convention: 0=min, 127=max
      |  Fingering Integer
      |  Dynamics String
      |  Params [Double]
    deriving (Eq, Show)
-\end{code}
+\end{spec}
 Our goal then is to define a player for music values of type:
 \begin{code}
 type Music1  = Music Note1

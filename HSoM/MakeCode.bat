@@ -12,6 +12,6 @@ lhs2tex --code ToMidi.lhs           > ../Euterpea/IO/MIDI/ToMidi.hs
 
 lhs2tex --code Interlude.lhs        > ../Euterpea/Examples/Interlude.hs
 lhs2tex --code LSystems.lhs         > ../Euterpea/Examples/LSystems.hs
-lhs2tex --code MUI.lhs              > ../Euterpea/Examples/MUI.hs
+REM lhs2tex --code MUI.lhs              > ../Euterpea/Examples/MUI.hs
 lhs2tex --code RandomMusic.lhs      > ../Euterpea/Examples/RandomMusic.hs
 lhs2tex --code SelfSimilar.lhs      > ../Euterpea/Examples/SelfSimilar.hs

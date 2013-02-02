@@ -73,12 +73,6 @@ type NoteFun a    =  Context a -> Dur -> a -> Performance
 type PhraseFun a  =  PMap a -> Context a -> [PhraseAttribute]
                      -> Music a -> (Performance, DurT)
 type NotateFun a  =  ()
-data NoteAttribute = 
-        Volume  Int   -- MIDI convention: 0=min, 127=max
-     |  Fingering Integer
-     |  Dynamics String
-     |  Params [Double]
-   deriving (Eq, Show)
 type Music1  = Music Note1
 type Note1   = (Pitch, [NoteAttribute])
 

@@ -575,9 +575,10 @@ ifFun pred cons alt  = if pred then cons else alt
 Proof by induction is not limited to lists.  In particular, we can use
 it to reason about |Music| values.
 
-For example, we will show that:
+For example, recall this property intuitively conjectured in
+Section~\ref{sec:music-fold}:
 \begin{spec}
-mFold (:+:) (:=:) Prim Modify = id
+mFold (:+:) (:=:) Prim Modify m = m
 \end{spec}
 To prove this, we again use the extensionality principle, and then
 proceed by induction.  But what is the base case?  Recall that the

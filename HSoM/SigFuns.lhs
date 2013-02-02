@@ -23,6 +23,10 @@ import Euterpea
 import Control.Arrow ((>>>),(<<<),arr)
 \end{code}
 
+\syn{The first line in the module header above is a \emph{compiler
+    pragma}, amd in this case is telling GHC to accept \emph{arrow
+    syntax}, which will be explained in Section~\ref{sec:sigfuns}.}
+
 In this chapter we show how the theoretical concepts involving
 sound and signals studied in the last chapter are manifested in
 Euterpea.  The techniques learned will lay the groundwork for doing
@@ -148,7 +152,12 @@ Arrow syntax is just that-–-syntactic sugar that is expanded into a
 set of conventional functions that work just as well, but are more
 cumbersome to program with (just as with monad syntax).  This
 syntactic expansion will be described in more detail in
-Chapter~\ref{ch:implementing-sigfuns}.
+Chapter~\ref{ch:implementing-sigfuns}.  To use the arrow syntax within
+a |.lhs| file, one must declare a compiler flag in GHC at the very
+beginning of the file, as follows:
+\begin{spec}
+{-# LANGUAGE Arrows #-}
+\end{spec}
 
 %% We can also create and use signal functions that operate on tuples of
 %% signals.  For example, a signal function |exp :: SigFun (Double,
@@ -341,6 +350,13 @@ which essentially applies |sigfun| to one plus the input.  This signal
 function can be written more succinctly as either |arr (+1) >>> sigfun| or
 |sigfun <<< arr (+1)|.
 
+The functions |(>>>)|, |(<<<)|, and |arr| are actually generic
+operators on arrows, and thus to use them one must import them from
+the |Arrow| library, as follows:
+\begin{spec}
+import Control.Arrow ((>>>),(<<<),arr)
+\end{spec}
+
 \subsection{Some Simple Examples}
 \label{sec:sigfun-examples}
 
@@ -357,20 +373,73 @@ distinction.
 
 For example, there are several pre-defined functions for generating
 sine waves and periodic waveforms in Euterpea.  Collectively these are
-called \emph{oscillators}, a name taken from electronic circuit design.
+called \emph{oscillators}, a name taken from electronic circuit
+design.  They are summarized in Figure \ref{fig:oscillators}.
+
+\begin{figure}
+\begin{spec}
+osc, oscI ::  Clock c =>
+              Table -> Double -> SigFun p Double Double
+\end{spec}
+
+|osc tab ph| is a signal function whose input is a frequency, and
+output is a signal having that frequency.  The output is generated
+using fixed-waveform table-lookup, using the table |tab|, starting
+with initial offset (phase angle) |ph| expressed as a fraction of a
+cycle (0 to 1).  |oscI| is the same, but uses linear interpolation
+between points.
+\vspace{0.15in}
+
+\begin{spec}
+oscFixed ::  Clock c =>
+             Double -> SigFun c () Double
+\end{spec}
+
+|oscFixed freq| is a signal source whose sinusoidal output frequency
+is |freq|.  Uses a recurrence relation that requires only one multiply
+and two add operations for each sample of output.
+\vspace{0.15in}
+
+\begin{spec}
+oscDur, oscDurI ::  Clock c =>
+                    Table -> Double -> Double -> SigFun () Double
+\end{spec}
+
+|oscDur tab del dur| samples just once through the table |tab| at a
+rate determined by |dur|. For the first |del| seconds, the point of
+scan will reside at the first location of the table; it will then move
+through the table at a constant rate, reaching the end in another
+|dur| seconds; from that time on (i.e. after |del + dur| seconds) it
+will remain pointing at the last location.  |oscDurI| is similar but
+uses linear interpolation between points.
+\vspace{0.15in}
+
+\begin{spec}
+oscPartials ::  Clock c => 
+                Table -> Double -> SigFun c (Double,Int) Double 
+\end{spec}
+
+|oscPartials tab ph| is a signal function whose pair of inputs
+determines the frequency (as with |osc|), as well as the number of
+harmonics of that frequency, of the output.  |tab| is the table that
+is cycled through, and |ph| is the phase angle (as with |osc|).
+\caption{Eutperea's Oscillators}
+\label{fig:oscillators}
+\end{figure}
+
 The two most common oscillators in Euterpea are:
 \begin{spec}
 osc       ::  Clock c =>
-                Table ->  Double -> SigFun c Double Double
+              Table ->  Double -> SigFun c Double Double
 oscFixed  ::  Clock c =>
-                Double -> SigFun c () Double
+              Double -> SigFun c () Double
 \end{spec}
 |osc| uses fixed-waveform table-lookup synthesis as described in
 Section \ref{sec:wavetable}.  The first argument is the fixed
 wavetable; we will see shortly how such a table can be generated.  The
 second argument is the initial phase angle, represented as a fraction
 between 0 and 1.  The resulting signal function then converts a signal
-representing the desired output frequency to a signal that is that
+representing the desired output frequency to a signal that has that
 output frequency.
 
 |oscFixed| uses an efficient recurrence relation to compute a pure
@@ -403,8 +472,10 @@ s1 = proc () -> do
 Alternatively, we could simply write |oscFixed 440|.
 
 To use |osc| instead, we first need to generate a wavetable that
-represents one full cycle of a sine wave.  We can do this using
-Euterpea's |tableSinesN| function:
+represents one full cycle of a sine wave.  We can do this using one of
+Eutperpea's table generating functions, which are summarized in
+Figure~\ref{fig:table-generators}.  For example, using Euterpea's
+|tableSinesN| function, we can define:
 \begin{code}
 tab1 :: Table
 tab1 = tableSinesN 4096 [1]
@@ -420,6 +491,73 @@ s2 = proc () -> do
 Alternatively, we could use the |const| and compostion operators to
 write either |constA 440 >>> osc tab1 0| or |osc tab2 0 <<<
 constA 440|.  |s1| and |s2| should be compared closely.
+
+\begin{figure}
+\begin{spec}
+type TableSize        = Int
+type PartialNum       = Double
+type PartialStrength  = Double
+type PhaseOffset      = Double
+type StartPt          = Double
+type SegLength        = Double
+type EndPt            = Double
+\end{spec}
+\vspace{0.05in}
+
+\begin{spec}
+tableLinear, tableLinearN :: 
+    TableSize ->  StartPt -> [(SegLength, EndPt)] -> Table
+\end{spec}
+|tableLinear size sp pts| is a table of size |size| whose starting
+point is |(0,sp)| and that uses straight lines to move from that point
+to, successively, each of the points in |pts|, which are
+segment-length/endpoint pairs (segment lengths are projections along
+the x-axis).  |tableLinearN| is a normalized version of the result.
+\vspace{0.15in}
+
+\begin{spec}
+tableExpon, tableExponN :: 
+    TableSize -> StartPt -> [(SegLength, EndPt)] -> Table
+\end{spec}
+
+Just like |tableLinear| and |tableLinearN|, respectively, except that
+exponential curves are used to connect the points.
+\vspace{0.15in}
+
+\begin{spec}
+tableSines3, tableSines3N :: 
+    TableSize -> [(PartialNum, PartialStrength, PhaseOffset)] -> Table
+\end{spec}
+
+|tableSines3 size triples| is a table of size |size| that represents a
+sinusoidal wave and an arbitrary number of partials, whose
+relationship to the fundamental frequency, amplitude, and phase are
+determined by each of the triples in |triples|.  |tableSines3N| is a
+normalized version of the result.
+\vspace{0.15in}
+
+\begin{spec}
+tableSines, tableSinesN :: 
+    TableSize -> [PartialStrength] -> Table
+\end{spec}
+
+Like |tableSines3| and |tableSines3N|, respectively, except that the
+second argument is an ordered list of the strengths of each partial,
+starting with the fundamental.
+\vspace{0.15in}
+
+\begin{spec}
+tableBesselN :: 
+    TableSize -> Double -> Table
+\end{spec}
+
+|tableBesselN size x| is a table representing the log of a modified
+Bessel function of the second kind, order 0, suitable for use in
+amplitude-modulated FM.  |x| is the x-interval (0 to |x|) over which
+the function is defined.
+\caption{Table Generating Functions}
+\label{fig:table-generators}
+\end{figure}
 
 Keep in mind that |oscFixed| only generates a sine wave, whereas |osc|
 generates whatever is stored in the wavetable.  Indeed, |tableSinesN|
@@ -819,7 +957,7 @@ envExpon     ::  Clock p =>
                       --   and agree in sign with first argument)
    SigFun p () Double
 
-envLinSeg    ::  Clock p => 
+envLineSeg   ::  Clock p => 
    [Double]   ->      -- list of points to trace through
    [Double]   ->      -- list of durations for each line segment
                       --   (one element fewer than previous argument)
@@ -842,12 +980,71 @@ envCSEnvlpx  ::  Clock p =>
    Double     ->      -- overall duration in seconds
    Double     ->      -- decay time in seconds
    Table      ->      -- table of stored rise shape
-   Double     ->      -- attenuation factor, by which the last value of the envlpx
-                      -- rise is modified during the note's pseudo steady state
-  Double      ->      -- attenuation factor by which the closing steady state value
-                      -- is reduced exponentially over the decay period
+   Double     ->      -- attenuation factor, by which the last value
+                      -- of the envlpx rise is modified during the
+                      -- note's pseudo steady state 
+  Double      ->      -- attenuation factor by which the closing
+                      -- steady state value is reduced exponentially
+                      -- over the decay period 
   SigFun p () Double
 \end{spec}
 \caption{Envelopes}
 \label{fig:line-envelopes}
 \end{figure}
+
+\vspace{.1in}\hrule
+
+\begin{exercise}{\em 
+Using the Euterpea function |osc|, create a simple sinusoidal wave,
+but using different table sizes, and different frequencies, and see if
+you can hear the differences (report on what you hear).  Use |outFile|
+to write your results to a file, and be sure to use a decent set of
+speakers or headphones.}
+\end{exercise}
+
+\begin{exercise}{\em 
+The |vibrato| function varies a signal’s frequency at a given rate and
+depth. Define an analogous function |tremolo| that varies the volume
+at a given rate and depth.  However, in a sense, |tremolo| is a kind
+of envelope (infinite in duration), so define it as a signal source,
+with which you can then shape whatever signal you wish.  Consider the
+``depth'' to be the fractional change to the volume; that is, a value
+of 0 would result in no tremolo, a value of 0.1 would vary the
+amplitude from 0.9 to 1.1, and so on. Test your result.}
+\label{ex:tremolo}
+\end{exercise}
+
+\begin{exercise}{\em 
+Define an ADSR (``attack/decay/sustain/release'') envelope generator
+(i.e. a signal source) called |envADSR|, with type:
+\begin{spec}
+type DPair  = (Double, Double) -- pair of duration and amplitude
+envADSR     :: DPair -> DPair -> DPair -> Double -> AudSF () Double
+\end{spec}
+The three |DPair| arguments are the duration and amplitude of the
+attack, decay, and release ``phases,'' respectively, of the envelope.
+The sustain phase should hold the last value of the decay phase.  The
+fourth argument is the duration of the entire envelope, and thus the
+duration of the sustain phase should be that value minus the sum of
+the durations of the other three phases. (Hint: use Euterpea’s
+|envLineSeg| function.) Test your result. }
+\end{exercise}
+
+\begin{exercise}{\em 
+Generate a signal that causes clipping, and listen to the result.
+Then use |simpleClip| to ``clean it up'' somewhat---can you hear the
+difference?  Now write a more ambitious clipping function.  In
+particular, one that uses some kind of non-linear reduction in the
+signal amplitude as it approaches plus or minus one (rather than
+abruptly ``sticking'' at plus or minus one, as in |simpleClip|).}
+\end{exercise}
+
+\begin{exercise}{\em 
+Define two instruments, each of type |Instr (AudSF () Double)|.  These
+can be as simple as you like, but each must take at least two
+|Params|.  Define an |InstrMap| that uses these, and then use
+|renderSF| to ``drive'' your instruments from a |Music1| value.  Test
+your result.}
+\end{exercise}
+
+\vspace{.1in}\hrule

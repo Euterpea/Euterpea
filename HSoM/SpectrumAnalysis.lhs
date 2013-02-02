@@ -15,13 +15,18 @@
 \label{ch:spectrum-analysis}
 
 \begin{code}
+{-# LANGUAGE Arrows #-}
+
 module Euterpea.Music.Signal.SpectrumAnalysis where
 
-import Euterpea
+import Euterpea hiding (Event)
+import Euterpea.IO.MUI
+import Euterpea.IO.MUI.SOE (Color(..))
 
 import Data.Complex
-import Data.List
--- import Math.FFT
+import Data.Maybe (listToMaybe, catMaybes)
+
+import Control.SF.AuxFunctions (fftA, Event)
 \end{code}
 
 There are many situations where it is desirable to take an existing
@@ -51,14 +56,15 @@ the signal repeats itself.  Usually we want to find the smallest value
 of $T$ that satisfies the above property.  For example, a sine wave is
 surely periodic; indeed, recall from Section \ref{sec:frequency} that:
 \[ \sin (2\pi k + \theta) = \sin \theta \]
-for any integer $k$. In this case, $T = 2\pi$, and it is the smallest
+for any integer $k$.  In this case, $T = 2\pi$, and it is the smallest
 value that satisfies this property.
 
 But in what sense is, for example, a single musical note periodic?
 Indeed it is not, unless it is repeated infinitely often, which would
 not be very interesting musically.  Yet something we would like to
-know is the spectral content of that single note.  This is one of the
-practical problems that we will address later in the chapter.
+know is the spectral content of that single note, or even of a small
+portion of that note, within an entire composition.  This is one of
+the practical problems that we will address later in the chapter.
 
 %% In the case of audio, since humans cannot hear sound lower than
 %% about 20 Hz, we need only concern ourselves with periodic signals
@@ -96,11 +102,15 @@ Chapter~\ref{ch:additive}).  Of course, we also have to deal with the
 fact that the representation may involve an \emph{infinite} number of
 composite signals.
 
-It turns out that many naturally occurring vibrations in
-nature---including the resonances of most musical instruments---are
-characterized as having a fundamental frequency (the perceived pitch)
-and some combination of multiples of that frequency, which are often
-called \emph{harmonics}, \emph{overtones} or \emph{partials}.
+As discussed somewhat in Chapter~\ref{ch:signals}, many naturally
+occurring vibrations in nature---including the resonances of most
+musical instruments---are characterized as having a fundamental
+frequency (the perceived pitch) and some combination of multiples of
+that frequency, which are often called \emph{harmonics},
+\emph{overtones} or \emph{partials}.  So Fourier's Theorem seems to be
+a good match for this musical application.
+
+\subsection{The Fourier Transform}
 
 When studying Fourier analysis, it is more convenient, mathematically,
 to use \emph{complex exponentials}.  We can relate working with
@@ -112,22 +122,22 @@ cos(\theta) &=& \dfrac{1}{2} (e^{j\theta} + e^{-j\theta}) \\[.1in]
 sin(\theta) &=& \dfrac{1}{2} (e^{j\theta} - e^{-j\theta})
 \end{array}\]
 
-For a periodic signal $x(t)$, %% which we will consider to be a
-function of time, we will denote its \emph{Fourier transform} by
+For a periodic signal $x(t)$, which we consider to be a
+function of time, we denote its \emph{Fourier transform} by
 $\hat{x}(f)$, which is a function of frequency.  Each point in
 $\hat{x}$ is a complex number that represents the magnitude and phase
 of the frequency $f$'s presence in $x(t)$.  Using complex
-exponentials, the formula for $\hat{x}(f)$ in terms of $x(t)$ is: \[
-\hat{x}(f) = \int_{-\infty}^{\infty} x(t) e^{-j\omega t} dt \] where
-$\omega = 2\pi f$, and $j$ is the same as the imaginary unit $i$ used
-in mathematics.\footnote{Historically, engineers prefer to use the
-symbol $j$ rather than $i$, because $i$ is generally used to represent
-current in an electrical circuit.}  Intuitively, the Fourier transform
-at a particular frequency $f$ is the integral of the product of the
-original signal and a pure sinusiodal wave $e^{-j\omega t}$.  This
-latter process is related to the \emph{convolution} of the two
-signals, and intuitively will be non-zero only when the signal has
-some content of that pure signal in it.
+exponentials, the formula for $\hat{x}(f)$ in terms of $x(t)$ is: 
+\[ \hat{x}(f) = \int_{-\infty}^{\infty} x(t) e^{-j\omega t} dt \] 
+where $\omega = 2\pi f$, and $j$ is the same as the imaginary unit $i$
+used in mathematics.\footnote{Historically, engineers prefer to use
+  the symbol $j$ rather than $i$, because $i$ is generally used to
+  represent current in an electrical circuit.}  Intuitively, the
+Fourier transform at a particular frequency $f$ is the integral of the
+product of the original signal and a pure sinusiodal wave $e^{-j\omega
+  t}$.  This latter process is related to the \emph{convolution} of
+the two signals, and intuitively will be non-zero only when the signal
+has some content of that pure signal in it.
 
 The above equation describes $\hat{x}$ in terms of $x$.  We can also
 go the other way around---defining $x$ in terms of $\hat{x}$:
@@ -157,14 +167,16 @@ equivalent!
 
 A function that has the property that $f(x) = f(-x)$ is called an
 \emph{even} function; if $f(x) = - f(-x)$ it is said to be \emph{odd}.
-It turns out that \emph{any} function can be expressed as the sum of a
-single even function and a single odd function.  This may help provide
-some intuition about the equations for the Fourier transform, because
-the complex exponential $e^{j2\pi f t}$ separates the waveform by
-which it is being multiplied into its even and odd parts (recall
-Euler's formula).  The real (cosine) part affects only the even part
-of the input, and the imaginary (sine) part affects only the odd part
-of the input.
+It turns out that, perhaps surprisingly, \emph{any} function can be
+expressed as the sum of a single even function and a single odd
+function.  This may help provide some intuition about the equations
+for the Fourier transform, because the complex exponential 
+$e^{j2\pi f t}$ separates the waveform by which it is being multiplied
+into its even and odd parts (recall Euler's formula).  The real
+(cosine) part affects only the even part of the input, and the
+imaginary (sine) part affects only the odd part of the input.
+
+\subsection{Examples}
 
 Let's consider some examples, which are illustrated in
 Figure~\ref{fig:fourier-transforms}:
@@ -200,8 +212,8 @@ Figure~\ref{fig:fourier-transforms}c.
 \item
 Consider now the spectral content of a square wave.  It can be shown
 that the Fourier series representation of a square wave is the sum of
-the square wave's fundamental frequency plus its decreasing (in
-magnitude) odd harmonics.  Specifically:
+the square wave's fundamental frequency plus its harmonically
+decreasing (in magnitude) odd harmonics.  Specifically:
 \begin{equation}\label{eq:square-wave-series}
 sq(t) = \sum_{k=1}^{\infty} \frac{1}{k} \sin k\omega t,\quad {\rm for\ odd\ } k
 \end{equation}
@@ -288,7 +300,18 @@ concern turns to the \emph{number of samples} that we use in computing
 the DFT---let's call this $N$.  Intuitively, the integrals used in our
 equations for the Fourier transform and its inverse should become sums
 over the range $0 ... N-1$.  This leads to a reformulation of our two
-equations (\ref{eq:ft} and \ref{eq:ift}) as:
+equations (\ref{eq:ft} and \ref{eq:ift}) as follows:\footnote{The
+  purpose of the factor $\nicefrac{1}{N}$ in Equation~\ref{eq:dft} is
+  to ensure that the DFT and the inverse DFT are in fact inverses of
+  each other.  But it is just by convention that one equation has this
+  factor and the other does not---it would be sufficient if it were
+  done the other way around.  In fact, all that matters is that the
+  product of the two coefficients be $\nicefrac{1}{N}$, and thus it
+  would also be sufficient for each equation to have the same
+  coefficient, namely $\nicefrac{1}{\sqrt{N}}$.  Similarly, the
+  negative exponent in one equation and positive in the other is also
+  by convention---it would be sufficient to do it the other way
+  around.}
 \begin{equation}\label{eq:dft}
 \hat{x}[k] = \frac{1}{N}\sum_{n=0}^{N-1} 
                x[n] e^{-j\frac{2\pi k n}{N}},\ \ k = 0, 1, ..., N-1
@@ -410,28 +433,26 @@ redundancy.
 %% ... This can be viewed s a kind of aliasing in the frequency domain.
 
 The above discussion has assumed a periodic signal whose fundamental
-frequency is presumably known, thus allowing us to parameterize the
-DFT with the same fundamental frequency.  In practice this rarely
-happens.  That is, the fundamental frequency of the DFT typically has
-no integral relationship to the period of the periodic signal.  This
-raises the question, what happens to the frequencies that ``fall in
-the gaps'' between the frequencies discussed above?  The answer is
-that the energy of that frequency component will be distributed
-amongst neighboring points in a way that makes sense mathematically,
-although the result may look a little funny compared to the ideal
-result (where every frequency component is an integer multiple of the
-fundamental).  The important thing to remember is that these are
-digital representations of the exact spectra, just as a digitized
-signal is representative of an exact signal.  Two digitized signals
-can look very different (depending on sample rate, phase angle, and so
-on), yet represent the same underlying signal---the same is true of a
-digitized spectrum.
+frequency is known, thus allowing us to parameterize the DFT with the
+same fundamental frequency.  In practice this rarely happens.  That
+is, the fundamental frequency of the DFT typically has no integral
+relationship to the period of the periodic signal.  This raises the
+question, what happens to the frequencies that ``fall in the gaps''
+between the frequencies discussed above?  The answer is that the
+energy of that frequency component will be distributed amongst
+neighboring points in a way that makes sense mathematically, although
+the result may look a little funny compared to the ideal result (where
+every frequency component is an integer multiple of the fundamental).
+The important thing to remember is that these are digital
+representations of the exact spectra, just as a digitized signal is
+representative of an exact signal.  Two digitized signals can look
+very different (depending on sample rate, phase angle, and so on), yet
+represent the same underlying signal---the same is true of a digitized
+spectrum.
 
 In practice, for reasons of computational efficiency, $N$ is usually
 chosen to be a power of two.  We will return to this issue when we
 discuss implementing the DFT.
-
-[show on-line demo of FFT]
 
 \subsection{Amplitude and Power of Spectrum}
 \label{sec:amp-spectrum}
@@ -460,10 +481,8 @@ representation of a complex number.)
 
 \begin{figure}[hbtp]
 \centering
-%% \includegraphics[height=4in,angle=270]{pics/sinewave.eps} 
-[ figure showing the complex point (a,b) (say, in quadrant 2)
-  along with its polar (magnitude/phase) representation ]
-\caption{Complex Coordinates}
+\includegraphics[height=2.4in]{pics/ComplexToPolar.eps} % angle=270
+\caption{Complex and Polar Coordinates}
 \label{fig:complex-plane}
 \end{figure}
 
@@ -565,15 +584,16 @@ the following Haskell code:
 \begin{code}
 mkTerm :: Int -> Double -> [Complex Double]
 mkTerm num n = let f = 2 * pi / fromIntegral num
-               in map (:+ 0) [  sin (n * f * fromIntegral i) / n
-                                | i <- [0,1..num-1] ]
+               in [  sin (n * f * fromIntegral i) / n :+ 0
+                     | i <- [0,1..num-1] ]
 
 mkxa, mkxb, mkxc :: Int-> [Complex Double]
 mkxa num = mkTerm num 1
 mkxb num = zipWith (+) (mkxa num) (mkTerm num 3)
 mkxc num = zipWith (+) (mkxb num) (mkTerm num 5)
 \end{code}
-|mkTerm num n| is the n${^th}$ term in the series, using $num$ samples.
+Thus |mkTerm num n| is the |n|$^{th}$ term in the series, using |num|
+samples.
 
 Using the helper function |printComplexL| defined in
 Figure~\ref{fig:pp-code}, which ``pretty prints'' a list of complex
@@ -621,7 +641,7 @@ printComplexL (dft (mkxc 16))
 \end{spec}
 will yield the result of the DFT, pretty-printing each number as a
 pair, along with its index:
-\begin{verbatim}
+{\small \begin{verbatim}
   0:  (  0.0          ,   0.0          )
   1:  (  0.0          ,  -0.5          )
   2:  (  0.0          ,   0.0          )
@@ -638,31 +658,12 @@ pair, along with its index:
  13:  (  0.0          ,   0.1666666667 )
  14:  (  0.0          ,   0.0          )
  15:  (  0.0          ,   0.5          )
-\end{verbatim}
-
-\out{
- 0:  (  0.00000,   0.00000 )
- 1:  (  0.00000,  -0.50000 )
- 2:  (  0.00000,   0.00000 )
- 3:  (  0.00000,  -0.16667 )
- 4:  (  0.00000,   0.00000 )
- 5:  (  0.00000,  -0.10000 )
- 6:  (  0.00000,   0.00000 )
- 7:  (  0.00000,   0.00000 )
- 8:  (  0.00000,   0.00000 )
- 9:  (  0.00000,   0.00000 )
-10:  (  0.00000,   0.00000 )
-11:  (  0.00000,   0.10000 )
-12:  (  0.00000,   0.00000 )
-13:  (  0.00000,   0.16667 )
-14:  (  0.00000,   0.00000 )
-15:  (  0.00000,   0.50000 )
-}
+\end{verbatim} }
 
 Let's study this result more closely.  For sake of argument, assume a
 sample rate of 1.6 KHz.  Then by construction using |mkxc|, our
 square-wave input's fundamental frequency is 100 Hz.  Similarly,
-recall that the resolution of the DFT is $r/N$, which is also 100 Hz.
+recall that the resolution of the DFT is |r/N|, which is also 100 Hz.
 
 Now compare the overall result to Figure
 \ref{fig:fourier-transforms}b.  Recalling also Equation \ref{eq:f2},
@@ -685,7 +686,7 @@ and print its DFT with the command:
 printComplexL (dft (mkPulse 16))
 \end{spec}
 whose effect is:
-\begin{verbatim}
+{\small \begin{verbatim}
  0:  (  6.25         ,   0.0          )
  1:  (  6.25         ,   0.0          )
  2:  (  6.25         ,   0.0          )
@@ -702,30 +703,10 @@ whose effect is:
 13:  (  6.25         ,   0.0          )
 14:  (  6.25         ,   0.0          )
 15:  (  6.25         ,   0.0          )
-
-\end{verbatim}
+\end{verbatim}}
 Compare this to Figure \ref{fig:fourier-transforms}c, and note how the
 original magnitude of the impulse (100) is distributed evenly among
 the 16 points in the DFT ($100/16 = 6.25$).
-
-\out{
- 0:  (  6.25000,   0.00000 )
- 1:  (  6.25000,   0.00000 )
- 2:  (  6.25000,   0.00000 )
- 3:  (  6.25000,   0.00000 )
- 4:  (  6.25000,   0.00000 )
- 5:  (  6.25000,   0.00000 )
- 6:  (  6.25000,   0.00000 )
- 7:  (  6.25000,   0.00000 )
- 8:  (  6.25000,   0.00000 )
- 9:  (  6.25000,   0.00000 )
-10:  (  6.25000,   0.00000 )
-11:  (  6.25000,   0.00000 )
-12:  (  6.25000,   0.00000 )
-13:  (  6.25000,   0.00000 )
-14:  (  6.25000,   0.00000 )
-15:  (  6.25000,   0.00000 )
-}
 
 So far we have considered only input signals whose frequency
 components are integral multiples of the DFT's resolution.  This
@@ -750,7 +731,7 @@ command:
 printComplexL (dft x1)
 \end{spec}
 which yields:
-\begin{verbatim}
+{\small \begin{verbatim}
   0:  ( -7.9582433e-3 ,   0.0          )
   1:  ( -5.8639942e-3 ,  -1.56630897e-2)
   2:  (  4.7412105e-3 ,  -4.56112124e-2)
@@ -767,7 +748,7 @@ which yields:
  13:  (  0.1860052232 ,   0.4318552865 )
  14:  (  4.7412105e-3 ,   4.56112124e-2)
  15:  ( -5.8639942e-3 ,   1.56630897e-2)
-\end{verbatim}
+\end{verbatim}}
 This is much more complicated than the previous examples!  Not only do
 the points in the spectrum seem to have varying amounts of energy,
 they also have both non-zero real and non-zero imaginary components,
@@ -782,7 +763,7 @@ which we can then use to reprint our result:
 \begin{spec}
 printComplexL (mkPolars (dft x1))
 \end{spec}
-\begin{verbatim}
+{\small \begin{verbatim}
   0:  (  7.9582433e-3 ,   3.1415926536 )
   1:  (  1.67247961e-2,  -1.9290259418 )
   2:  (  4.58569709e-2,  -1.4672199604 )
@@ -799,7 +780,7 @@ printComplexL (mkPolars (dft x1))
  13:  (  0.470209455  ,   1.1640975898 )
  14:  (  4.58569709e-2,   1.4672199604 )
  15:  (  1.67247961e-2,   1.9290259418 )
-\end{verbatim}
+\end{verbatim} }
 If we focus on the magnitude (the first column), we can see that there
 is a peak near index 3 (corresponding roughly to the frequency $\pi$),
 with small amounts of energy elsewhere.
@@ -833,7 +814,7 @@ relationship between |r|, |n|, and the sampling rate. }
 
 \begin{exercise}{\em
 Define a function |mkSqWave :: Int -> Int -> [Complex Double]| such
-that |mxSqWave num n| is the sum of the first $n$ terms of the Fourier
+that |mkSqWave num n| is the sum of the first $n$ terms of the Fourier
 series of a square wave, having $num$ samples in the result. }
 \end{exercise}
 
@@ -851,147 +832,157 @@ axioms of real arithmetic.) }
 \section{The Fast Fourier Transform}
 \label{sec:fft}
 
-Our effort in the last section was toward writing a DFT program in
-Haskell that was as faithful to Equation ...
+In the last section a DFT program was developed in Haskell that was
+easy to understand, being a faithful translation of Equation
+\ref{eq:dft}.  For pedogogical purposes, this effort served us well.
+However, for practical purposes, the program is inherently
+inefficient.
 
-We can think of $x[n]$ and $\hat{x}[k]$ as vectors.  Thus, for
+To see why, think of $x[n]$ and $\hat{x}[k]$ as vectors.  Thus, for
 example, each element of $\hat{x}$ is the sum of $N$ multiplications
 of a vector by a complex exponential (which can be represented as a
 pair, the real and imaginary parts).  And this overall process must be
 repeated for each value of $k$, also $N$ times.  Therefore the overall
-complexity of the implied algorithm is O($N^2$).
+time complexity of the implied algorithm is O($N^2$).  For even
+moderate values of $N$, this can be computationally intractable.  (Our
+choice of lists for the implementation of vectors makes the complexity
+even worse, because of the linear-time complexity of indexing, but the
+discussion below makes this a moot point.)
 
-For even moderate values of $N$, this can be computationally
-impractical.  Fortunately, there exists a much faster algorithm called
-the \emph{Fast Fourier Transform}, or FFT, that reduces the complexity
-to O($N\log N$).  This difference is quite significant for larger
-values of $N$.\footnote{The basic FFT algorithm was invented by James
-  Cooley and John Tukey in 1965.}
+Fortunately, there exists a much faster algorithm called the
+\emph{Fast Fourier Transform}, or FFT, that reduces the complexity to
+O($N\log N$).  This difference is quite significant for large values
+of $N$, and is the standard algorithm used in most signal processing
+applications.  We will not go into the details of the FFT algorithm,
+other than to note that it is a divide-and-conquer algorithm that
+depends on the vector size being a power of two.\footnote{The basic
+  FFT algorithm was invented by James Cooley and John Tukey in 1965.}
 
 %% \footnote{James Cooley and John Tukey are
 %%   usually credited with inventing the FFT in 1965, although it was
 %%   later discovered that Carl Friedrich Gauss proposed the same
 %%   algorithm around 1805.}
 
-We will not go into the details of the FFT algorithm, but instead
-will use a Haskell library ...
+Rather than developing our own program for the FFT, we will instead
+use the Haskell library |Numeric.FFT| to import a function that will
+do the job for us.  Specifically:
+\begin{spec}
+fft :: ...
+\end{spec}
+With this function we could explore the use of the FFT on specific
+iinput vectors, as we did earlier with |dft|.
 
+However, our ultimate goal is to have a version of FFT that works on
+\emph{signals}.  We would like to be able to specify the number of
+samples as a power of two (which we can think of as the ``window
+size''), the clock rate, and how often we would like to take a
+snapshot of the current window (and thus successive windows may or may
+not overlap).  The resulting signal function takes a signal as input,
+and outputs \emph{events} at the specified rate.  Events are discussed
+in more detail in Chapter~\ref{ch:MUI}.
+
+Indeed, Euterpea provide this functionality for us in a function
+called |fftA|:
+\begin{spec}
+fftA :: Int -> Double -> Int -> SF Double (Event FFTData)
+type FFTData = Map Double Double
+\end{spec}
+|SF| is a signal function type similar to |SigFun|, except that it is
+targeted for use in the Musical User Interface (MUI) discussed in
+detail in Chapter~\ref{ch:mui}, and thus, for example, does not have a
+clock rate.  |Map T1 T2| is an abstract type that maps values of type
+|T1| to values of type |T2|, and is imported from |Data.Map|.
+
+|fftA winInt rate size| is a signal function that, every |winInt|
+samples of the input, creates a window of size |2 ^ size|, and
+computes the FFT of that window.  For every such result, it issues an
+|Event| that maps from frequency to magnitude (using the clock rate
+|rate| to determine the proper mapping).
+
+Combining |fftA| with the MUI widgets discussed in
+Chapter~\ref{ch:mui}, we can write a simple program that generates a
+sine wave whose frequency is controlledd by a slider, and whose
+real-time graph as well as its FFT are displayed.  The program to do
+this is shown in Figure~\ref{fig:fft-mui}.
+
+\begin{figure}
+\begin{spec}
+fftEx :: UISF () ()
+fftEx = proc _ -> do
+    f       <- hSlider (1, 2000) 440 -< ()
+    (d,_) <- convertToUISF 100 simpleSig -< f
+    let (s, fft) = unzip d
+    _ <- histogram (500, 150) 20 -< listToMaybe (catMaybes fft)
+    _ <- realtimeGraph' (500, 150) 200 20 Black -< s
+    outA -< ()
+  where
+    simpleSig :: SigFun CtrRate Double (Double, Event [Double])
+    simpleSig = proc f -> do
+      s <- osc (tableSinesN 4096 [1]) 0 -< f
+      fftData <- fftA 100 256 -< s
+      outA -< (s, fftData)
+
+t0 = runUIEx (500, 600) "fft Test" fftEx
+\end{spec}
+\caption{A Real-Time Display of FFT Results}
+\label{fig:fft-mui}
+\end{figure}
+
+%% fftEx :: UISF () ()
+%% fftEx = proc _ -> do
+%%     f      <- hSlider (1, 2000) 440 -< ()
+%%     (d,_)  <- convertToUISF 100 simpleSig -< f
+%%     let (s,fft) = unzip d
+%%     _ <- histogram (500,150) 20 -< listToMaybe (catMaybes fft)
+%%     _ <- realtimeGraph' (500,150) 200 20 Black -< s
+%%     outA -< ()
+%%   where
+%%     simpleSig :: SigFun CtrRate Double (Double, Event FFTData)
+%%     simpleSig = proc f -> do
+%%         s     <- osc (tableSinesN 4096 [1]) 0 -< f
+%%         fft   <- fftA 100 (rate (undefined :: CtrRate)) 8 -< s
+%%         outA  -< (s, fft)
+
+%% t0 = runUIEx (500,600) "fft Test" fftEx
 
 \section{Further Pragmatics}
 
-... Of course, when moving into the discrete domain, the problems we
-mentioned earlier come into play, and result, for example, in
-``windowing'' effects.
+\todo{Discuss windowing.}
 
-... To understand all this a little better, let's begin with some simple
-examples of what happens when we add sine waves together.
+\vspace{.1in}\hrule
 
-\out{ Old Code
-
-%% printComplexL :: [Complex Double] -> IO ()
-%% printComplexL xs  =
-%%   let maxLr = maximum (map (length . fst . break (== '.') . show . realPart) xs)
-%%       maxRr = maximum (map (length . snd . break (== '.') . show . realPart) xs)
-%%       maxLi = maximum (map (length . fst . break (== '.') . show . imagPart) xs)
-%%       maxRi = maximum (map (length . snd . break (== '.') . show . imagPart) xs)
-%%       nl = length (show (length xs))
-%%       f (i,rl:+im) = do  putStr ( mkLenP nl (show i)  ++ ":  ("   )
-%%                          putStr ( pad maxLr maxRr rl    ++ ", "   )
-%%                          putStr ( pad maxLi maxRi im    ++ ")\n"  )
-%%   in mapM_ f (zip [0..length xs - 1] xs)
-
-%% pad :: Int -> Int -> Double -> String
-%% pad maxL maxR x =
-%%   let  (dec,fra)  = break (== '.') (show x)
-%%   in take (maxL - length dec) (repeat ' ') ++ dec ++
-%%      fra ++ take (maxR - length fra) (repeat ' ')
-
-%% mkLenP :: Int -> String -> String
-%% mkLenP n xs =  
-%%   let diff = n - length xs
-%%   in  if diff < 0 then error "number is too big"
-%%       else take diff (repeat ' ') ++ xs -- pad the prefix
-
-%% mkNiceNum :: Int -> Double -> String
-%% mkNiceNum n d =
-%%   let  (dec, fra)  = break (== '.') (show d)
-%%   in mkLenP n dec ++ "." ++ mkLenS m (tail fra)
-
-%% mkLenP :: Int -> Double -> String
-%% mkLenP n x =  
-%%   let diff = n - length xs
-%%   in  if diff < 0 then error "number is too big"
-%%       else take diff (repeat ' ') ++ xs -- pad the prefix
-
-%% mkLenS :: Int -> String -> String
-%% mkLenS m xs = 
-%%   let diff = m - length xs
-%%   in  if diff < 0 then take m xs
-%%       else xs ++ take diff (repeat '0') -- pad the suffix
-
-%% printComplexL :: Int -> Int -> [Complex Double] -> IO ()
-%% printComplexL n m xs  =
-%%   -- n is the number of chars to the left of the decimal point
-%%   -- m is the number of chars to the right
-%%   let nl = length (show (length xs))
-%%       f (i,rl:+im) = do  putStr ( mkLenP nl (show i)  ++ ":  (" )
-%%                          putStr ( mkNiceNum n m rl    ++ ", "   )
-%%                          putStr ( mkNiceNum n m im    ++ " )\n" )
-%%   in mapM_ f (zip [0..length xs - 1] xs)
-
-%% mkNiceNum :: Int -> Int -> Double -> String
-%% mkNiceNum n m d =
-%%   let  s           = 10 ^ m
-%%        dRnd        = fromIntegral (round (s*d)) / s  :: Double
-%%        (dec, fra)  = break (== '.') (show dRnd)
-%%   in mkLenP n dec ++ "." ++ mkLenS m (tail fra)
-
-%% mkLenP :: Int -> String -> String
-%% mkLenP n xs =  
-%%   let diff = n - length xs
-%%   in  if diff < 0 then error "number is too big"
-%%       else take diff (repeat ' ') ++ xs -- pad the prefix
-
-%% mkLenS :: Int -> String -> String
-%% mkLenS m xs = 
-%%   let diff = m - length xs
-%%   in  if diff < 0 then take m xs
-%%       else xs ++ take diff (repeat '0') -- pad the suffix
-
-%% dft' :: [Complex Double] -> [Complex Double]
-%% dft' xs = 
-%%   let lenI = length xs
-%%       lenR = fromIntegral lenI
-%%       lenC = lenR :+ 0
-%%   in [  (1/lenC) * sum [  (xs!!n) * 
-%%                              let  y :: Double
-%%                                   y = -2 * pi *  fromIntegral k * 
-%%                                                  fromIntegral n / lenR
-%%                              in cos y :+ sin y
-%%                           | n <- [0,1..lenI-1] ]
-%%         | k <- [0,1..lenI-1] ]
-
-%% dft'' :: [Complex Double] -> [Complex Double]
-%% dft'' xs = 
-%%   let lenI = length xs
-%%       lenR = fromIntegral lenI
-%%       lenC = lenR :+ 0
-%%   in [  (1/lenC) * sum [  (xs!!n) * 
-%%                              let  y :: Double
-%%                                   y = (2 * pi *  fromIntegral k * 
-%%                                                  fromIntegral n) / lenR
-%%                              in cos y :+ (- sin y)
-%%                           | n <- [0,1..lenI-1] ]
-%%         | k <- [0,1..lenI-1] ]
-
-%% mkNiceNum' :: Int -> Int -> Double -> String
-%% mkNiceNum' n m d =
-%%   let s           = 10 ^ n
-%%       dRnd        = fromIntegral (round (s*d)) / s  :: Double
-%%       (dec, fra)  = break (== '.') (show dRnd)
-%%       (fra',exp)  = break (== 'e') fra
-%%   in  if null exp
-%%       then mkLenP n dec ++ "." ++ mkLenS m (tail fra)
-%%       else mkLenP n dec ++ "." ++ mkLenS (m - length exp) (tail fra) ++ exp
+\begin{exercise}{\em 
+Modify the program in Figure~\ref{fig:fft-mui} in the following ways:
+\begin{enumerate}
+\item
+Add a second slider, and use it to control the frequency of a second
+oscillator. 
+\item
+Let |s1| and |s2| be the names of the signals whose frequencies are
+controlled by the first and second sliders, respectively.  Instead of
+displaying the FFT of just |s1|, try a variety of combinations of |s1|
+and |s2|, such as |s1 + s2|, |s1 - s2|, |s1 * s2|, |1/s1 + 1/s2|, and
+|s1 / s2|.  Comment on the results.
+\item
+Use |s2| to control the frequency of |s1| (as was done with |vibrato|
+in Chapter~\ref{ch:sigfuns}).  Plot the fft of |s1| and comment on the
+result.
+\item
+Instead of using |osc| to generate a pure sine wave, try using other
+oscillators and/or table generators to create more complex tones, and
+plot their FFT's.  Comment on the results.
+\end{enumerate}
 }
+\end{exercise}
+
+\vspace{.1in}\hrule
+
+\section{References}
+
+Most of the ideas in this chapter can be found in any good textbook on
+signal processing, such as \cite{}.  The particular arrangement of the
+material here, in particular Figure~\ref{fig:fourier-transforms} and
+the development and demonstration of a program for the DFT, is
+borrowed from the excellent text \emph{Computer Music} by Moore
+\cite{moore:computer-music}.
 

@@ -1,12 +1,10 @@
 %-*- mode: Latex; abbrev-mode: true; auto-fill-function: do-auto-fill -*-
 
-% Todo:
-% -- Add more exercises
-
 %include lhs2TeX.fmt
 %include myFormat.fmt
 
-\chapter{Overview of Euterpea, Computer Music, and Haskell}
+\chapter[Computer Music, Euterpea, and Haskell]{Overview of 
+  Computer Music, Euterpea, and Haskell}
 \label{ch:intro}
 
 Computers are everywhere.  And so is music!  Although some might think
@@ -45,7 +43,7 @@ language \emph{Haskell} is used to express all of the computer music
 concepts.  Thus a by-product of learning computer music concepts will
 be learning how to program in Haskell.  The core musical ideas are
 collected into a Haskell library called \emph{Euterpea}.  The name
-``Euterpea'' is derived from ``Euterpe,'' who was one of the nine
+``Euterpea'' is derived from \emph{Euterpe}, who was one of the nine
 Greek muses, or goddesses of the arts, specifically the muse of music.
 A hypothetical picture of Euterpe graces the cover of this textbook.
 
@@ -64,10 +62,10 @@ used in the musical dimension.
 At the \emph{note level}, a \emph{note} (i.e.\ pitch and duration) is
 the lowest musical entity that is considered, and everything else is
 built up from there.  At this level, in addition to conventional
-representations of music, one can study interesting aspects of
+representations of music, we can study interesting aspects of
 so-called \emph{algorithmic composition}, including the use of
 fractals, grammar-based systems, stochastic processes, and so on.
-From this basis one can also study the harmonic and rhythmic
+From this basis we can also study the harmonic and rhythmic
 \emph{analysis} of music, although that is not currently an emphasis
 in this textbook.  Haskell facilitates programming at this level
 through its powerful data abstraction facilities, higher-order
@@ -83,24 +81,24 @@ samples per second (the standard sampling rate used for CDs, mp3
 files, and so on).  But in Euterpea, these details are hidden: signals
 are treated abstractly as continuous quantities.  This greatly eases
 the burden of programming with sequences of discrete values.  At the
-signal level, one can study sound synthesis techniques (to simulate
+signal level, we can study sound synthesis techniques (to simulate
 the sound of a conventional instrument, say, or something completely
 artificial), audio processing (e.g.\ determining the frequency
 spectrum of a signal), and special effects (reverb, panning,
 distortion, and so on).
 
-Suppose for a moment that one is playing music using a metronome set
-at 96, which corresponds to 96 beats per minute.  That means that one
-beat takes 60/96 = 0.625 seconds.  At a stereo sampling rate of 44,100
-samples per second, that in turn translates into 2*0.625*44,100 =
-55,125 samples, and each sample typically occupies several bytes of
-computer memory.  This is typical of the minimum memory requirements
-of a computation at the signal level.  In contrast, at the note level,
-one only needs some kind of operator or data structure that says
-``play this note,'' which requires a total of only a small handful of
-bytes.  This dramatic difference highlights one of the key
-computational differences between programming at the note level versus
-the signal level.
+Suppose for a moment that a musician is playing music using a
+metronome set at 96, which corresponds to 96 beats per minute.  That
+means that one beat takes $\nicefrac{60}{96}$ = 0.625 seconds.  At a
+stereo sampling rate of 44,100 samples per second, that in turn
+translates into $2\times 0.625\times 44,100$ = 55,125 samples, and
+each sample typically occupies several bytes of computer memory.  This
+is typical of the minimum memory requirements of a computation at the
+signal level.  In contrast, at the note level, we only need some kind
+of operator or data structure that says ``play this note,'' which
+requires a total of only a small handful of bytes.  This dramatic
+difference highlights one of the key computational differences between
+programming at the note level versus the signal level.
 
 Of course, many computer music applications involve both the note
 level \emph{and} the signal level, and indeed there needs to be a
@@ -112,7 +110,7 @@ signal level is so natural.
 This textbook begins with a treatment of the note level
 (Chapters~\ref{ch:intro}-\ref{ch:MUI}) and follows with a treatment of
 the signal level (Chapters~\ref{ch:signals}-\ref{ch:additive}).  If
-the reader is interested only in the signal level, one could skip
+you are interested only in the signal level, you could skip
 Chapters~\ref{ch:performance}-\ref{ch:MUI}.
 
 \section{Basic Principles of Programming}
@@ -123,15 +121,15 @@ digital computer.  Thus the first step in programming is answering the
 question, ``What problem am I trying to solve?''
 
 % ``Solving the wrong problem'' is a phrase often heard in many
-% contexts, and we certainly don't want to be victims of that crime.
+% contexts, and we certainly do not want to be victims of that crime.
 
 % \footnote{Of course, not all problems fall into this category, and
 % some problems are solved (or are attempted to be solved) using
-% computers that probably shouldn't be.  But I will avoid this
+% computers that probably should not be.  But I will avoid this
 % digression.}
 
 Once the problem is understood, a solution must be found.  This may
-not be easy, of course, and in fact one may discover several
+not be easy, of course, and in fact you may discover several
 solutions, so a way to measure success is needed.  There are various
 dimensions in which to do this, including correctness (``Will I get
 the right answer?'') and efficiency (``Will it run fast enough, or use
@@ -161,18 +159,18 @@ just like the musical result that you desire.
 Programming is itself a creative process.  Sometimes programming
 solutions (or artistic creations) come to mind all at once, with
 little effort.  More often, however, they are discovered only after
-lots of hard work!  One may write a program, modify it, throw it away
-and start over, give up, start again, and so on.  It's important to
+lots of hard work!  We may write a program, modify it, throw it away
+and start over, give up, start again, and so on.  It is important to
 realize that such hard work and reworking of programs is the norm, and
-in fact you are encouraged to get into the habit of doing so.  Don't
+in fact you are encouraged to get into the habit of doing so.  Do not
 always be satisfied with your first solution, and always be prepared
 to go back and change or even throw away those parts of your program
-that you're not happy with.
+that you are not happy with.
 
 \section{Computation by Calculation}
 \index{computation by calculation}
 
-It's helpful when learning a new programming language to have a good
+It is helpful when learning a new programming language to have a good
 grasp of how programs in that language are executed---in other words,
 an understanding of what a program \emph{means}.  The execution of
 Haskell programs is perhaps best understood as \emph{computation by
@@ -187,7 +185,7 @@ exception.  For example, integers might be used to represent pitch,
 and floating-point numbers might be used to perform calculations
 involving frequency or amplitude.
 
-Suppose onne wishes to perform an arithmetic calculation such as
+Suppose we wish to perform an arithmetic calculation such as
 $3\times(9+5)$.  In Haskell this would be written as |3*(9+5)|, since
 most standard computer keyboards and text editors do not recognize the
 special symbol $\times$.  The result can be calculated as follows:
@@ -263,20 +261,20 @@ actually does to execute the program.
 
 |simple 3 9 5| is said to \emph{evaluate} to 42.  To express the fact
 that an expression $e$ evaluates (via zero, one, or possibly many more
-steps) to the value $v$, one writes $e \Longrightarrow v$ (this arrow
-is longer than that used earlier).  So one can say directly, for
+steps) to the value $v$, we will write $e \Longrightarrow v$ (this arrow
+is longer than that used earlier).  So we can say directly, for
 example, that |simple 3 9 5 ===> 42|, which should be read ``|simple 3
 9 5| evaluates to 42.''
 
-With |simple| now suitably defined, one can repeat the sequence of
-arithmetic calculations as often as one likes, using different values
+With |simple| now suitably defined, we can repeat the sequence of
+arithmetic calculations as often as we like, using different values
 for the arguments to |simple|.  For example, 
 |simple 4 3 2 ===> 20|.
 
-One can also use calculation to \emph{prove properties} about
+We can also use calculation to \emph{prove properties} about
 programs.  For example, it should be clear that for any |a|, |b|, and
 |c|, |simple a b c| should yield the same result as |simple a c b|.
-For a proof of this, one calculates \emph{symbolically}; that is,
+For a proof of this, we calculate \emph{symbolically}; that is,
 using the symbols |a|, |b|, and |c| rather than concrete numbers such
 as 3, 5, and 9:
 \begin{spec}
@@ -288,7 +286,7 @@ simple a b c
 Note that the same notation is used for these symbolic steps as for
 concrete ones.  In particular, the arrow in the notation reflects the
 direction of formal reasoning, and nothing more.  In general, if |e1
-==> e2|, then it's also true that |e2 ==> e1|.
+==> e2|, then it is also true that |e2 ==> e1|.
 
 These symbolic steps are also referred to as as ``calculations,'' even
 though the computer will not typically perform them when executing a
@@ -303,9 +301,9 @@ a program, since it does not seem to be headed toward a final answer.
 But for proving properties about programs, such ``backward reasoning''
 is quite important.
 
-When one wishes to make the justification for each step clearer,
-whether symbolic or concrete, a calculation can be annotated with more
-detail, as in:
+When we wish to spell out the justification for each step, whether
+symbolic or concrete, a calculation can be annotated with more detail,
+as in:
 \begin{spec}
 simple a b c
 ==> { unfold }
@@ -320,7 +318,7 @@ In most cases, however, this will not be necessary.
 Proving properties of programs is another theme that will be repeated
 often in this text.  Computer music applications often have some kind
 of a mathematical basis, and that mathematics must be reflected
-somewhere in your program.  But how do you know that you got it right?
+somewhere in our programs.  But how do we know if we got it right?
 Proof by calculation is one way to connect the problem specification
 with the program solution.
 
@@ -330,14 +328,14 @@ papers, sending email, and social networking, but also life-critical
 tasks such as controlling medical procedures and guiding spacecraft,
 then the correctness of programs gains in importance.  Proving complex
 properties of large, complex programs is not easy---and rarely if ever
-done in practice---but that should not deter you from proving simpler
+done in practice---but that should not deter us from proving simpler
 properties of the whole system, or complex properties of parts of the
-system, since such proofs may uncover errors, and if not, at least
-give you confidence in your effort.
+system, since such proofs may uncover errors, and if not, will at
+least give us confidence in our effort.
 
 If you are someone who is already an experienced programmer, the idea
 of computing \emph{everything} by calculation may seem odd at best,
-and na\"{i}ve at worst.  How does one write to a file, play a sound,
+and na\"{i}ve at worst.  How do we write to a file, play a sound,
 draw a picture, or respond to mouse-clicks?  If you are wondering
 about these things, it is hoped that you have patience reading the
 early chapters, and that you find delight in reading the later
@@ -346,15 +344,15 @@ chapters where the full power of this approach begins to shine.
 In many ways this first chapter is the most difficult, since it
 contains the highest density of new concepts.  If the reader has
 trouble with some of the concepts in this overview chapter, keep in
-mind that most of them will be revisited in later chapters.  And don't
+mind that most of them will be revisited in later chapters.  And do not
 hesitate to return to this chapter later to re-read difficult
 sections; they will likely be much easier to grasp at that time.
 
 \syn{In the remainder of this textbook the need will often arise to
   explain some aspect of Haskell in more detail, without distracting
   too much from the primary line of discourse.  In those circumstances
-  the explanations will be offset in a box such as this one, proceeded
-  with the word ``Details.''}
+  the explanations will be offset in a shaded box such as this one,
+  proceeded with the word ``Details.''}
 
 \vspace{.1in}\hrule
 
@@ -377,22 +375,23 @@ Prove by calculation that |simple (a-b) a b ===>| $a^2 - b^2$.}
 
 In Haskell, the entities on which calculations are performed are
 called \emph{\indexwd{expressions}}, and the entities that result from
-a calculation---i.e. ``the answers''---are called
+a calculation---i.e.\ ``the answers''---are called
 \emph{\indexwd{values}}.  It is helpful to think of a value just as an
 expression on which no more calculation can be carried out---every
 value is an expression, but not the other way around.
 
 Examples of expressions include \emph{atomic} (meaning, indivisible)
 values such as the integer |42| and the character |'a'|, which are
-examples of two \emph{primitive} atomic values.  The next chapter
-introduces examples of \emph{user-defined} atomic values, such as the
-musical note names |C|, |Cs|, |Df|, etc., which in music notation are
-written C, C$\sharp$, D$\flat$, etc.  (In music theory, note names are
-called \emph{pitch classes}.)
+examples of two \emph{primitive} atomic values in Haskell.  The next
+chapter introduces examples of \emph{constructor} atomic values, such
+as the musical notes |C|, |D|, |Ef|, |Fs|, etc., which in standard
+music notation are written C, D, E$\flat$, F$\sharp$, etc., and are
+pronounced C, D, E-flat, F-sharp, etc.  (In music theory, note names
+are called \emph{pitch classes}.).
 
 In addition, there are \emph{structured} expressions (i.e., made from
 smaller pieces) such as the \emph{\indexwd{list}} of pitches
-|[C,Cs,Df]|, the character/number \emph{\indexwd{pair}} |('b',4)|
+|[C,D,Ef]|, the character/number \emph{\indexwd{pair}} |('b',4)|
 (lists and pairs are different in a subtle way, to be described
 later), and the string |"Euterpea"|.  Each of these structured
 expressions is also a value, since by themselves there is no further
@@ -441,25 +440,25 @@ computation from another.
 \section{Types}
 
 Every expression (and therefore every value) also has an associated
-\emph{\indexwd{type}}.  One can think of types as sets of expressions
-(or values), in which members of the same set have much in common.
-Examples include the primitive atomic types \indexwdhs{Integer} (the
-set of all integers) and \indexwdhs{Char} (the set of all characters),
-the user-defined atomic type |PitchClass| (the set of all pitch
-classes, i.e.\ note names), as well as the structured types
-|[Integer]| and |[PitchClass]| (the sets of all lists of integers and
-lists of pitch classes, respectively), and |String| (the set of all
-Haskell strings).
+\emph{\indexwd{type}}.  It is helpful to think of types as sets of
+expressions (or values), in which members of the same set have much in
+common.  Examples include the primitive atomic types
+\indexwdhs{Integer} (the set of all integers) and \indexwdhs{Char}
+(the set of all characters), the user-defined atomic type |PitchClass|
+(the set of all pitch classes, i.e.\ note names), as well as the
+structured types |[Integer]| and |[PitchClass]| (the sets of all lists
+of integers and lists of pitch classes, respectively), and |String|
+(the set of all Haskell strings).
 
 The association of an expression or value with its type is very
-important, and there is a special way of expressing it in Haskell.
+useful, and there is a special way of expressing it in Haskell.
 Using the examples of values and types above:
 \begin{spec}
-Cs          :: PitchClass
+D           :: PitchClass
 42          :: Integer
 'a'         :: Char
 "Euterpea"  :: String
-[C,Cs,Df]   :: [PitchClass]
+[C,D,Ef]    :: [PitchClass]
 ('b',4)     :: (Char,Integer)
 \end{spec}
 \indexhs{::}
@@ -468,14 +467,16 @@ Each association of an expression with its type is called a \emph{type
 
 \index{case sensitivity}
 
-\syn{Note that the names of specific types are capitalized, such
-  as |Integer| and |Char|, but the names of values are not, such as
-  |simple| and |x|.  This is not just a convention: it is required
-  when programming in Haskell.  In addition, the case of the other
-  characters matters, too.  For example, |test|, |teSt|, and |tEST|
-  are all distinct names for values, as are |Test|, |TeST|, and |TEST|
-  for types.
-}
+\syn{Note that the names of specific types are capitalized, such as
+  |Integer| and |Char|, as are the names of some atomic values such as
+  |D| and |Fs|.  These will never be confused in context, since things
+  to the right of ``|::|'' are types, and things to the left are
+  values.  Note also that user-defined names of values are \emph{not}
+  capitalized, such as |simple| and |x|.  This is not just a
+  convention: it is required when programming in Haskell.  In
+  addition, the case of the other characters matters, too.  For
+  example, |test|, |teSt|, and |tEST| are all distinct names for
+  values, as are |Test|, |TeST|, and |TEST| for types.}
 
 \syn{Literal characters are written enclosed in single forward quotes
   (apostrophes), as in |'a'|, |'A'|, |'b'|, |','|, |'!'|, |' '| (a
@@ -529,12 +530,13 @@ be?  It seems that it should at least convey the fact that a function
 takes values of one type---|T1|, say---as input, and returns values of
 (possibly) some other type---|T2|, say---as output.  In Haskell this
 is written |T1 -> T2|, and such a function is said to ``map values of
-type |T1| to values of type |T2|.''  If there is more than one
-argument, the notation is extended with more arrows.  For example, if
-the intent is that the function |simple| defined in the previous
-section has type |Integer->Integer->Integer->Integer|, one can include
-a type signature with the definition of |simple|:
-\index{type!signature}
+type |T1| to values of type |T2|.''\footnote{In mathematics |T1| is
+  called the \emph{domain} of the function, and |T2| the
+  \emph{range}.}  If there is more than one argument, the notation is
+extended with more arrows.  For example, if the intent is that the
+function |simple| defined in the previous section has type
+|Integer->Integer->Integer->Integer|, we can include a type signature
+with the definition of |simple|: \index{type!signature}
 \begin{spec}
 simple         :: Integer -> Integer -> Integer -> Integer
 simple x y z   = x*(y+z)
@@ -545,7 +547,7 @@ simple x y z   = x*(y+z)
 
 \index{type!inference} Haskell's type system also ensures that
 user-supplied type signatures such as this one are correct.  Actually,
-Haskell's type system is powerful enough to allow one to avoid writing
+Haskell's type system is powerful enough to allow us to avoid writing
 any type signatures at all, in which case the type system is said to
 \emph{infer} the correct types.\footnote{There are a few exceptions to
   this rule, and in the case of |simple| the inferred type is actually
@@ -595,15 +597,27 @@ still just functions.}
 Identify the well-typed expressions in the following, and, for each,
 give its proper type:
 \begin{spec}
+[ A, B, C ]
+[ D, 42 ]
+( -42, Ef )
+[ ('a',3), ('b',5) ]
+simple 'a' 'b' 'c'
+( simple 1 2 3, simple )
+["I","love","Euterpea"]
+\end{spec}
+For those expressions that are ill-typed, explain why.
+}
+\end{exercise} 
+\out{
+\begin{spec}
 [ (2,3), (4,5) ]
-[ Cs, 42 ]
-( Df, -42 )
+[ D, 42 ]
+( Ef, -42 )
 simple 'a' 'b' 'c'
 ( simple 1 2 3, simple )
 ["hello","world"]
 \end{spec}
 }
-\end{exercise} 
 
 \vspace{.1in}\hrule
 
@@ -618,46 +632,45 @@ verb ``abstract'' as follows:
 {\bf abstract}, \emph{vt} (1) remove, separate (2) to consider apart
 from application to a particular instance.
 \end{quote}
-In programming this is done when a repeating pattern of some sort
-occurs, and one wishes to ``separate'' that pattern from the
-``particular instances'' in which it appears.  In this textbook this
-process is called the \emph{abstraction
-  principle}.\index{abstraction!principle} The following sections
-introduce several different kinds of abstraction, using examples
-involving both simple numbers and arithmetic (things everyone should
-be familiar with) as well as musical examples (that are specific to
-Euterpea).
+In programming this happens when a pattern repeats itself and we wish
+to ``separate'' that pattern from the ``particular instances'' in
+which it appears.  In this textbook this process is called the
+\emph{abstraction principle}.\index{abstraction!principle} The
+following sections introduce several different kinds of abstraction,
+using examples involving both simple numbers and arithmetic (things
+everyone should be familiar with) as well as musical examples (that
+are specific to Euterpea).
 
 \subsection{Naming}
 \index{abstraction!naming||(}
 
 One of the most basic ideas in programming---for that matter, in every
-day life---is to \emph{name} things.  For example, one may wish to
-give a name to the value of $\pi$, since it is inconvenient to retype
-(or remember) the value of $\pi$ beyond a small number of digits.  In
+day life---is to \emph{name} things.  For example, we may wish to give
+a name to the value of $\pi$, since it is inconvenient to retype (or
+remember) the value of $\pi$ beyond a small number of digits.  In
 mathematics the greek letter $\pi$ in fact \emph{is} the name for this
-value, but unfortunately one doesn't have the luxury of using greek
-letters on standard computer keyboards and text editors.  So in
-Haskell one writes:
+value, but unfortunately we do not have the luxury of using greek
+letters on standard computer keyboards and/or text editors.  So in
+Haskell we write:
 \begin{spec}
 pi  :: Double
 pi  = 3.141592653589793
 \end{spec}
 to associate the name |pi| with the number 3.141592653589793.  The
 type signature in the first line declares |pi| to be a
-double-precision \emph{\indexwd{floating-point number}}, which
-mathematically and in Haskell is distinct from an integer.\footnote{We
-  will have more to say about floating-point numbers later.} Now the
-name |pi| can be used in expressions whenever it is in scope; it is an
-abstract representation, if you will, of the number 3.141592653589793.
+\emph{double-precision floating-point number}, which mathematically
+and in Haskell is distinct from an integer.\footnote{We will have more
+  to say about floating-point numbers later.} Now the name |pi| can be
+used in expressions whenever it is in scope; it is an abstract
+representation, if you will, of the number 3.141592653589793.
 Furthermore, if there is ever a need to change a named value (which
-hopefully won't ever happen for |pi|, but could certainly happen for
-other values), one would only have to change it in one place, instead
-of in the possibly large number of places where it is used.
+hopefully will not ever happen for |pi|, but could certainly happen
+for other values), we would only have to change it in one place,
+instead of in the possibly large number of places where it is used.
 
 For a simple musical example, note first that in music theory, a
 \emph{pitch} consists of a \emph{pitch class} and an \emph{octave}.
-For example, in Euterpea one simply writes |(A,4)| to represent the
+For example, in Euterpea we simply write |(A,4)| to represent the
 pitch class |A| in the fourth octave.  This particular note is called
 ``concert A'' (because it is often used as the note to which an
 orchestra tunes its instruments) or ``A440'' (because its frequency is
@@ -707,8 +720,8 @@ Note in the definition of |x| that the expression |pi*r**2|
 (presumably representing the area of a circle whose radius is |r|) is
 repeated---it has two instances---and thus, applying the abstraction
 principle, it can be separated from these instances.  From the
-previous examples, doing this is straightforward---it's called
-\emph{naming}---so one might choose to rewrite the single equation
+previous examples, doing this is straightforward---it is called
+\emph{naming}---so we might choose to rewrite the single equation
 above as two:
 \begin{spec}
 area  = pi*r**2
@@ -718,7 +731,7 @@ If, however, the definition of |area| is not intended for use
 elsewhere in the program, then it is advantageous to ``hide'' it
 within the definition of |x|.  This will avoid cluttering up the
 namespace, and prevents |area| from clashing with some other value
-named |area|.  To achieve this, one could simply use a \indexwdkw{let}
+named |area|.  To achieve this, we could simply use a \indexwdkw{let}
 expression:
 \begin{spec}
 x =  let area = pi*r**2
@@ -726,7 +739,7 @@ x =  let area = pi*r**2
 \end{spec}
 A {\bf let} expression restricts the \emph{visibility} of the names
 that it creates to the internal workings of the {\bf let} expression
-itself.  For example, if one writes:
+itself.  For example, if we were to write:
 \begin{spec}
 area  = 42
 x     =  let area = pi*r**2
@@ -742,7 +755,7 @@ you say, ``John spilled the milk.''
 So you can see that naming---using either top-level equations or
 equations within a {\bf let} expression---is an example of the
 abstraction principle in action.  
-%% It's often the case, of course, that we \emph{anticipate} the need for
+%% It is often the case, of course, that we \emph{anticipate} the need for
 %% abstraction; for example, directly writing down the final solution
 %% above, because we knew that we would need to use the expression
 %% |a-b+2| more than once.  
@@ -786,15 +799,12 @@ x  = f (pi*r1**2) + g (pi*r2**2)
 Note that there are now two areas involved---one of a circle whose
 radius is |r1|, the other |r2|.  Now the expressions in parentheses
 have a \emph{repeating pattern of operations}.  In discerning the
-nature of a repeating pattern it's sometimes helpful to first identify
+nature of a repeating pattern it is sometimes helpful to first identify
 those things that are \emph{not} repeating, i.e.\ those things that
 are \emph{changing}.  In the case above, it is the radius that is
 changing.  A repeating pattern of operations can be abstracted as a
 \emph{function} that takes the changing values as arguments.  Using
-the function name |areaF| (for ``area function'') one can write:
-
-\newpage
-
+the function name |areaF| (for ``area function'') we can write:
 \begin{spec}
 x  =  let areaF r = pi*r**2
       in f (areaF r1) + g (areaF r2)
@@ -814,13 +824,13 @@ introduced, concepts that are addressed more formally in the next
 chapter:
 \begin{enumerate}
 \item
-Recall that in music theory a \emph{note} is a pitch combined with a
+In music theory a \emph{note} is a \emph{pitch} combined with a
 \emph{duration}.  Duration is measured in beats, and in Euterpea has
-type |Dur|.  A note whose duration is one beat is called a whole note;
-one with duration 1/2 is called a half note; and so on.  A note in
-Euterpea is the smallest entity, besides a rest, that is actually a
-performable piece of music, and its type is |Music Pitch| (other
-variations of this type will be introduced in later chapters).
+type |Dur|.  A note whose duration is one beat is called a whole note,
+one with duration $\nicefrac{1}{2}$ is called a half note, and so on.
+A note in Euterpea is the smallest entity, besides a rest, that is
+actually a performable piece of music, and its type is |Music Pitch|
+(other variations of this type will be introduced in later chapters).
 
 \item
 In Euterpea there are functions:
@@ -848,7 +858,7 @@ Intuitively:
 \end{itemize}
 
 \item
-Finally, Eutperepa has a function |trans :: Int -> Pitch -> Pitch|
+Eutperepa also has a function |trans :: Int -> Pitch -> Pitch|
 such that |trans i p| is a pitch that is |i| semitones (half steps, or
 steps on a piano) higher than |p|.
 \end{enumerate}
@@ -861,7 +871,7 @@ where |qn| is a quarter note:
 \begin{spec}
 qn = 1/4
 \end{spec}
-Suppose one wishes to harmonize each note with a note played a minor
+Suppose we wish to harmonize each note with a note played a minor
 third lower.  In music theory, a minor third corresponds to three
 semitones, and thus the harmonized melody can be written as:
 \begin{spec}
@@ -874,11 +884,11 @@ Note as in the previous example a repeating pattern of
 operations---namely, the operations that harmonize a single note with
 a note three semitones below it.  As before, to abstract a sequence of
 operations such as this, a function can be defined that takes the
-``variable quantities''---in this case the pitch---as arguments.  One
-could take this one step further, however, by noting that in some
-other context one might wish to vary the duration.  Recognizing this
-is to anticipate the need for abstraction.  Calling this function
-|hNote| (for ``harmonize note'') one can then write:
+``variable quantities''---in this case the pitch---as arguments.  We
+can take this one step further, however, by noting that in some other
+context we might wish to vary the duration.  Recognizing this is to
+\emph{anticipate} the need for abstraction.  Calling this function
+|hNote| (for ``harmonize note'') we can then write:
 \begin{spec}
 hNote      :: Dur -> Pitch -> Music Pitch
 hNote d p  = note d p :=: note d (trans (-3) p)
@@ -896,8 +906,8 @@ one.
 As with |areaF|, this use of |hNote| is an example of functional
 abstraction.  In a sense, functional abstraction can be seen as a
 generalization of naming.  That is, |area r1| is just a name for
-|pi*r1**2|, |hNote d p1| is just a name for |note d p1 :=: note d
-(trans (-3) p1)|, and so on.  Stated another way, named quantities
+|pi*r1**2|, |hNote d p| is just a name for |note d p :=: note d
+(trans (-3) p)|, and so on.  Stated another way, named quantities
 such as |area|, |pi|, |concertA|, and |a440| defined earlier can be
 thought of as functions with no arguments.
 
@@ -908,15 +918,13 @@ mel  :: Music Pitch
 mel  =  let hNote d p = note d p :=: note d (trans (-3) p)
         in hNote qn p1 :+: hNote qn p2 :+: hNote qn p3
 \end{spec}
-%% In particupar, note that the |d| in the definition of |hNote| is
-%% different from the |d| used in the result.
 
 \subsection{Data Abstraction}
 \label{sec:basic-list-abstraction}
 \index{abstraction!data||(}
 
 The value of |mel| is the sequential composition of three harmonized
-notes.  But what if in another situation one must compose together
+notes.  But what if in another situation we must compose together
 five harmonized notes, or in other situations even more?  In
 situations where the number of values is uncertain, it is useful to
 represent them in a \emph{data structure}.  For the example at hand, a
@@ -925,30 +933,30 @@ introduced earlier, that can have any length.  The use of a data
 structure motivated by the abstraction principle is one form of
 \emph{data abstraction}.
 
-Imagine now an entire list of pitches, whose length isn't known at the
+Imagine now an entire list of pitches, whose length is not known at the
 time the program is written.  What now?  It seems that a function is
 needed to convert a list of pitches into a sequential composition of
 harmonized notes.  Before defining such a function, however, there is
 a bit more to say about lists.
 
-Earlier the example |[C,Cs,Df]| was given, a list of pitch classes
+Earlier the example |[C,D,Ef]| was given, a list of pitch classes
 whose type is thus |[PitchClass]|.  A list with \emph{no} elements
 is---not surprisingly---written |[]|, and is called the \emph{empty
   list}.
 
-To add a single element |x| to the front of a list |xs|, one writes
+To add a single element |x| to the front of a list |xs|, we write
 |x:xs| in Haskell.  (Note the naming convention used here; |xs| is the
 plural of |x|, and should be read that way.)  For example, |C :
-[Cs,Df]| is the same as |[C,Cs,Df]|.  In fact, this list is equivalent
-to |C:(Cs:(Df:[]))|, which can also be written |C:Cs:Df:[]| since the
+[D,Ef]| is the same as |[C,D,Ef]|.  In fact, this list is equivalent
+to |C:(D:(Ef:[]))|, which can also be written |C:D:Ef:[]| since the
 infix operator |(:)| is right associative.  \index{associativity}
 
-\syn{In mathematics one rarely worries about whether the notation
+\syn{In mathematics we rarely worry about whether the notation
   $a+b+c$ stands for $(a+b)+c$ (in which case $+$ would be ``left
   associative'') or $a+(b+c)$ (in which case $+$ would ``right
   associative'').  This is because in situations where the parentheses
-  are left out it's usually the case that the operator is
-  \emph{mathematically} associative, meaning that it doesn't matter
+  are left out it is usually the case that the operator is
+  \emph{mathematically} associative, meaning that it does not matter
   which interpretation is chosen.  If the interpretation \emph{does}
   matter, mathematicians will include parentheses to make it clear.
   Furthermore, in mathematics there is an implicit assumption that
@@ -983,7 +991,7 @@ discussed in a later chapter.}
 
 Returning now to the problem of defining a function (call it |hList|)
 to turn a list of pitches into a sequential composition of harmonized
-notes, one should first express what its type should be:
+notes, we should first express what its type should be:
 \begin{spec}
 hList :: Dur -> [Pitch] -> Music Pitch
 \end{spec}
@@ -995,7 +1003,7 @@ could be empty, in which case the sequential composition should be a
 hList d []     = rest 0
 \end{spec}
 
-The other possibility is that the list \emph{isn't} empty---i.e.\ it
+The other possibility is that the list \emph{is not} empty---i.e.\ it
 contains at least one element, say |p|, followed by the rest of the
 elements, say |ps|.  In this case the result should be the
 harmonization of |p| followed by the sequential composition of the
@@ -1013,7 +1021,7 @@ original one).
 Combining these two equations with the type signature yields the
 complete definition of the function |hList|:
 \begin{spec}
-hList :: Dur -> [Pitch] -> Music Pitch
+hList           :: Dur -> [Pitch] -> Music Pitch
 hList d []      = rest 0
 hList d (p:ps)  = hNote d p :+: hList d ps
 \end{spec}
@@ -1052,7 +1060,7 @@ rewritten as:
 mel = hList qn [p1, p2, p3]
 \end{spec}
 
-One can prove that this definition is equivalent to the old via
+We can prove that this definition is equivalent to the old via
 calculation:
 \begin{spec}
 mel = hList qn [p1, p2, p3]
@@ -1105,8 +1113,8 @@ as Haskell values these two expressions are not the same, and proof by
 calculation is based on the equality of Haskell values.  The problem
 is that a ``deeper'' notion of equivalence is needed, one based on the
 notion of \emph{musical} equality.  Adding a rest of zero duration to
-the beginning or end of any piece of music should not change what one
-\emph{hears}, and therefore it seems that the above two expressions are
+the beginning or end of any piece of music should not change what we
+\emph{hear}, and therefore it seems that the above two expressions are
 \emph{musically} equivalent.  But it is unreasonable to expect Haskell
 to figure this out for the programmer!
 
@@ -1117,7 +1125,7 @@ not equal, yet in a program that ``interprets'' them as sets, they
 
 The way this problem is approached in Euterpea is to formally define a
 notion of \emph{musical interpretation}, from which the notion
-\emph{musical equivalence} is defined.  This leads to a kind of
+of \emph{musical equivalence} is defined.  This leads to a kind of
 ``algebra of music'' that includes, among others, the following axiom:
 \begin{spec}
 m :+: rest 0 === m
@@ -1129,8 +1137,8 @@ above \emph{are} in fact musically equivalent.
 For a more extreme example of this idea, and to entice the reader to
 learn more about musical equivalence in later chapters, note that
 |mel|, given pitches |p1 = Ef|, |p2 = F|, |p3 = G|, and duration |d =
-1/4|, generates the harmonized melody shown in Figure \ref{fig:mel}.
-One can write this concretely in Euterpea as:
+1/4|, generates the harmonized melody shown in Figure \ref{fig:mel};
+we can write this concretely in Euterpea as:
 \begin{spec}
 mel1 =  (note (1/4) (Ef,  4) :=: note (1/4) (C,4)) !:+:
         (note (1/4) (F,   4) :=: note (1/4) (D,4)) !:+:
@@ -1139,9 +1147,10 @@ mel1 =  (note (1/4) (Ef,  4) :=: note (1/4) (C,4)) !:+:
 The definition of |mel1| can then be seen as a \emph{polyphonic}
 interpretation of the musical phrase in Figure \ref{fig:mel}, where
 each pair of notes is seen as a harmonic unit.  In contrast, a
-\emph{contrapuntal} interpretation sees two independent \emph{lines}
-of notes, in this case the line $\langle$E$\flat$,F,G$\rangle$ and the
-line $\langle$C,D,E$\rangle$.  In Euterpea one can write this as:
+\emph{contrapuntal} interpretation sees two independent \emph{lines},
+or \emph{voices}, in this case the line $\langle$E$\flat$,F,G$\rangle$
+and the line $\langle$C,D,E$\rangle$.  In Euterpea we can write this
+as:
 \begin{spec}
 mel2 =  (note (1/4) (Ef,  4) :+: note (1/4) (F,4)   :+: note (1/4) (G,4))
         :=:
@@ -1149,7 +1158,7 @@ mel2 =  (note (1/4) (Ef,  4) :+: note (1/4) (F,4)   :+: note (1/4) (G,4))
 \end{spec}
 |mel1| and |mel2| are clearly not equal as Haskell values.  Yet if
 they are played, they will \emph{sound} the same---they are, in the
-sense described earlier, \emph{musically} equivalent.  But proving
+sense described earlier, \emph{musically equivalent}.  But proving
 these two phrases musically equivalent will require far more than a
 simple axiom involving |rest 0|.  In fact this can be done in an
 elegant way, using the algebra of music developed in Chapter
@@ -1168,9 +1177,9 @@ elegant way, using the algebra of music developed in Chapter
 \section{Code Reuse and Modularity}
 \label{sec:code-reuse}
 
-There doesn't seem to be much repetition in the last definition of
+There does not seem to be much repetition in the last definition of
 |hList|, so perhaps the end of the abstraction process has been
-reached.  In fact, it's worth considering how much progress has been
+reached.  In fact, it is worth considering how much progress has been
 made.  The original definition:
 \begin{spec}
 mel =  (note qn p1 :=: note qn (trans (-3) p1)) !:+: 
@@ -1195,18 +1204,18 @@ In terms of code size, the final program is actually larger than the
 original!  So has the program improved in any way?
 
 Things have certainly gotten better from the standpoint of ``removing
-repeating patterns,'' and one could argue that the resulting program
+repeating patterns,'' and we could argue that the resulting program
 therefore is easier to understand.  But there is more.  Now that
-auxiliary functions such as |hNote| and |hList| have been defined, one
+auxiliary functions such as |hNote| and |hList| have been defined, we
 can \emph{reuse} them in other contexts.  Being able to reuse code is
 also called \emph{\indexwd{modularity}}, since the reused components
-are like little modules, or bricks, that can form the foundation of
-many applications.\footnote{``Code reuse'' and ``modularity'' are
-  important software engineering principles.}  In a later chapter,
-techniques will be introduced---most notably, \emph{higher-order
-  functions} and \emph{polymorphism}---for improving the modularity of
-this example even more, and substantially increasing the ability to
-reuse code.
+are like little modules, or building blocks, that can form the
+foundation of many applications.\footnote{``Code reuse'' and
+  ``modularity'' are important software engineering principles.}  In a
+later chapter, techniques will be introduced---most notably,
+\emph{higher-order functions} and \emph{polymorphism}---for improving
+the modularity of this example even more, and substantially increasing
+the ability to reuse code.
 
 \section{[Advanced] Programming with Numbers}
 \label{sec:numbers-caveat}
@@ -1233,7 +1242,7 @@ Unfortunately, each of these number systems places great demands on
 computer systems.  In particular, a number can in general require an
 \emph{arbitrary amount of memory} to represent it.  Clearly, for
 example, an irrational number such as $\pi$ cannot be represented
-exactly; the best one can do is approximate it, or possibly write a
+exactly; the best we can do is approximate it, or possibly write a
 program that computes it to whatever (finite) precision is needed in a
 given application.  But even integers (and therefore rational numbers)
 present problems, since any given integer can be arbitrarily large.
@@ -1247,7 +1256,7 @@ Ratio Library).  But in Haskell and most other languages there is no
 exact form of real numbers, for example, which are instead
 approximated by \emph{floating-point numbers} with either single-word
 precision (\indexwdhs{Float} in Haskell) or double-word precision
-(\indexwdhs{Double}).  What's worse, the behavior of arithmetic
+(\indexwdhs{Double}).  Even worse, the behavior of arithmetic
 operations on floating-point numbers can vary somewhat depending on
 what kind of computer is being used, although hardware standardization
 in recent years has reduced the degree of this problem.
@@ -1277,30 +1286,30 @@ result: 21.99115.  But funny things can happen when the magnitude of
 5*(-0.123456  +    0.123457)  :: Float ==> 4.991889e-6
 5*(-0.123456) + 5*(0.123457)  :: Float ==> 5.00679e-6
 \end{spec}
-Although the error here is small, its very existence is worrisome, and
-in certain situations it could be disastrous.  The precise behavior of
-floating-point numbers will not be discussed further in this textbook.
-Just remember that they are \emph{approximations} to the real numbers.
-If real-number accuracy is important to your application, further
-study of the nature of floating-point numbers is probably warranted.
+Although the discrepancy here is small, its very existence is
+worrisome, and in certain situations it could be disastrous.  The
+precise behavior of floating-point numbers will not be discussed
+further in this textbook.  Just remember that they are
+\emph{approximations} to the real numbers.  If real-number accuracy is
+important to your application, further study of the nature of
+floating-point numbers is probably warranted.
 
 On the other hand, the distributive law (and many others) is valid in
 Haskell for the exact data types |Integer| and |Ratio Integer|
-(i.e.\ rationals).  However, another problem arises: although the
-representation of an |Integer| in Haskell is not normally something to
-be concerned about, it should be clear that the representation must be
-allowed to grow to an arbitrary size.  For example, Haskell has no
-problem with the following number:
+(i.e.\ rationals).  Although the representation of an |Integer| in
+Haskell is not normally something to be concerned about, it should be
+clear that the representation must be allowed to grow to an arbitrary
+size.  For example, Haskell has no problem with the following number:
 \begin{spec}
 veryBigNumber  :: Integer
 veryBigNumber  = 43208345720348593219876512372134059
 \end{spec}
 and such numbers can be added, multiplied, etc.\ without any loss of
 accuracy.  However, such numbers cannot fit into a single word of
-computer memory, most of which are limited to 32 bits.  Worse, since
-the computer system does not know ahead of time exactly how many words
-will be required, it must devise a dynamic scheme to allow just the
-right number of words to be used in each case.  The overhead of
+computer memory, most of which are limited to 32 or 64 bits.  Worse,
+since the computer system does not know ahead of time exactly how many
+words will be required, it must devise a dynamic scheme to allow just
+the right number of words to be used in each case.  The overhead of
 implementing this idea unfortunately causes programs to run slower.
 
 For this reason, Haskell (and most other languages) provides another
@@ -1311,13 +1320,13 @@ memory, and the primitive machine instructions for binary numbers can
 be used to manipulate them efficiently.\footnote{The Haskell Report
   requires that every implementation support |Int|s at least in the
   range $-2^{29}$ to $2^{29}-1$, inclusive.  The GHC implementation
-  running on a Pentium processor, for example, supports the range
+  running on a 32-bit processor, for example, supports the range
   $-2^{31}$ to $2^{31}-1$.}  Unfortunately, this means that
 \emph{overflow} or \emph{underflow} errors could occur when an |Int|
-value exceeds either the maximum or minimum values.  However, most
+value exceeds either the maximum or minimum values.  Sadly, most
 implementations of Haskell (as well as most other languages) do not
-tell you when this happens.  For example, in GHC, the following |Int|
-value:
+tell you when this happens.  For example, in GHC running on a 32-bit
+processor, the following |Int| value:
 \begin{spec}
 i  :: Int
 i  = 1234567890
@@ -1368,34 +1377,34 @@ $\forall($|a|$)|a->a|$, which can be read ``\emph{for all} types |a|,
 functions mapping elements of type |a| to elements of type |a|.''
 Note the emphasis on ``\emph{for all}.''
 
-In practice, however, there are times when one would prefer to limit a
+In practice, however, there are times when we would prefer to limit a
 polymorphic type to a smaller number of possibilities.  A good example
-is a function such as |(+)|.  It's probably not a good idea to limit
+is a function such as |(+)|.  It is probably not a good idea to limit
 |(+)| to a \emph{single} (that is, \emph{monomorphic}) type such as
 |Integer->Integer->Integer|, since there are other kinds of
-numbers---such as rational and floating-point numbers---that one would
+numbers---such as rational and floating-point numbers---that we would
 like to perform addition on as well.  Nor is it a good idea to have a
-different addition function for each type of number that one wishes to
+different addition function for each type of number that we wish to
 add, since that would require giving each a different name, such as
 |addInteger|, |addRational|, |addFloat|, etc.  And, unfortunately,
 giving |(+)| a type such as |a->a->a| will not work, since this would
-imply that one could add things other than numbers, such as
+imply that we could add things other than numbers, such as
 characters, pitch classes, lists, tuples, functions, and any type that
 you might define on your own!
 
 \index{type!qualified} \index{class} 
 
 Haskell provides a solution to this problem through the use of {\em
-  qualified types}.  Conceptually, one can think of a qualified type
-just as a polymorphic type, except that in place of ``\emph{for all}
-types |a|'' it will be possible to say ``for all types |a| \emph{that
-  are members of the type class} |C|,'' where the type class |C| can
-be thought of as a set of types.  For example, suppose there is a type
-class \indexwdhs{Num} with members |Integer|, |Rational|, and |Float|.
-Then an accurate type for |(+)| is $\forall($|a|$\in$|Num|$)$|a -> a
--> a|.  But in Haskell, instead of writing
-$\forall(|a|\in|Num|)\cdots$, the notation |Num a =>|$\cdots$ is used.
-So the proper type signature for |(+)| is:
+  qualified types}.  Conceptually, it is helpful to think of a
+qualified type just as a polymorphic type, except that in place of
+``\emph{for all} types |a|'' it will be possible to say ``for all
+types |a| \emph{that are members of the type class} |C|,'' where the
+type class |C| can be thought of as a set of types.  For example,
+suppose there is a type class \indexwdhs{Num} with members |Integer|,
+|Rational|, and |Float|.  Then an accurate type for |(+)| is
+$\forall($|a|$\in$|Num|$)$|a -> a -> a|.  But in Haskell, instead of
+writing $\forall(|a|\in|Num|)\cdots$, the notation |Num a =>|$\cdots$
+is used.  So the proper type signature for |(+)| is:
 \begin{spec}
 (+) :: Num a => a -> a -> a
 \end{spec}
@@ -1470,15 +1479,15 @@ class and its members.  For now, all you need to know is that some
 functions and operators are predefined to be instances of certain
 type classes, such as |(+)| and |(*)| above.  Table
 \ref{fig:common-type-classes} shows a number of others.  For example,
-the |Show| class allows one to convert values to strings:
+the |Show| class allows us to convert values to strings:
 \begin{spec}
-show Cs              ==> "Cs"
+show D               ==> "D"
 show concertA        ==> "(A,4)"
 show (simple 3 9 5)  ==> "42"
 \end{spec}
-The |Read| class allows one to go the other way around:
+The |Read| class allows us to go the other way around:
 \begin{spec}
-read "Cs"            ==> Cs
+read "D"             ==> D
 read "(A,4)"         ==> (A,4)
 read "42"            ==> 42
 \end{spec}
@@ -1494,6 +1503,6 @@ simple 3 9 5 > 41    ==> True
 max 42 27            ==> 42
 'a' < 'b'            ==> True
 \end{spec}
-The |Enum| class allows one to use \emph{arithmetic sequences}, which
+The |Enum| class allows us to use \emph{arithmetic sequences}, which
 will be explained in a later chapter.
 }

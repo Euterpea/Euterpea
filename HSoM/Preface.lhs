@@ -2,14 +2,14 @@
 
 \chapter{Preface}
 
-In the year 2000 I wrote a book called \emph{The Haskell School of
+In 2000 I wrote a book called \emph{The Haskell School of
   Expression -- Learning Functional Programming through Multimedia}
 \cite{soe}.  In that book I used graphics, animation, music, and
 robotics as a way to motivate learning how to program, and
 specifically how to learn \emph{functional programming} using Haskell,
 a purely functional programming language.  Haskell \cite{haskell98} is
 quite a bit different from conventional imperative or object-oriented
-languages such as C, C++, Java, C\#, and so on.  It takes a different
+languages such as C, C$++$, Java, C\#, and so on.  It takes a different
 mind-set to program in such a language, and appeals to the
 mathematically inclined and to those who seek purity and elegance in
 their programs.  Although Haskell was designed over twenty years ago,
@@ -26,8 +26,8 @@ for expressing high-level computer music concepts in a purely
 functional way \cite{haskore,haskore-tutorial,haskore-fop}.  Indeed,
 three of the chapters in \emph{The Haskell School of Expression}
 summarize the basic ideas of this work.  Soon after that, with the
-help of another student, Matt Zamec, I designed a Haskell library
-called \emph{HasSound} that was, essentially, a Haskell interface to
+help of another student, I designed a Haskell library called
+\emph{HasSound} that was, essentially, a Haskell interface to
 \emph{csound} \cite{csound} for doing sound synthesis and instrument
 design.
 
@@ -72,8 +72,8 @@ makes you feel the source of reality.
 \end{quote}
 What is especially beautiful about this quote is that music is also a
 form of expression, although Curry was more likely talking about
-writing and speech.  In addition, as has been noted by many, music has
-many ties to mathematics.  So for me, combining the elegant
+writing and speaking.  In addition, as has been noted by many, music
+has many ties to mathematics.  So for me, combining the elegant
 mathematical nature of Haskell with that of music is as natural as
 singing a nursery tune.
 
@@ -156,25 +156,21 @@ computer music concepts, as opposed to programming concepts.
 
 \section*{Haskell Implementations}
 
-There are several good implementations of Haskell, all available free
-on the Internet through the Haskell users' website at {\tt
-  http://haskell.org}.  One that I especially recommend is {\em
-  \indexwd{GHC}}, an easy-to-use and easy-to-install Haskell compiler
-and interpreter (see {\tt http://haskell.org/ghc}).  GHC runs on a
-variety of platforms, including PC's (Windows 7, XP, and Vista), various
-flavors of Unix (Linux, FreeBSD, etc.), and Mac OS X.  The preferred
-way to install GHC is through the \emph{Haskell Platform}
-\newline ({\tt http://hackage.haskell.org/platform/}).  Any text
-editor can be used to create source files, but I prefer to use emacs
-(see 
-\newline {\tt http://www.gnu.org/software/emacs}), along with its
-Haskell mode (see 
-\newline {\tt http://projects.haskell.org/haskellmode-emacs/}).  The entire
-Euterpea library is available on the community Haskell server,
-including all of the source code from this textbook.  Instructions on
-how to install Euterpea can be found at {\tt
-  http://haskell.cs.yale.edu}.  Feel free to email me at {\tt
-  mailto:paul.hudak@@yale.edu} with any comments, suggestions, or questions.
+There are several implementations of Haskell, all available free on
+the Internet through the Haskell users' website at
+\url{http://haskell.org}.  However, the one that has dominated all
+others, and on which Euterpea is based, is \emph{\indexwd{GHC}}, an
+easy-to-use and easy-to-install Haskell compiler and interpreter (see
+\url{http://haskell.org/ghc}).  GHC runs on a variety of platforms,
+including PC's, various flavors of Unix, and Macs.  The preferred way
+to install GHC is through the \emph{Haskell Platform}
+(\url{http://hackage.haskell.org/platform/}).  Any text editor can be
+used to create source files, but I prefer to use emacs (see
+\url{http://www.gnu.org/software/emacs}), along with its Haskell mode
+(see \url{http://projects.haskell.org/haskellmode-emacs/}).  The
+entire Euterpea library, including the source code from this textbook,
+and installation instructions, can be found at
+\url{http://haskell.cs.yale.edu}.
 
 \newpage
 
@@ -184,7 +180,7 @@ I wish to thank my funding agencies---the National Science Foundation,
 the Defense Advanced Research Projects Agency, and Microsoft
 Research---for their generous support of research that contributed to
 the foundations of Euterpea.  Yale University has provided me a
-stimulating and flexible environment to pursue my dreams for almost
+stimulating and flexible environment to pursue my dreams for over
 thirty years, and I am especially thankful for its recent support of
 the Computing and the Arts initiative.
 

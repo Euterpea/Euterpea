@@ -28,21 +28,21 @@ to simplify programs.  This is a syntactic device that relies on the
 way that normal functions are applied, and how those applications are
 parsed.
 
-With a bit more syntax, one can also curry applications of infix
+With a bit more syntax, we can also curry applications of infix
 operators such as |(+)|.  This syntax is called a {\em
-\indexwd{section}}, and the idea is that, in an expression such as |(x+y)|,
-one can omit either the |x| or the |y|, and the result (with the
-parentheses still intact) is a function of that missing argument.  If
-{\em both} variables are omitted, it is a function of {\em two}
-arguments.  In other words, the expressions |(x+)|, |(+y)| and
-|(+)| are equivalent, respectively, to the functions:
+  \indexwd{section}}, and the idea is that, in an expression such as
+|(x+y)|, we can omit either the |x| or the |y|, and the result (with
+the parentheses still intact) is a function of that missing argument.
+If {\em both} variables are omitted, it is a function of {\em two}
+arguments.  In other words, the expressions |(x+)|, |(+y)| and |(+)|
+are equivalent, respectively, to the functions:
 \begin{spec}
 f1 y    = x+y
 f2 x    = x+y
 f3 x y  = x+y
 \end{spec}
 
-For example, suppose one wishes to remove all absolute pitches greater
+For example, suppose we wish to remove all absolute pitches greater
 than 99 from a list, perhaps because everything above that value is
 assumed to be unplayable.  There is a pre-defined function in Haskell
 that can help to achieve this:
@@ -52,13 +52,13 @@ filter :: (a -> Bool) -> [a] -> [a]
 |filter p xs| returns a list for which each element |x| satisfies the
 predicate |p|; i.e.\ |p x| is |True|.
 
-Using |filter|, one can then write:
+Using |filter|, we can then write:
 \begin{spec}
 playable     :: [AbsPitch] -> [AbsPitch]
 playable xs  =  let test ap = ap < 100
                 in filter test xs
 \end{spec}
-But using a section, one can write this more succinctly as:
+But using a section, we can write this more succinctly as:
 \begin{spec}
 playable     :: [AbsPitch] -> [AbsPitch]
 playable xs  =  filter (<100) xs
@@ -135,17 +135,17 @@ are values, just like numbers and characters and strings, and
 therefore there should be a way to create them without having to give
 them a name.  As a simple example, an anonymous function that
 increments its numeric argument by one can be written |\x -> x+1|.
-Anonymous functions are most useful in situations where you don't wish
-to name them, which is why they are called ``anonymous.''
-Anonymity is a property also shared by sections, but sections can
-only be derived from an existing infix operator.
+Anonymous functions are most useful in situations where you do not
+wish to name them, which is why they are called ``anonymous.''
+Anonymity is a property also shared by sections, but sections can only
+be derived from an existing infix operator.
 
 \syn{The typesetting used in this textbook prints an actual Greek
   lambda character, but in writing |\x -> x+1| in your programs you
   will have to type ``\verb!\x -> x+1!'' instead.}
 
 As another example, to raise the pitch of every element in a list of
-pitches |ps| by an octave, one could write:
+pitches |ps| by an octave, we could write:
 \begin{spec}
 map (\p-> pitch (absPitch p + 12)) ps
 \end{spec}
@@ -172,7 +172,7 @@ simple = \x y z -> x*(y+z)
 \end{spec}
 \syn{|\x y z -> exp| is shorthand for |\x -> \y-> \z -> exp|.}
 
-One can also use anonymous functions to explain precisely the behavior
+We can also use anonymous functions to explain precisely the behavior
 of sections.  In particular, note that:
 \begin{spec}
 (x+)  ==>  \y -> x+y
@@ -183,12 +183,12 @@ of sections.  In particular, note that:
 \vspace{.1in}\hrule
 
 \begin{exercise}{\em
-Suppose one defines a function \indexwdhs{fix} as:
+Suppose we define a function \indexwdhs{fix} as:
 \begin{spec}
 fix f = f (fix f)
 \end{spec}
 What is the principal type of |fix|?  (This is tricky!)  Suppose
-further that one has a recursive function:
+further that we have a recursive function:
 \begin{spec}
 remainder      :: Integer -> Integer -> Integer
 remainder a b  =  if a<b then a
@@ -214,19 +214,19 @@ addDur d ns  =  let f n = n d
                 in line (map f ns)
 \end{spec}
 Here |ns| is a list of notes, each of which does not have a duration
-yet assigned to it.  If one thinks of this as a set, one might be led
+yet assigned to it.  If we think of this as a set, we might be led
 to write the following solution in mathematical notation:
 \[ \{ n\ d\ ||\ n \in ns \} \]
 which can be read, ``the set of all notes |n d| such that |n| is an
 element of |ns|.''  Indeed, using a Haskell \emph{list comprehension}
-one can write almost exactly the same thing:
+we can write almost exactly the same thing:
 \begin{spec}
 [ n d | n <- ns ]
 \end{spec}
 The difference, of course, is that the above expression generates an
 (ordered) list in Haskell, not an (unordered) set in mathematics.
 
-List comprehensions allow one to rewrite the definition of |addDur|
+List comprehensions allow us to rewrite the definition of |addDur|
 much more succinctly and elegantly:
 \begin{spec}
 addDur       :: Dur -> [Dur -> Music a] -> Music a
@@ -252,7 +252,7 @@ The order here is important; that is, note that the left-most
 generator changes least quickly.
 
 It is also possible to \emph{filter} values as they are generated; for
-example, one can modify the above example to eliminate the odd
+example, we can modify the above example to eliminate the odd
 integers in the first list:
 \begin{spec}
 [ (x,y) | x <- [0,1,2], even x, y <- ['a','b'] ]
@@ -265,7 +265,7 @@ to:
 }
 
 \syn{When reasoning about list comprehensions (e.g.\ when doing proof
-  by calculation), one can use the following syntactic translation
+  by calculation), we can use the following syntactic translation
   into pure functions:
 \begin{spec}
 [ e | True ]           =  [ e ]
@@ -363,7 +363,7 @@ pre-defines a simple infix operator |(.)| to achieve it, as follows:
 Note the type of the operator |(.)|; it is completely polymorphic.
 Note also that the result of the first function to be applied---some
 type |b|---must be the same as the type of the argument to the second
-function to be applied.  Pictorially, if one thinks of a function as a
+function to be applied.  Pictorially, if we think of a function as a
 black box that takes input at one end and returns some output at the
 other, function composition is like connecting two boxes together, end
 to end, as shown in Figure \ref{fig:glue}.
@@ -373,7 +373,7 @@ example, recall the last version of |hList|:
 \begin{spec}
 hList d ps = line (map (hNote d) ps)
 \end{spec}
-One can do two simplifications here.  First, rewrite the right-hand
+We can do two simplifications here.  First, rewrite the right-hand
 side using function composition:
 \begin{spec}
 hList d ps = (line . map (hNote d)) ps
@@ -385,7 +385,7 @@ hList d = line . map (hNote d)
 
 \section{Higher-Order Thinking}
 
-It's worth taking a deep breath here and contemplating what has been
+It is worth taking a deep breath here and contemplating what has been
 done with |hList|, which has gone through quite a few transformations.
 Here is the original definition given in Chapter \ref{ch:intro}:
 \begin{spec}
@@ -395,8 +395,8 @@ hList d (p:ps)  = hNote d p :+: hList d ps
 Compare this to the definition above.  You may be distressed to think
 that you have to go through all of these transformations just to write
 a relatively simple function!  There are two points to make about
-this: First, you don't have to make \emph{any} of these
-transformations if you don't want to.  All of these versions of
+this: First, you do not have to make \emph{any} of these
+transformations if you do not want to.  All of these versions of
 |hList| are correct, and they all run about equally fast.  They are
 explained here for pedagogical purposes, so that you understand the
 full power of Haskell.  Second, with practice, you will find that you
@@ -404,10 +404,10 @@ can write the concise higher-order versions of many functions straight
 away, without going through all of the steps presented here.
 
 As mentioned earlier, one thing that helps is to start {\em thinking}
-in ``higher-order'' terms.  To facilitate this way of thinking one can
-write type signatures that reflect more closely their higher-order
-nature.  For example, recall these type signatures for |map|,
-|filter|, and |(.)|:
+in ``higher-order'' terms.  To facilitate this way of thinking it is
+helpful to write type signatures that reflect more closely their
+higher-order nature.  For example, recall these type signatures for
+|map|, |filter|, and |(.)|:
 \begin{spec}
 map     :: (a -> b) -> [a] -> [b]
 filter  :: (a -> Bool) -> [a] -> [a]
@@ -421,12 +421,12 @@ map     :: (a -> b) -> ([a] -> [b])
 filter  :: (a -> Bool) -> ([a] -> [a])
 (.)     :: (b->c) -> (a->b) -> (a->c)
 \end{spec}
-Although equivalent, these versions emphasize the fact that each of
-these functions returns a function as its result.  |map| essentially
-``lifts'' a function on elements to a function on lists of elements.
-|filter| converts a predicate into a function on lists.  And |(.)|
-returns a function that is the composition of its two functional
-arguments.
+Although equivalent, the latter versions emphasize the fact that each
+of these functions returns a function as its result.  |map|
+essentially ``lifts'' a function on elements to a function on lists of
+elements.  |filter| converts a predicate into a function on lists.
+And |(.)| returns a function that is the composition of its two
+functional arguments.
 
 So for example, using higher-order thinking, |map (+12)| is a function
 that transposes a list of absolute pitches by one octave.  |filter
@@ -473,13 +473,13 @@ Haskell predefines an infix operator to apply a function to a value:
 \begin{spec}
 f $ x = f x
 \end{spec} % $
-At first this doesn't seem very useful---after all, why wouldn't one
+At first glance this does not seem very useful---after all, why not
 simply write |f x| instead of |f $ x|?  % $
 
 But in fact this operator has a very useful purpose: eliminating
-parentheses!  In the Standard Prelude, |($)| %% $ is defined to be
-right associative, and to have the lowest precedence level, via the
-fixity declaration:
+parentheses!  In the Standard Prelude, |($)| %% $ 
+is defined to be right associative, and to have the lowest precedence
+level, via the fixity declaration:
 \begin{spec}
 infixr 0 $
 \end{spec} %% $
@@ -495,7 +495,8 @@ childSong6 =  let t = (dhn/qn)*(69/120)
               in instrument  RhodesPiano 
                              (tempo t (bassLine :=: mainVoice))
 \end{spec}
-One can write the last few lines a bit more clearly as follows:
+We can rewrite the last few lines a bit more clearly as follows:
+\pagebreak
 \begin{spec}
 childSong6 =  let t = (dhn/qn)*(69/120)
               in  instrument  RhodesPiano  $
@@ -506,7 +507,7 @@ Or, on a single line, instead of:
 \begin{spec}
 instrument  RhodesPiano (tempo t (bassLine :=: mainVoice))
 \end{spec}
-one can write:
+we can write:
 \begin{spec}
 instrument  RhodesPiano $ tempo t $ bassLine :=: mainVoice
 \end{spec}

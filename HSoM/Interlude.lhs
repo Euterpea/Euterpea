@@ -20,7 +20,7 @@ two.  In this chapter an existing composition will be transcribed into
 Euterpea, thus exemplifying how to express conventional musical ideas
 in Euterpea.  Then a simple form of algorithmic composition will be
 presented, where it will become apparent that more exotic things can
-easily be expressed as well.
+be easily expressed as well.
 
 But before tackling either of these, Haskell's \emph{modules} will be
 described in more detail.
@@ -30,62 +30,79 @@ described in more detail.
 
 Haskell programs are partitioned into \emph{modules} that capture
 common types, functions, etc.\ that naturally comprise an application.
-The first part of a module is called the module \emph{header}, and in
-it one declares what the name of the module is, and what other modules
+The first part of a module is called the module \emph{header}, which
+declares what the name of the module is, and what other modules
 it might import.  For this chapter the module's name is |Interlude|,
 into which the module |Euterpea| is imported:
-
 \indexkw{module}
-\begin{code}
-module Euterpea.Examples.Interlude where
+\begin{spec}
+module Interlude where
 import Euterpea
-\end{code} 
+\end{spec} 
 
 \syn{Module names must always be capitalized (just like type names).}
 
-If one wishes to use this module in another module |M|, it may be
+Maintaining the name space of modules in a large software system can
+be a daunting task.  So Haskell provides a way to structure module
+names \emph{hierachically}.  Indeed, because the |Interlude| module is
+part of the overall Euterpea library, the actual module declaration
+that is used is:
+\begin{spec}
+module Euterpea.Examples.Interlude where
+import Euterpea
+\end{spec} 
+This says that the |Interlude| module is part of the |Examples| folder
+in the overall |Euterpea| library.  In general, these hierarchical
+names correspond to the folder (directory) structure in a particular
+implementation.  Similarly, the name of the file containing the module
+is generally the same as the module name, plus the file extension (in
+this case, the name of the file is |Interlude.lhs|).
+
+If we wish to use this module in another module |M|, say, it may be
 imported into |M|, just as was done above in importing |Euterpea| into
 |Interlude|:
 \begin{spec}
 module M where
-import Interlude
+import Euterpea.Examples.Interlude
 \end{spec}
 This will make available in |M| all of the names of functions, types,
-and so on that were defined at the top-level of |Interlude|.
+and so on that are defined at the top-level of |Interlude|.
 
 \index{module!interface}
 \index{module!\hkw{import}} \indexkw{import}
 
-But this isn't always what the programmer would like.  Another purpose
-of a module is to manage the overall \emph{name space} of an
-application.  Modules allow one to structure an application in such a
+But this is not always what the programmer would like.  Another
+purpose of a module is to manage the overall name space of an
+application.  Modules allow us to structure an application in such a
 way that only the functionality intended for the end user is
 visible---everything else needed to implement the system is
-effectively hidden.  In the case of |Interlude|, there are only a few
-names whose visibillity is desirable: |childSong6|, ..., and ....
+effectively hidden.  In the case of |Interlude|, there are only two
+names whose visibillity is desirable: |childSong6|, and |prefix|.
 This can be achieved by writing the module header as follows:
-
 \begin{spec}
-module Interlude(childSong6, ...) where
+module Euterpea.Examples.Interlude(childSong6, prefix) where
 import Euterpea
 \end{spec} 
-\out{
-module Interlude(childSong6) where
-import Euterpea
-}
 This set of visible names is sometimes called the \emph{export list}
-of the module.  And if type signatures are included, as in:
-\begin{spec}
-module Interlude(childSong6 :: Music Pitch) where
-import Euterpea
-\end{spec} 
-the list of names is sometimes called the {\em interface} to the
-module.  If the list is omitted, as was done initially, then
-\emph{all} names defined at the top-level of the module are exported.
+of the module.  If the list is omitted, as was done initially, then
+\emph{all} names defined at the top level of the module are exported.
 
-There are many other rules concerning the import and export of names
-to and from modules.  Rather than introduce them all at once, they
-will be introduced as needed in future chapter.
+Although explicit type signatures in export lists are
+not allowed, it is sometime useful to add them as comments, at least,
+as in:
+\begin{code}
+module  Euterpea.Examples.Interlude
+        (  childSong6,  -- :: Music Pitch,
+           prefix       -- :: [Music a] -> Music a)
+        )  where
+import Euterpea
+\end{code} 
+In this case the list of names is sometimes called the {\em interface}
+to the module.  
+
+There are several other rules concerning the import and export of
+names to and from modules.  Rather than introduce them all at once,
+they will be introduced as needed in future chapters.
 
 \begin{figure*}
 \centerline{
@@ -103,8 +120,8 @@ Figure \ref{fig:childsong6} shows the first 28 bars of Chick Corea's
 tune explores several basic issues that arise in the transcription of
 an existing score into Euterpea, including repeating phrases, grace
 notes, triplets, tempo, and specifying an instrument.  To begin,
-however, a couple of auxiliary functions are defined to make the job
-easier.
+however, we will define a couple of auxiliary functions to make our
+job easier.
 
 \subsection{Auxiliary Functions}
 
@@ -141,14 +158,14 @@ To motivate the second auxiliary function, note in Figure
 \ref{fig:childsong6} that there are many melodic lines that consist of
 a sequence of consecutive notes having the same duration (for example
 eighth notes in the melody, and dotted quarter notes in the bass).  To
-avoid having to write each of these durations explicitly, a function
-that specifies them just once is defined.  To do this, recall that |a
-4 qn| is a concert A quarter note.  Then note that, because of
+avoid having to write each of these durations explicitly, we will
+define a function that specifies them just once.  To do this, recall
+that |a 4 qn| is a concert A quarter note.  Then note that, because of
 currying, |a 4| is a function that can be applied to any
-duration---i.e.\ its type is |Dur -> Music a|.  In other words, it's a
-note whose duration hasn't been specified yet.
+duration---i.e.\ its type is |Dur -> Music a|.  In other words, it is
+a note whose duration has not been specified yet.
 
-With this thought in mind, one can return to the original problem and
+With this thought in mind, we can return to the original problem and
 define a function that takes a duration and a \emph{list} of notes with
 the aforementioned type, returning a |Music| value with the duration
 attached to each note appropriately.  In Haskell:
@@ -159,30 +176,27 @@ addDur       :: Dur -> [Dur -> Music a] -> Music a
 addDur d ns  =  let f n = n d
                 in line (map f ns)
 \end{code}
-
-%% -- lmap d xs = line [ x d || x <- xs ]
-
-%% The reader should work with this example a bit to be sure that she
-%% understands it well.
+(Compare this idea with Exercise \ref{ex:fuse} in Chapter
+\ref{ch:poly}.)
 
 Finally, a function to add a grace note to a note is defined.  Grace
 notes can approach the principal note from above or below; sometimes
 starting a half-step away, and sometimes a whole step; and having a
 rhythmic interpretation that is to a large extent up to the performer.
 In the case of the six uses of grace notes in \emph{Child Song
-  No.\ 6}, the assumption will be that the grace note begins on the
-downbeat of the principal note, and thus its duration will subtract
-from that of the principal note.  It will also be assumed that the
-grace note duration is 1/8 of that of the principal note.  Thus the
-goal is to define a function:
+  No.\ 6}, we will assume that the grace note begins on the downbeat
+of the principal note, and thus its duration will subtract from that
+of the principal note.  We will also assume that the grace note
+duration is 1/8 of that of the principal note.  Thus the goal is to
+define a function:
 \begin{code}
 graceNote :: Int -> Music Pitch -> Music Pitch
 \end{code}
-such that |graceNote n (note d p)| is a |Music| value consisting of two
-notes, the first being the grace note whose duration is |d/8| and
-whose pitch is |n| semitones higher (or lower if |n| is negative) than
-|p|, and the second being the principal note at pitch |p| but now with
-duration |7d/8|.  In Haskell:
+such that |graceNote n (note d p)| is a |Music| value consisting of
+two notes, the first being the grace note whose duration is
+$\nicefrac{d}{8}$ and whose pitch is |n| semitones higher (or lower if
+|n| is negative) than |p|, and the second being the principal note at
+pitch |p| but now with duration $\nicefrac{7d}{8}$.  In Haskell:
 \begin{code}
 graceNote n  (Prim (Note d p))  =
           note (d/8) (trans n p) :+: note (7*d/8) p
@@ -190,7 +204,7 @@ graceNote n  _                  =
           error "Can only add a grace note to a note."
 \end{code}  
 Note that pattern-matching is performed against the nested
-constructors of |Prim| and |Note|---one cannot match against the
+constructors of |Prim| and |Note|---we cannot match against the
 application of a function such as |note|.  Also note the error
 message---programs are not expected to ever apply |graceNote| to
 something other than a single note.
@@ -250,8 +264,8 @@ with each of the pieces defined in Figure \ref{fig:bars7-28}.  Note that:
 \begin{itemize}
 \item The phrases are divided so as to (for the most part) line up
   with bar lines, for convenience.  But it may be that this is not the
-  best way to organize the music---for example, one could argue that
-  the last two notes in bar 20 form a pick-up to the phrase that
+  best way to organize the music---for example, we could argue that
+  the last two notes in bar 20 form a ``pick-up'' to the phrase that
   follows, and thus more logically fall with that following phrase.
   The organization of the Euterpea code in this way is at the
   discretion of the composer.
@@ -294,11 +308,11 @@ In the Preface to \emph{Children's Songs -- 20 Pieces for Keyboard}
 \cite{Corea94}, Chick Corea notes that, ``Songs 1 through 15 were
 composed for the Fender Rhodes.''  Therefore the MIDI instrument
 |RhodesPiano| is a logical choice for the transcription of his
-composition.  Furthermore, note that a dotted half-note is specified
-to have a metronome value of 69.  By default, the |play| function in
-Euterpea uses a tempo equivalent to a quarter note having a metronome
-value of 120.  Therefore the tempo should be scaled by a factor of
-|(dhn/qn)*(69/120)|.
+composition.  Furthermore, note in the score that a dotted half-note
+is specified to have a metronome value of 69.  By default, the |play|
+function in Euterpea uses a tempo equivalent to a quarter note having
+a metronome value of 120.  Therefore the tempo should be scaled by a
+factor of |(dhn/qn)*(69/120)|.
 
 These two observations lead to the final definition of the
 transcription of \emph{Children's Song No.\ 6} into Euterpea:
@@ -328,6 +342,104 @@ practice notation.}
 \vspace{.1in}\hrule
 
 \section{Simple Algorithmic Composition}
+\label{sec:alg-comp}
 
-TBD
+\emph{Algorithmic composition} is the process of designing an
+algorithm (or heuristic) for generating music.  There are unlimited
+possibilites, with some trying to duplicate a particular style of
+music, others exploring more exotic styles; some based on traditional
+notions of music theory, others not; some completely deterministic,
+others probabilistic; and some requiring user interaction, others being
+completely automatic.  Some even are based simply on ``interpreting''
+data---like New York Stock Exchange numbers---in interesting ways!  In
+this textbook a number of algorithmic composition techniques are
+explored, but the possibilities are endless---hopefully what is
+presented will motivate the reader to invent new, exciting algorithmic
+composition techniques.
 
+To give a very tiny glimpse into algorithmic composition, we end this
+chapter with a very simple example.  We will call this example
+``prefix,'' for reasons that will become clear shortly.  
+
+The user of this algorithm provides an initial melody (or ``motif'')
+represented as a list of notes.  The main idea is to play every proper
+(meaning non-empty) prefix of the given melody in succession.  So the
+first thing we do is define a polymorphic function |prefixes :: [a] ->
+[[a]]| that returns all proper prefixes of a list:
+\begin{code}
+prefixes         :: [a] -> [[a]]
+prefixes []      =  []
+prefixes (x:xs)  =  let f pf = x:pf
+                    in [x] : map f (prefixes xs)
+\end{code}
+We can use this to play all prefixes of a given melody |mel| in
+succession as follows:
+\begin{spec}
+play (line (concat (prefixes mel)))
+\end{spec}
+
+But let's do a bit more.  Let's create two voices (each using a
+different instrument), one voice being the reverse of the other, and
+play them in parallel.  And then let's play the whole thing once, then
+transposed up a perfect fourth (i.e.\ five semitones), then repeat the
+whole thing a final time.  And, let's package it all into one
+function:
+\begin{code}
+prefix :: [Music a] -> Music a
+prefix mel =  let  m1  = line (concat (prefixes mel))
+                   m2  = transpose 12 (line (concat (prefixes (reverse mel))))
+                   m   = instrument Flute m1 :=: instrument VoiceOohs m2
+              in m :+: transpose 5 m :+: m
+\end{code}
+
+Here are two melodies (differing only in rhythm) that you can try with
+this algorithm:
+\begin{code}
+mel1 = [c 5 en, e 5 sn, g 5 en, b 5 sn, a 5 en, f 5 sn, d 5 en, b 4 sn, c 5 en]
+mel2 = [c 5 sn, e 5 sn, g 5 sn, b 5 sn, a 5 sn, f 5 sn, d 5 sn, b 4 sn, c 5 sn]
+\end{code}
+Although not very sophisticated at all, |prefix| can generate some
+interesting music from a very small seed.
+
+Another typical approach to algorithmic composition is to specify some
+constraints on the solution space, and then generate lots of solutions
+that satisfy those constraints.  The user can then choose one of the
+solutions based on aesthetic preferences.
+
+As a simple example of this, how do we choose the original melody in
+the prefix program above?  We could require that all solutions be a
+multiple of some preferred meter.  For example, in triple meter (say,
+$\nicefrac{3}{4}$ time) we might wish for the solutions to be
+multiples of 3 quarter-note beats (i.e. one measure), or in
+$\nicefrac{4}{4}$ time, multiples of 4 beats.  In this way the result
+is always an integer number of measures.  If the original melody
+consists of notes all of the same duration, say one beat, then the
+prefixes, when played sequentially, will have a total duration that is
+the sum of the numbers 1 through |n|, where |n| is the length of melody
+in beats.  That sum is $\nicefrac{n*(n+1)}{2}$.  The first ten sums in
+this series are:
+\[1, 3, 6, 10, 15, 21, 28, 36, 45, 55, ...\]
+The second, third, fifth, sixth, eighth, and ninth of these are
+divisible by 3, and the seventh and eighth are divisible by 4.  When
+rendering the result we could then, for exaple, place an accent on the
+first note in each of these implied measures, thus giving the result
+more of a musical feel.  (Placing an accent on a note will be
+explained in Chapters \ref{ch:more-music} and \ref{ch:performane}.)
+
+\vspace{.1in}\hrule
+
+\begin{exercise}{\em
+Try using |prefix| on your own melodies.  Indeed, note that the list of notes
+could in general be a list of any |Music| values.}
+\end{exercise}
+
+\begin{exercise}{\em
+Try making the following changes to |prefix|:
+\begin{enumerate}
+\item Use different instruments.
+\item Change the definition of |m| in some way.
+\item Compose the result in a different way.
+\end{enumerate} }
+\end{exercise}
+
+\vspace{.1in}\hrule

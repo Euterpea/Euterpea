@@ -179,3 +179,10 @@
 %format aps2
 %format tab1
 %format tab2
+%format M1
+%format M2
+%format ld1
+%format ld2
+%format ds1
+%format ds2
+

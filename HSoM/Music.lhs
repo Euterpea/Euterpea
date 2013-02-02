@@ -20,10 +20,16 @@
 \chapter{Simple Music}
 \label{ch:music}
 
+\out{
 \begin{code}
 module Euterpea.Music.Note.Music where
 infixr 5 :+:, :=:
 \end{code} 
+}
+\begin{spec}
+module Euterpea.Music.Note.Music where
+infixr 5 !:+:, :=:
+\end{spec} 
 
 The previous chapters introduced some of the fundamental ideas of
 functional programming in Haskell.  Also introduced were several of
@@ -36,11 +42,11 @@ Haskell features will be introduced as well.
 
 \section{Preliminaries}
 
-Sometimes it is useful to use a built-in Haskell data type to directly
-represent some concept of interest.  For example, one may wish to use
-|Int| to represent \emph{octaves}, where by convention octave 4
-corresponds to the octave containing middle C on the piano.  One can
-express this in Haskell using a \emph{type synonym}:
+Sometimes it is convenient to use a built-in Haskell data type to
+directly represent some concept of interest.  For example, we may
+wish to use |Int| to represent \emph{octaves}, where by convention
+octave 4 corresponds to the octave containing middle C on the piano.
+We can express this in Haskell using a \emph{type synonym}:
 \begin{code}
 
 type Octave = Int
@@ -51,14 +57,14 @@ atomic types such as |Int|, but also for structured types such as
 pairs.  For example, as discussed in the last chapter, in music theory
 a pitch is defined as a pair, consisting of a \emph{pitch class} and
 an \emph{octave}.  Assuming the existence of a data type called
-|PitchClass| (which will be returned to shortly), one can write the
+|PitchClass| (which we will return to shortly), we can write the
 following type synonym:
 \begin{code}
 type Pitch = (PitchClass, Octave)
 \end{code}
-For example, concert A (i.e.\ A440) corresponds to the pitch |(A,4)|,
-and the lowest and highest notes on a piano correspond to |(A,0)| and
-|(C,8)|, respectively.
+For example, concert A (i.e.\ A440) corresponds to the pitch |(A,4) ::
+Pitch|, and the lowest and highest notes on a piano correspond to
+|(A,0) :: Pitch| and |(C,8) :: Pitch|, respectively.
 
 %% For convenience we could define a Haskell variable with that value as
 %% follows:
@@ -87,16 +93,16 @@ Rational numbers in Haskell are printed by GHC in the form |n%d|,
 where |n| is the numerator, and |d| is the denominator.  Even a whole
 number, say the number 42, will print as |42%1| if it is a |Rational|
 number.  To create a |Rational| number in a program, however, once it
-is given the proper type, one can use the normal division operator, as
+is given the proper type, we can use the normal division operator, as
 in the following definition of a quarter note:
 \begin{spec}
 qn :: Dur
 qn = 1/4                                     -- quarter note
 \end{spec}
 
-So far so good.  But what about |PitchClass|?  One might try to use
+So far so good.  But what about |PitchClass|?  We might try to use
 integers to represent pitch classes as well, but this is not very
-elegant---ideally one would like to write something that looks more
+elegant---ideally we would like to write something that looks more
 like the conventional pitch class names C, C$\sharp$, D$\flat$, D,
 etc.\  The solution is to use an \emph{algebraic data type} in Haskell:
 \begin{spec}
@@ -162,30 +168,41 @@ data Bool = False | True
 \section{Notes, Music, and Polymorphism}
 \label{sec:music}
 
-One can of course define other data types for other purposes.  For
-example, one will want to define the notion of a \emph{note} and a
+We can of course define other data types for other purposes.  For
+example, we will want to define the notion of a \emph{note} and a
 \emph{rest}.  Both of these can be thought of as ``primitive'' musical
-values, and thus as a first attempt one might write:
+values, and thus as a first attempt we might write:
 \begin{spec}
 data Primitive  =  Note Dur Pitch           
                 |  Rest Dur                 
 \end{spec}
 %%      deriving (Show, Eq, Ord)
-For example, |Note qn a440| would be concert A played as a quarter
-note, and |Rest 1| is a whole-note rest.
+Analogously to our previous data type declarations, the above
+declaration says that a |Primitive| is either a |Note| or a |Rest|.
+However, it is different in that the constructors |Note| and |Rest|
+take arguments, like functions do.  In the case of |Note|, it takes two
+arguments, whose types are |Dur| and |Pitch|, respectively, whereas
+|Rest| takes one argument, a value of type |Dur|.  In other words,
+the types of |Note| and |Rest| are:
+\begin{spec}
+Note  :: Dur -> Pitch ->  Primitive
+Rest  :: Dur ->           Primitive
+\end{spec}
+For example, |Note qn a440| is concert A played as a quarter note, and
+|Rest 1| is a whole-note rest.
 
-This definition is not completely satisfactory, however, because one
+This definition is not completely satisfactory, however, because we
 may wish to attach other information to a note, such as its loudness,
 or some other annotation or articulation.  Furthermore, the pitch
 itself may actually be a percussive sound, having no true pitch at
 all.  To resolve this, Euterpea uses an important concept in Haskell,
 namely \emph{polymorphism}---the ability to parameterize, or abstract,
 over types (\emph{poly} means \emph{many} and \emph{morphism} refers
-to the structure, or \emph{form}, of objects).  |Primitive| can be
-redefined as a \emph{polymorphic data type} as follows.
+to the structure, or \emph{form}, of objects).  
 
-Instead of fixing the type of the pitch of a note, it is left
-unspecified through the use of a \emph{type variable}:
+|Primitive| can be redefined as a \emph{polymorphic data type} as
+follows.  Instead of fixing the type of the pitch of a note, it is
+left unspecified through the use of a \emph{type variable}:
 \begin{spec}
 data Primitive a  =  Note Dur a        
                   |  Rest Dur          
@@ -203,9 +220,15 @@ a function.  This version of |Primitive| is more general than the
 previous version---indeed, note that |Primitive Pitch| is the same as
 (or, technically, is \emph{isomorphic to}) the previous version of
 |Primitive|.  But additionally, |Primitive| is now more flexible than
-the previous version, since, for example, one can add loudness by
+the previous version, since, for example, we can add loudness by
 pairing loudness with pitch, as in |Primitive (Pitch, Loudness)|.
 Other concrete instances of this idea will be introduced later.
+
+\syn{Type variables such as |a| above must begin with a lower-case
+  letter, to distinguish them from concrete types such as |Dur| or
+  |Pitch|.  Since |Primitive| takes an argument, it is called a
+  \emph{type constructor}, wherease |Note| and |Rest| are just called
+  constructors (or value constructors).}
 
 Another way to interpret this data declaration is to say that for any
 type |a|, this declaration declares the types of its constructors to
@@ -219,17 +242,17 @@ still functions, and they have a type.  Since they both have type
 variables in their type signatures, they are examples of
 \emph{polymorphic functions}.
 
-Note that one can think of polymorphism as applying the abstraction
+It is helpful to think of polymorphism as applying the abstraction
 principle at the type level---indeed it is often called \emph{type
   abstraction}.  Many more examples of both polymorphic functions and
 polymorphic data types will be explored in detail in
 Chapter~\ref{ch:poly}.
 
-So far Euterpea's primitive notes and rests have been introuced---but
-how does one combine many notes and rests into a larger composition?
-To achieve this, Euterpea defines another polymorphic data type,
-perhaps the most important data type used in this textbook, which
-defines the fundamental structure of a note-level musical entity:
+So far Euterpea's primitive notes and rests have been introduced---but
+how do we combine many notes and rests into a larger composition?  To
+achieve this, Euterpea defines another polymorphic data type, perhaps
+the most important data type used in this textbook, which defines the
+fundamental structure of a note-level musical entity:
 \begin{spec}
 data Music a  = 
        Prim (Primitive a)               -- primitive value 
@@ -270,10 +293,9 @@ These four constructors then are also polymorphic functions.
 \syn{
   \index{infix constructors} 
   Note the use of the \emph{infix constructors} |(:+:)| and |(:=:)|.
-%% , and |(:=/)|.  
   Infix constructors are just like infix operators in Haskell, but
   they must begin with a colon.  This syntactic distinction makes it
-  clear when one is pattern matching, and is analogous to the
+  clear when pattern matching is intended, and is analogous to the
   distinction between ordinary names (which must begin with a
   lower-case character) and constructor names (which must begin with
   an upper-case character).
@@ -282,7 +304,7 @@ These four constructors then are also polymorphic functions.
   this chapter---corresponding to the module containing all the code in
   this chapter---the following line appeared:
   \begin{spec}
-  infixr 5 :+:, :=:
+  infixr 5 !:+:, :=:
   \end{spec} 
   This is called a \emph{fixity declaration}.  The ``|r|'' after the
   word ``|infix|'' means that the specified operators---in this case
@@ -315,7 +337,7 @@ concert A.
   algebraic data type.)
 
 %% \item |m1 :=/ m2| is also a parallel composition of |m1| and |m2|, but
-%%   it's duration is that of the shorter of |m1| and |m2|.
+%%   its duration is that of the shorter of |m1| and |m2|.
 
 \item |Modify cntrl m| is an ``annotated'' version of |m| in which the
   control parameter |cntrl| specifies some way in which |m| is to be
@@ -330,14 +352,14 @@ concert A.
   arbitrarily complex.}
 
 It is convenient to represent these musical ideas as a recursive
-datatype because it allows one to not only \emph{construct} musical
+datatype because it allows us to not only \emph{construct} musical
 values, but also take them apart, analyze their structure, print them
 in a structure-preserving way, transform them, interpret them for
 performance purposes, and so on.  Many examples of these kinds of
 processes will be seen in this textbook.
 
-The |Control| data type is used by the |Modify| consructor to allow
-one to annotate a |Music| value with a \emph{tempo change}, a
+The |Control| data type is used by the |Modify| consructor to
+annotate a |Music| value with a \emph{tempo change}, a
 \emph{transposition}, a \emph{phrase attribute}, a \emph{player name},
 or an \emph{instrument}.  This data type is unimportant at the moment,
 but for completeness here is its full definition:
@@ -366,10 +388,10 @@ type PlayerName = String
 \end{code}
 |AbsPitch| (``absolute pitch,'' defined in Section \ref{sec:abspitch})
 is just a type synonym for |Int|.  Instrument names are borrowed from
-the General MIDI standard, and are captured as an algebraic data type
-in Figure \ref{fig:instrument-names}.  Phrase attributes and the
-concept of a ``player'' are closely related, but a full explanation is
-deferred until Chapter \ref{ch:performance}.
+the General MIDI standard \cite{MIDI}, and are captured as an
+algebraic data type in Figure \ref{fig:instrument-names}.  Phrase
+attributes and the concept of a ``player'' are closely related, but a
+full explanation is deferred until Chapter \ref{ch:performance}.
 
 %% are defined in Figure \ref{fig:phase-attributes}.  The 
 
@@ -511,11 +533,11 @@ phrase pa m     = Modify (Phrase pa) m
 player          :: PlayerName -> Music a -> Music a
 player pn m     = Modify (Player pn) m
 \end{code}
-Note that each of these functions is poymorphic, a trait inherited
+Note that each of these functions is polymorphic, a trait inherited
 from the data types that it uses.  Also recall that the first two of
 these functions were used in an example in the last chapter.
 
-One can also create simple names for familiar notes, durations, and
+We can also create simple names for familiar notes, durations, and
 rests, as shown in Figures \ref{fig:note-names} and
 \ref{fig:rest-names}.  Despite the large number of them, these names
 are sufficiently ``unusual'' that name clashes are unlikely.
@@ -523,7 +545,7 @@ are sufficiently ``unusual'' that name clashes are unlikely.
 \syn{Figures \ref{fig:note-names} and \ref{fig:rest-names} demonstrate
   that at the top level of a program, more than one equation can be
   placed on one line, as long as they are separated by a semicolon.
-  This allows one to save vertical space on the page, and is useful
+  This allows us to save vertical space on the page, and is useful
   whenever each line is relatively short.  The semicolon is not needed
   at the end of a single equation, or at the end of the last equation
   on a line.  This convenient feature is part of Haskell's
@@ -604,12 +626,12 @@ dden  = 7/32;  ddenr  = rest dden  -- double-dotted eighth note rest
 
 \subsection{A Simple Example}
 
-As a simple example, suppose one wishes to generate a ii-V-I chord
-progression in a particular key.  In music theory, such a chord
-progression begins with a minor chord on the second degree of a major
+As a simple example, suppose we wish to generate a ii-V-I chord
+progression in a particular major key.  In music theory, such a chord
+progression begins with a minor chord on the second degree of the major
 scale, followed by a major chord on the fifth degree, and ending in a
-major chord on the first degree.  One can write this in Euterpea,
-using triads in the key of C major, as follows:
+major chord on the first degree.  We can write this in Euterpea, using
+triads in the key of C major, as follows:
 \begin{code}
 t251  :: Music Pitch
 t251  =  let  dMinor  = d 4 wn  :=: f 4 wn  :=: a 4 wn
@@ -653,7 +675,7 @@ the third line in the second example.)}
 
 First, the first character following |let| (and a few other keywords
 that will be introduced later) is what determines the starting column
-for the set of equations being written.  Thus one can begin the
+for the set of equations being written.  Thus we can begin the
 equations on the same line as the keyword, the next line, or whatever.
 
 Second, be sure that the starting column is further to the right
@@ -662,8 +684,8 @@ than the starting column associated with any immediately surrounding
 equation happens when something appears at or to the left of the
 starting column associated with that equation.}
 
-In order to play this simple example, one can use Euterpea's |play| function
-and simply type:
+We can play this simple example using Euterpea's |play| function
+by simply typing:
 \begin{spec}
 play t251
 \end{spec}
@@ -674,16 +696,49 @@ computer's standard sound card.
 \vspace{.1in}\hrule
 
 \begin{exercise}{\em
-The above example is fairly concrete, in that, for one, it is rooted in C
-major, and furthermore it has a fixed tempo.  Define a function
+The above example is fairly concrete, in that, for one, it is rooted
+in C major, and furthermore it has a fixed tempo.  Define a function
 |twoFiveOne :: Pitch -> Dur -> Music Pitch| such that |twoFiveOne p d|
-constructs a ii-V-I chord progression starting on the pitch |p| (which
-is assumed to be the second degree of the major scale on which the
-progression is being constructed), where the duration of the first two
-chords is each |d|, and the duration of the last chord is |2*d|.
+constructs a ii-V-I chord progression in the key whose major scale
+begins on the pitch |p| (i.e.\ the first degree of the major scale on
+which the progression is being constructed), where the duration of the
+first two chords is each |d|, and the duration of the last chord is
+|2*d|.
 
-To verify your code, prove by calculation that |twoFiveOne (D,4) wn =
+To verify your code, prove by calculation that |twoFiveOne (C,4) wn =
 t251|.}
+\end{exercise}
+
+\begin{exercise}{\em
+The |PitchClass| data type implies the use of standard Western
+harmony, in particulr the use of a \emph{twelve-tone equal temperament
+  scale}.  But there are many other scale possibilities.  For example,
+the \emph{pentatonic blues scale} consists of five notes (thus
+``pentatonic'') and, in the key of C, approximately corresponds to the
+notes C, E$\flat$, F, G, and B$\flat$.  More abstractly, let's call
+these the root, minor third, fourth, fifth, and minor seventh,
+respectively.  Your job is to:
+\begin{enumerate}
+\item
+Define a new algebraic data type called |BluesPitchClass| that
+captures this scale (for example, you may wish to use the constructor
+names |Ro|, |MT|, |Fo|, |Fi|, and |MS|).
+\item
+Define a type synonym |BluesPitch|, akin to |Pitch|.
+\item
+Define auxiliary functions |ro|, |mt|, |fo|, |fi|, and |ms|, akin to
+those in Figure \ref{fig:note-names}, that make it easy to construct
+notes of type |Music BluesPitch|.
+\item
+In order to play a value of type |Music BluesPitch| using MIDI, it
+will have to be converted into a |Music Pitch| value.  Define a
+function |fromBlues :: Music BluesPitch -> Music Pitch| to do this,
+using the ``approximate'' translation described at the beginning of
+this exercise.
+\item
+Write out a few melodies of type |Music BluesPitch|, and play them
+using |fromBlues| and |play|.
+\end{enumerate} }
 \end{exercise}
 
 \vspace{.1in}\hrule
@@ -698,7 +753,7 @@ pitch:''
 type AbsPitch = Int
 \end{code}
 The absolute pitch of a (relative) pitch can be defined mathematically
-as 12 times the octave, plus the index of the pitch class.  One can
+as 12 times the octave, plus the index of the pitch class.  We can
 express this in Haskell as follows:
 \begin{code}
 absPitch           :: Pitch -> AbsPitch
@@ -722,7 +777,7 @@ does not happen, i.e.\ numbers outside the range 0 to 11 are used.
 With this definition, |absPitch (Cf,4)| yields 47, as desired.
 
 %% Should |Cf| be interpreted as 11 instead of -1, and |Bs| as 0
-%% instead of 12?  I don't know.  In most cases it will not matter, but
+%% instead of 12?  I do not know.  In most cases it will not matter, but
 %% it is an interesting question.
 
 \begin{figure}{\small
