@@ -14,60 +14,19 @@
 \chapter{Musical User Interface}
 \label{ch:MUI}
 
-%% From Dan on 1/2/12:
-
-%% The big difference with the MUI is that it's all arrow based now, so
-%% all the stuff about signals is no longer necessary.  Instead, there is
-%% a function
-
-%% toUISF :: SF a b -> UISF a b
-
-%% that converts pure signal functions from music land into UI signal
-%% functions.  Also, UISF is an arrow, so arr works for regular
-%% functions.  The following are the type signatures of the input
-%% widgets:
-
-%% time :: UISF () Time
-%% timer :: ArrowInit a => a (Time, Double) (Event ())
-%% label :: String -> UISF a a
-%% display :: UISF String ()
-%% button :: String -> UISF () Bool
-%% checkbox :: String -> Bool -> UISF () Bool
-%% radio :: [String] -> Int -> UISF () Int
-%% hSlider, vSlider :: RealFrac a => (a, a) -> a -> UISF () a
-%% hiSlider, viSlider :: Integral a => a -> (a, a) -> a -> UISF () a
-%% canvas :: Dimension -> UISF (Event Graphic) ()
-
-%% Next are the UISF transformers:
-
-%% title :: String -> UISF a b -> UISF a b
-%% withDisplay :: Show b => UISF a b -> UISF a b
-%% topDown,bottomUp,leftRight,rightLeft  :: UISF a b -> UISF a b
-%% setSize :: Dimension -> UISF a b -> UISF a b
-%% pad :: (Int, Int, Int, Int) -> UISF a b -> UISF a b
-
-%% Then, the midi stuff:
-
-%% midiIn :: UISF DeviceID (Event [MidiMessage])
-%% midiOut :: UISF (DeviceID, Event [MidiMessage]) ()
-%% selectInput, selectOutput :: UISF () DeviceID
-
-%% Finally, the functions to run it all:
-
-%% runUI   ::              String -> UISF () () -> IO ()
-%% runUIEx :: Dimension -> String -> UISF () () -> IO ()
-
-%% Note that many of these can become more dynamic with only minimal
-%% changes.  For example, turning button's type from String -> UISF ()
-%% Bool into UISF String Bool would be very easy.
 
 \begin{code}
+{-# LANGUAGE Arrows, TupleSections #-}
+
 module Euterpea.Examples.MUI where
 import Euterpea
 import Euterpea.IO.MUI
-import Data.Maybe
 import Euterpea.IO.MIDI.MidiIO
+import Control.Arrow
+import Control.SF.AuxFunctions (edge, accum, unique, mergeE)
+import Data.Maybe (mapMaybe)
 import qualified Codec.Midi as Midi
+
 \end{code}
 
 (This module is not part of the Euterpea module hierarchy, but can be
@@ -77,487 +36,505 @@ Most music software packages have a graphical user interface (aka
 ``GUI'') that provides varying degrees of functionality to the user.
 In Euterpea a basic set of widgets is provided that are collectively
 referred to as the \emph{musical user interface}, or MUI.  This
-interface has two levels of abstraction: At the \emph{user interface
-  (UI) level}, basic IO-like commands are provided for creating
+interface is built around the concepts of arrows and signal functions.  
+The signal functions are used as an abstraction to handle the 
+time-varying values inherent to a real-time system such as this.  
+Signal functions are provided for creating 
 graphical sliders, pushbuttons, and so on for input, and textual
 displays and graphic images for output (in the future, other kinds of
 graphic input and output, including virtual keyboards, plots, and so
-on, will be provided).  In addition to these graphical widgets, the UI
-level also provides an interface to standard MIDI input and output
+on, will be provided).  In addition to these graphical widgets, the MUI
+also provides an interface to standard MIDI input and output
 devices.
 
-The second level of abstraction of the MUI is the \emph{signal level}.
-A \emph{signal} is a time-varying quantity that nicely captures the
-behavior of many MUI widgets.  A special case of a signal is an
-\emph{event}, and a special case of an event is a \emph{MIDI event},
-such as a |Note-On| or |Note-Off| message.
 
-We begin our discussion with a description of signals and events.
+% Due to the arrowized nature of the MUI, the following section on 
+% signals has been deprecated (DWC 2/7/2013)
 
-\section{Signals}
-\label{sec:signals}
+%% We begin our discussion with a description of signals and events.
+%% 
+%% \section{Signals}
+%% \label{sec:signals}
+%% 
+%% A value of type |Signal T| is a time-varying value of type |T|.  For
+%% example, |Signal Float| is a time-varying floating-point number,
+%% |Signal AbsPitch| is a time-varing absolute pitch, and so on.
+%% Abstractly, one can think of a signal as a function:
+%% \begin{spec}
+%% Signal a = Time -> a
+%% \end{spec}
+%% where |Time| is some suitable representation of time (currently
+%% |Double| in Euterpea).
+%% 
+%% However, this is not how signals are actually implemented in Euterpea,
+%% indeed the above is not even valid Haskell syntax.  Nevertheless it is
+%% helpful to think of signals in this way.  Indeed, for pedagogical
+%% purposes, we can go one step further and write the above as a Haskell
+%% data declaration:
+%% \begin{spec}
+%% data Signal a = Sig (Time -> a)
+%% \end{spec}
+%% and then describe in more detail how signals are manipulated once this
+%% concrete representation is in hand.
+%% 
+%% First of all, the following functions can be used to ``lift'' static
+%% values and functions to the time-varying domain of signals:
+%% \begin{spec}
+%% lift0 :: a -> Signal a
+%% lift0 x = Sig (\t -> x)
+%% 
+%% lift1 :: (a -> b) -> (Signal a -> Signal b)
+%% lift1 f = \(Sig g) -> Sig (\t -> f (g t))
+%% 
+%% lift2 :: (a -> b -> c) -> (Signal a -> Signal b -> Signal c)
+%% lift2 f = \(Sig g) \(Sig h) -> Sig (\t -> f (g t) (h t))
+%% 
+%% ...
+%% \end{spec}
+%% %% lift3 :: (a -> b -> c -> d) -> (Signal a -> Signal b -> Signal c -> Signal d)
+%% For example, |lift0 42| is a ``constant signal'' that, at every point
+%% in time, returns the value 42:
+%% \begin{spec}
+%% lift0 42
+%% ==> Sig (\t -> 42)
+%% \end{spec}
+%% And |lift1 sin| is a function that converts one signal into another
+%% signal that, at every point in time, is the sine of the value of the
+%% first signal:
+%% \begin{spec}
+%% lift1 sin
+%% ==> \(Sig g) -> Sig (\t -> sin (g t))
+%% \end{spec}
+%% So, for example, |lift1 sin (lift0 42)| is the constant signal that
+%% returns the sine of 42, and in that sense is the same as |lift0 (sin
+%% 42)|:
+%% \begin{spec}
+%% lift1 sin (lift0 42)
+%% ==> (\(Sig g) -> Sig (\t -> sin (g t))) (Sig (\t -> 42))
+%% ==> Sig (\t -> sin ((\t -> 42) t))
+%% ==> Sig (\t -> sin 42)
+%% ==> lift0 (sin 42)
+%% \end{spec}
+%% 
+%% \subsection{Numeric Signals}
+%% 
+%% It is inconvenient to write ``lifts'' everywhere when we want to work
+%% at the signal level.  One solution to this would be to define new
+%% function names, such as |sinS| for a signal-level version of the sine
+%% function, and so on.  Better yet, we can take advantage of Haskell's
+%% overloaded numeric system, through the use of type classes.  For
+%% example, we'd like to add, subtract, and multiply signals, as well as
+%% apply transcendental functions such as sine, cosine, and
+%% exponentiation.  Haskell's numeric classes provide a delightfully
+%% convenient way to do this.
+%% 
+%% %% one of the more common set of operations that we desire for signals is
+%% %% \emph{arithmetic}.
+%% 
+%% (Keep in mind while reading this section that signals aren't actually
+%% implemented in this way, but conceptually this should give you a good
+%% idea of the desired behavior.)
+%% 
+%% For starters, we can declare |Signal| to be an instance of the class
+%% |Num|:
+%% \begin{spec}
+%% instance Num a => Num (Signal a) where
+%%   Sig f1 + Sig f2  = Sig (\t -> f1 t + f2 t)
+%%   Sig f1 * Sig f2  = Sig (\t -> f1 t * f2 t)
+%%   Sig f1 - Sig f2  = Sig (\t -> f1 t - f2 t)
+%%   negate (Sig f)   = Sig (\t -> negate f)
+%%   fromInteger i    = Sig (\t -> fromInteger i)
+%%   ...
+%% \end{spec}
+%% Better yet, we can write this using the lifting functions defined
+%% above:
+%% \begin{spec}
+%% instance Num a => Num (Signal a) where
+%%   (+)            = lift2 (+)
+%%   (*)            = lift2 (*)
+%%   (-)            = lift2 (-)
+%%   negate         = lift1 negate
+%%   fromInteger i  = lift0 (fromInteger i)
+%%   ...
+%% \end{spec}
+%% (See Section \ref{sec:num-class} for a full list of the operators in
+%% this class.)
+%% 
+%% Euterpea also defines instances of |Signal| for the classes
+%% |Fractional| and |Floating|.  Using our pedagogical representation:
+%% \begin{spec}
+%% instance Num a => Fractional (Signal a) where
+%%   (/)             = lift2 (/)
+%%   fromRational r  = lift0 (fromRational r)
+%%   ...
+%% 
+%% instance Fractional a => Floating (Signal a) where
+%%   pi   = lift0 pi
+%%   sin  = lift1 sin
+%%   exp  = lift1 exp 
+%%   ...
+%% \end{spec}
+%% (See the Haskell Report for the full list of operators in these
+%% classes.)
+%% 
+%% With these definitions in place, we can now write, for example, |sin
+%% 42| instead of |lift1 sin (lift0 42)|.  Of course, the type of |sin
+%% 42| by itself is ambiguous, but in a context where a |Signal| is
+%% expected, it will be interpreted properly.
+%% 
+%% \subsection{Time}
+%% 
+%% It is convenient to have a signal that represents the current time.
+%% Using our pedagogical representation of signals, we can think of the
+%% time |t| being defined as follows:
+%% \begin{spec}
+%% t :: Signal Time
+%% t = Sig id
+%% \end{spec}
+%% 
+%% For example, in physics a \emph{sine wave} is described by the
+%% following mathematical formula:
+%% \[ x(t) = \sin (\omega t + \phi) \]
+%% where $\omega$ is the angular frequency (in radians) and $\phi$ is the
+%% phase angle.  We can write this using the overloaded operators from
+%% the last section, and the time |t| as defined above, quite succinctly:
+%% \begin{spec}
+%% x :: Signal Double
+%% x = sin (omega * t + phi) 
+%% \end{spec}
+%% To see how this works, let's proceed by calculation, with the
+%% assumption that |omega| and |phi| are constants.  We will work from
+%% the inner expressions outward---first |omega * t|:
+%% \begin{spec}
+%% omega * t
+%% ==> lift2 (*) (lift0 omega) (Sig id)
+%% ==> (\(Sig g) \(Sig h) -> Sig (\t -> g t * h t)) 
+%%         (\t -> omega) (Sig id)
+%% ==> Sig (\t -> (\t -> omega) t * id t))
+%% ==> Sig (\t -> omega * t)
+%% \end{spec}
+%% Now |omega * t + phi|:
+%% \begin{spec}
+%% |omega * t + phi|
+%% ==> lift2 (+) (Sig (\t -> omega * t)) (lift0 phi)
+%% ==> (\(Sig g) \(Sig h) -> Sig (\t -> g t + h t))
+%%         (Sig (\t -> omega * t)) (Sig (\t -> phi))
+%% ==> Sig (\t -> (\t -> omega * t) t + (\t -> phi) t)
+%% ==> Sig (\t -> omega * t + phi)
+%% \end{spec}
+%% And finally the whole thing:
+%% \begin{spec}
+%% sin (omega * t + phi)
+%% ==> lift1 sin (Sig (\t -> omega * t + phi))
+%% ==> (\(Sig g) -> Sig (\t -> sin (g t))) (Sig (\t -> omega * t + phi))
+%% ==> Sig (\t -> sin ((\t -> omega * t + phi) t))
+%% ==> Sig (\t -> sin (omega * t + phi))
+%% \end{spec}
+%% 
+%% \subsection{Musical Signals}
+%% 
+%% Of course, any function can be lifted.  For example, consider the
+%% |pitch| function from Chapter \ref{ch:music}.  Its type is
+%% |AbsPitch -> Pitch|, therefore the function |lift1 pitch| must have type
+%% 
+%% |Signal AbsPitch -> Signal Pitch|.  Since functions such as this are
+%% not members of a type class, we cannot overload them, and thus may
+%% decide to use new function names, such as:
+%% \begin{code}
+%% pitchS     :: Signal AbsPitch -> Signal Pitch
+%% pitchS     = lift1 pitch
+%% 
+%% absPitchS  :: Signal Pitch -> Signal AbsPitch
+%% absPitchS  = lift1 absPitch
+%% \end{code}
+%% We will see a larger example using this idea shortly.
+%% 
+%% \newpage
+%% 
+%% \subsection{Useful Signal Operators}
+%% 
+%% Sometimes we need to zip and unzip values at the signal level.  The
+%% following functions facilitate this:
+%% \begin{spec}
+%% join   :: Signal a -> Signal b -> Signal (a, b)
+%% split  :: Signal (a, b) -> (Signal a, Signal b)
+%% fstS   :: Signal (a, b) -> Signal a
+%% sndS   :: Signal (a, b) -> Signal b
+%% \end{spec}
+%% The behavior of these functions should be clear from their type
+%% signatures.  For example, |join| takes two signals and zips their
+%% values together pointwise; |split| takes a signal of pairs and returns
+%% a pair of signals; and so on.
+%% 
+%% We would also like to compare signals, but it is not as easy to
+%% overload the relational operators as we did the arithmetic operators,
+%% since they do not have a uniform type structure, and are not members
+%% of a convenient type class.  Therefore the following special operators
+%% are defined:
+%% \begin{spec}
+%% (<*), (>*), (<=*), (>=*)  :: Ord a  => Signal a -> Signal a -> Signal Bool
+%% (==*), (/=*)              :: Eq a   => Signal a -> Signal a -> Signal Bool
+%% (&&*), (||*)              :: Signal Bool -> Signal Bool -> Signal Bool
+%% notS                      :: Signal Bool -> Signal Bool
+%% \end{spec}
+%% 
+%% For example, if |s1, s2 :: Signal AbsPitch| are two signals of
+%% absolute pitches, then |s1 ==* s2| is a signal of Boolean values that
+%% represents the pointwise equality comparison of the two signals.
+%% 
+%% \subsection{Stateful Signals}
+%% 
+%% Some signals are \emph{stateful}, meaning that they depend on past
+%% values in some way.  A particularly important example of a stateful
+%% signal is the \emph{integral} of a signal, which can be computed with
+%% the following function:
+%% \begin{spec}
+%% integral :: Signal Time -> Signal Double -> Signal Double
+%% \end{spec}
+%% The first argument to |integral| is a signal that represents the
+%% current time.  We will say more about this in the next section, but
+%% conceptually you can think of |integral t s| as the integral of |s|
+%% with respect to |t|.
+%% 
+%% Another kind of stateful signal can be generated with the functions:
+%% \begin{spec}
+%% initS, initS' :: a -> Signal a -> Signal a
+%% \end{spec}
+%% |initS| conceptually introduces an infinitesimally small delay in a
+%% signal by ``initializing'' it with a given value.  In other words, the
+%% signal |initS v s| behaves just like |s|, but it has the value |v| at
+%% time 0, and takes on the values of |s| henceforth.  |initS' v s|
+%% behaves similarly, except that it \emph{replaces} the initial value in
+%% |s| with |v|.  In the limit, these are mathematically the same, but in
+%% practice, there is sometimes reason to choose one over the other.
+%% 
+%% As an example of the use of |initS|, suppose we have a signal \newline 
+%% |s :: Signal AbsPitch|, and we wish to know when its value
+%% changes---i.e.\ we would like a value of type |Signal Bool| that is
+%% |True| just at those moments when |s| has
+%% changed.\footnote{Mathematically, if |s| were truly a continuous
+%%   numeric function of time, this would be the same as asking when the
+%%   derivative is non-zero.  But we would also like to compute this
+%%   result for integral types such as |AsbPitch|, as well as for
+%%   non-numeric types.}  Using |initS| we can compute the desired result
+%% by comparing the value of the signal to its values an infinitesimally
+%% short time in the past; that is:
+%% \begin{spec}
+%% s /=* initS 0 s
+%% \end{spec}
+%% From the type of |/=*| it is easy to see that the type of this result
+%% is |Signal Bool|.
+%% 
+%% \section{Events and Reactivity}
+%% \label{sec:events}
+%% 
+%% Although signals are a nice abstraction of time-varying entities, and
+%% the world is arguably full of such entities, there are some things
+%% that happen at discrete points in time, like a mouse click, or a MIDI
+%% keyboard press, and so on.  We call these \emph{events}.  To represent
+%% events, and have them coexist with signals, recall the |Maybe| type
+%% defined in the Standard Prelude:
+%% \begin{spec}
+%% data Maybe a = Nothing | Just a
+%% \end{spec}
+%% We define an event simply as a value of type |Signal (Maybe a)|, and
+%% in this sense events in Euterpea are really event \emph{streams},
+%% since more than one may occur over time.  We say that the value
+%% associated with an event is ``attached to'' or ``carried by'' that
+%% event.  For clarity we define |EventS| as a type synonym:
+%% \begin{spec}
+%% type EventS a = Signal (Maybe a)
+%% \end{spec}
+%% ``|EventS|'' can be read either as ``event stream'' or ``event
+%% signal,'' although we will often just write ``event.''
+%% 
+%% \subsection{Manipulating Event Streams}
+%% 
+%% There are many things that we would like to do with events.  For
+%% example, it is convenient to be able to apply a function to each value
+%% attached to an event, just like |map| does for a list.  In the context
+%% of events, however, we prefer to use an infix operator:
+%% \begin{spec}
+%% (=>>) :: EventS a -> (a -> b) -> EventS b
+%% \end{spec}
+%% 
+%% Mnemonically, an expression of the form |e =>> f| can be read as
+%% ``send the event stream |e| through the function |f|.''  For examnple,
+%% if |s :: Event AbsPitch| is a stream of absolute pitch events, then |s
+%% =>> pitch| is a stream of pitch events, with type |Event Pitch|.
+%% 
+%% For convenience we also define a version of |(=>>)| that ignores its
+%% input value:
+%% \begin{spec}
+%% (->>)     :: EventS a -> b -> EventS b
+%% s1 ->> v  = s =>> (\_ -> v)
+%% \end{spec}
+%% 
+%% We can merge two event streams using:
+%% \begin{spec}
+%% (.|.) :: EventS a -> EventS a -> EventS a
+%% \end{spec}
+%% If two events happen at the same time, preference is given to the one
+%% in the first argument.
+%% 
+%% \subsection{Turning Signals into Events}
+%% 
+%% It is sometimes useful to turn a Boolean signal into an event stream,
+%% which can be done in two different ways:
+%% \begin{spec}
+%% edge, when :: Signal Bool -> EventS ()
+%% \end{spec}
+%% |edge s| generates an event whenever the Boolean signal |s| changes
+%% from |False| to |True|---in signal processing this is called an ``edge
+%% detector,'' and thus the name chosen here.  |when s| is also an edge
+%% detector, but it generates an event whenever |s| changes either from
+%% |False| to |True| or from |True| to |False|.
+%% 
+%% A related operation is:
+%% \begin{spec}
+%% unique :: Eq a => Signal a -> EventS a
+%% \end{spec}
+%% which generates an event whenever the signal argument changes, and
+%% attaches the value of the signal at that time to the event.  For
+%% example, if |ap :: Signal AbsPitch| changes its pitch once every
+%% second, starting with absolute pitch 0 and incrementally moving
+%% upward, then |unique ap| will generate an event stream whose attached
+%% values are successively 0, 1, 2, and so on.  Furthermore, the signal:
+%% \begin{spec}
+%% unique ap =>> pitch
+%% \end{spec}
+%% generates events once per second, with the attached values being the
+%% pitches |(C,0)|, |(Cs,0)|, |(D,0)|, and so on.
+%% 
+%% \begin{table}
+%% \begin{spec}
+%% snapshot   :: EventS a -> Signal b -> EventS (a, b)
+%% snapshot_  :: EventS a -> Signal b -> EventS b
+%% hold       :: a -> EventS a -> Signal a
+%% accum      :: a -> EventS (a -> a) -> Signal a
+%% \end{spec}
+%% \caption{Signal Samplers}
+%% \label{fig:sig-samplers}
+%% \end{table}
+%% 
+%% \subsection{Signal Samplers}
+%% 
+%% The useful collection of functions shown in Table
+%% \ref{fig:sig-samplers} can be thought of as ``signal samplers.''  For
+%% example, if |ticks :: EventS ()| generates unit events at some
+%% sampling rate, then |snapshot_ ticks ap| is a stream of events at the
+%% same rate, but the value attached to each event is the value of the
+%% absolute pitch |ap| at that time.  |snapshot| behaves similarly, but
+%% pairs the sampled value with the original event value.
+%% 
+%% |hold v e| is a signal whose initial value is |v|, which it ``holds''
+%% until the first event in |e| happens, at which point it changes to the
+%% value attached to that event, which it then ``holds'' until the next
+%% event, and so on.  |accum| is a bit like |scan|.  The signal |accum v
+%% e| starts with the value |v|, but then applies the function attached
+%% to the first event to that value to get the next value, and so on.
+%% 
+%% \subsection{Switches and Reactivity}
+%% 
+%% More generally, perhaps the most fundamental set of operations on
+%% events are the ones that introduce \emph{reactivity}: the ability to
+%% change a signal's behavior in response to an event.  There are two
+%% operations for this purpose:
+%% \begin{spec}
+%% switch, untilS :: Signal a -> EventS (Signal a) -> Signal a
+%% \end{spec}
+%% The signal |s `untilS` e| initially behaves just like |s|, until the
+%% first event in |e| occurs.  It then behaves forever after like the
+%% behavior attached to that event.  |s `switch` e| behaves similarly,
+%% except that each subsequent event after the first will change the
+%% behavior to the event's new attached signal value.
+%% 
+%% It is important to note that the second argument to these functions,
+%% whose type is |EventS (Signal a)|, reflects a kind of ``higher-order''
+%% signal, that is, a signal of signals.  Nothing like this can appear in
+%% an electrical circuit, for example, since it it not possible carry
+%% entire circuits as values on a wire.
+%% 
+%% \todo{Insert example or two here}
 
-A value of type |Signal T| is a time-varying value of type |T|.  For
-example, |Signal Float| is a time-varying floating-point number,
-|Signal AbsPitch| is a time-varing absolute pitch, and so on.
-Abstractly, one can think of a signal as a function:
-\begin{spec}
-Signal a = Time -> a
-\end{spec}
-where |Time| is some suitable representation of time (currently
-|Double| in Euterpea).
-
-However, this is not how signals are actually implemented in Euterpea,
-indeed the above is not even valid Haskell syntax.  Nevertheless it is
-helpful to think of signals in this way.  Indeed, for pedagogical
-purposes, we can go one step further and write the above as a Haskell
-data declaration:
-\begin{spec}
-data Signal a = Sig (Time -> a)
-\end{spec}
-and then describe in more detail how signals are manipulated once this
-concrete representation is in hand.
-
-First of all, the following functions can be used to ``lift'' static
-values and functions to the time-varying domain of signals:
-\begin{spec}
-lift0 :: a -> Signal a
-lift0 x = Sig (\t -> x)
-
-lift1 :: (a -> b) -> (Signal a -> Signal b)
-lift1 f = \(Sig g) -> Sig (\t -> f (g t))
-
-lift2 :: (a -> b -> c) -> (Signal a -> Signal b -> Signal c)
-lift2 f = \(Sig g) \(Sig h) -> Sig (\t -> f (g t) (h t))
-
-...
-\end{spec}
-%% lift3 :: (a -> b -> c -> d) -> (Signal a -> Signal b -> Signal c -> Signal d)
-For example, |lift0 42| is a ``constant signal'' that, at every point
-in time, returns the value 42:
-\begin{spec}
-lift0 42
-==> Sig (\t -> 42)
-\end{spec}
-And |lift1 sin| is a function that converts one signal into another
-signal that, at every point in time, is the sine of the value of the
-first signal:
-\begin{spec}
-lift1 sin
-==> \(Sig g) -> Sig (\t -> sin (g t))
-\end{spec}
-So, for example, |lift1 sin (lift0 42)| is the constant signal that
-returns the sine of 42, and in that sense is the same as |lift0 (sin
-42)|:
-\begin{spec}
-lift1 sin (lift0 42)
-==> (\(Sig g) -> Sig (\t -> sin (g t))) (Sig (\t -> 42))
-==> Sig (\t -> sin ((\t -> 42) t))
-==> Sig (\t -> sin 42)
-==> lift0 (sin 42)
-\end{spec}
-
-\subsection{Numeric Signals}
-
-It is inconvenient to write ``lifts'' everywhere when we want to work
-at the signal level.  One solution to this would be to define new
-function names, such as |sinS| for a signal-level version of the sine
-function, and so on.  Better yet, we can take advantage of Haskell's
-overloaded numeric system, through the use of type classes.  For
-example, we'd like to add, subtract, and multiply signals, as well as
-apply transcendental functions such as sine, cosine, and
-exponentiation.  Haskell's numeric classes provide a delightfully
-convenient way to do this.
-
-%% one of the more common set of operations that we desire for signals is
-%% \emph{arithmetic}.
-
-(Keep in mind while reading this section that signals aren't actually
-implemented in this way, but conceptually this should give you a good
-idea of the desired behavior.)
-
-For starters, we can declare |Signal| to be an instance of the class
-|Num|:
-\begin{spec}
-instance Num a => Num (Signal a) where
-  Sig f1 + Sig f2  = Sig (\t -> f1 t + f2 t)
-  Sig f1 * Sig f2  = Sig (\t -> f1 t * f2 t)
-  Sig f1 - Sig f2  = Sig (\t -> f1 t - f2 t)
-  negate (Sig f)   = Sig (\t -> negate f)
-  fromInteger i    = Sig (\t -> fromInteger i)
-  ...
-\end{spec}
-Better yet, we can write this using the lifting functions defined
-above:
-\begin{spec}
-instance Num a => Num (Signal a) where
-  (+)            = lift2 (+)
-  (*)            = lift2 (*)
-  (-)            = lift2 (-)
-  negate         = lift1 negate
-  fromInteger i  = lift0 (fromInteger i)
-  ...
-\end{spec}
-(See Section \ref{sec:num-class} for a full list of the operators in
-this class.)
-
-Euterpea also defines instances of |Signal| for the classes
-|Fractional| and |Floating|.  Using our pedagogical representation:
-\begin{spec}
-instance Num a => Fractional (Signal a) where
-  (/)             = lift2 (/)
-  fromRational r  = lift0 (fromRational r)
-  ...
-
-instance Fractional a => Floating (Signal a) where
-  pi   = lift0 pi
-  sin  = lift1 sin
-  exp  = lift1 exp 
-  ...
-\end{spec}
-(See the Haskell Report for the full list of operators in these
-classes.)
-
-With these definitions in place, we can now write, for example, |sin
-42| instead of |lift1 sin (lift0 42)|.  Of course, the type of |sin
-42| by itself is ambiguous, but in a context where a |Signal| is
-expected, it will be interpreted properly.
-
-\subsection{Time}
-
-It is convenient to have a signal that represents the current time.
-Using our pedagogical representation of signals, we can think of the
-time |t| being defined as follows:
-\begin{spec}
-t :: Signal Time
-t = Sig id
-\end{spec}
-
-For example, in physics a \emph{sine wave} is described by the
-following mathematical formula:
-\[ x(t) = \sin (\omega t + \phi) \]
-where $\omega$ is the angular frequency (in radians) and $\phi$ is the
-phase angle.  We can write this using the overloaded operators from
-the last section, and the time |t| as defined above, quite succinctly:
-\begin{spec}
-x :: Signal Double
-x = sin (omega * t + phi) 
-\end{spec}
-To see how this works, let's proceed by calculation, with the
-assumption that |omega| and |phi| are constants.  We will work from
-the inner expressions outward---first |omega * t|:
-\begin{spec}
-omega * t
-==> lift2 (*) (lift0 omega) (Sig id)
-==> (\(Sig g) \(Sig h) -> Sig (\t -> g t * h t)) 
-        (\t -> omega) (Sig id)
-==> Sig (\t -> (\t -> omega) t * id t))
-==> Sig (\t -> omega * t)
-\end{spec}
-Now |omega * t + phi|:
-\begin{spec}
-|omega * t + phi|
-==> lift2 (+) (Sig (\t -> omega * t)) (lift0 phi)
-==> (\(Sig g) \(Sig h) -> Sig (\t -> g t + h t))
-        (Sig (\t -> omega * t)) (Sig (\t -> phi))
-==> Sig (\t -> (\t -> omega * t) t + (\t -> phi) t)
-==> Sig (\t -> omega * t + phi)
-\end{spec}
-And finally the whole thing:
-\begin{spec}
-sin (omega * t + phi)
-==> lift1 sin (Sig (\t -> omega * t + phi))
-==> (\(Sig g) -> Sig (\t -> sin (g t))) (Sig (\t -> omega * t + phi))
-==> Sig (\t -> sin ((\t -> omega * t + phi) t))
-==> Sig (\t -> sin (omega * t + phi))
-\end{spec}
-
-\subsection{Musical Signals}
-
-Of course, any function can be lifted.  For example, consider the
-|pitch| function from Chapter \ref{ch:music}.  Its type is
-|AbsPitch -> Pitch|, therefore the function |lift1 pitch| must have type
-
-|Signal AbsPitch -> Signal Pitch|.  Since functions such as this are
-not members of a type class, we cannot overload them, and thus may
-decide to use new function names, such as:
-\begin{code}
-pitchS     :: Signal AbsPitch -> Signal Pitch
-pitchS     = lift1 pitch
-
-absPitchS  :: Signal Pitch -> Signal AbsPitch
-absPitchS  = lift1 absPitch
-\end{code}
-We will see a larger example using this idea shortly.
-
-\newpage
-
-\subsection{Useful Signal Operators}
-
-Sometimes we need to zip and unzip values at the signal level.  The
-following functions facilitate this:
-\begin{spec}
-join   :: Signal a -> Signal b -> Signal (a, b)
-split  :: Signal (a, b) -> (Signal a, Signal b)
-fstS   :: Signal (a, b) -> Signal a
-sndS   :: Signal (a, b) -> Signal b
-\end{spec}
-The behavior of these functions should be clear from their type
-signatures.  For example, |join| takes two signals and zips their
-values together pointwise; |split| takes a signal of pairs and returns
-a pair of signals; and so on.
-
-We would also like to compare signals, but it is not as easy to
-overload the relational operators as we did the arithmetic operators,
-since they do not have a uniform type structure, and are not members
-of a convenient type class.  Therefore the following special operators
-are defined:
-\begin{spec}
-(<*), (>*), (<=*), (>=*)  :: Ord a  => Signal a -> Signal a -> Signal Bool
-(==*), (/=*)              :: Eq a   => Signal a -> Signal a -> Signal Bool
-(&&*), (||*)              :: Signal Bool -> Signal Bool -> Signal Bool
-notS                      :: Signal Bool -> Signal Bool
-\end{spec}
-
-For example, if |s1, s2 :: Signal AbsPitch| are two signals of
-absolute pitches, then |s1 ==* s2| is a signal of Boolean values that
-represents the pointwise equality comparison of the two signals.
-
-\subsection{Stateful Signals}
-
-Some signals are \emph{stateful}, meaning that they depend on past
-values in some way.  A particularly important example of a stateful
-signal is the \emph{integral} of a signal, which can be computed with
-the following function:
-\begin{spec}
-integral :: Signal Time -> Signal Double -> Signal Double
-\end{spec}
-The first argument to |integral| is a signal that represents the
-current time.  We will say more about this in the next section, but
-conceptually you can think of |integral t s| as the integral of |s|
-with respect to |t|.
-
-Another kind of stateful signal can be generated with the functions:
-\begin{spec}
-initS, initS' :: a -> Signal a -> Signal a
-\end{spec}
-|initS| conceptually introduces an infinitesimally small delay in a
-signal by ``initializing'' it with a given value.  In other words, the
-signal |initS v s| behaves just like |s|, but it has the value |v| at
-time 0, and takes on the values of |s| henceforth.  |initS' v s|
-behaves similarly, except that it \emph{replaces} the initial value in
-|s| with |v|.  In the limit, these are mathematically the same, but in
-practice, there is sometimes reason to choose one over the other.
-
-As an example of the use of |initS|, suppose we have a signal \newline 
-|s :: Signal AbsPitch|, and we wish to know when its value
-changes---i.e.\ we would like a value of type |Signal Bool| that is
-|True| just at those moments when |s| has
-changed.\footnote{Mathematically, if |s| were truly a continuous
-  numeric function of time, this would be the same as asking when the
-  derivative is non-zero.  But we would also like to compute this
-  result for integral types such as |AsbPitch|, as well as for
-  non-numeric types.}  Using |initS| we can compute the desired result
-by comparing the value of the signal to its values an infinitesimally
-short time in the past; that is:
-\begin{spec}
-s /=* initS 0 s
-\end{spec}
-From the type of |/=*| it is easy to see that the type of this result
-is |Signal Bool|.
-
-\section{Events and Reactivity}
-\label{sec:events}
-
-Although signals are a nice abstraction of time-varying entities, and
-the world is arguably full of such entities, there are some things
-that happen at discrete points in time, like a mouse click, or a MIDI
-keyboard press, and so on.  We call these \emph{events}.  To represent
-events, and have them coexist with signals, recall the |Maybe| type
-defined in the Standard Prelude:
-\begin{spec}
-data Maybe a = Nothing | Just a
-\end{spec}
-We define an event simply as a value of type |Signal (Maybe a)|, and
-in this sense events in Euterpea are really event \emph{streams},
-since more than one may occur over time.  We say that the value
-associated with an event is ``attached to'' or ``carried by'' that
-event.  For clarity we define |EventS| as a type synonym:
-\begin{spec}
-type EventS a = Signal (Maybe a)
-\end{spec}
-``|EventS|'' can be read either as ``event stream'' or ``event
-signal,'' although we will often just write ``event.''
-
-\subsection{Manipulating Event Streams}
-
-There are many things that we would like to do with events.  For
-example, it is convenient to be able to apply a function to each value
-attached to an event, just like |map| does for a list.  In the context
-of events, however, we prefer to use an infix operator:
-\begin{spec}
-(=>>) :: EventS a -> (a -> b) -> EventS b
-\end{spec}
-
-Mnemonically, an expression of the form |e =>> f| can be read as
-``send the event stream |e| through the function |f|.''  For examnple,
-if |s :: Event AbsPitch| is a stream of absolute pitch events, then |s
-=>> pitch| is a stream of pitch events, with type |Event Pitch|.
-
-For convenience we also define a version of |(=>>)| that ignores its
-input value:
-\begin{spec}
-(->>)     :: EventS a -> b -> EventS b
-s1 ->> v  = s =>> (\_ -> v)
-\end{spec}
-
-We can merge two event streams using:
-\begin{spec}
-(.|.) :: EventS a -> EventS a -> EventS a
-\end{spec}
-If two events happen at the same time, preference is given to the one
-in the first argument.
-
-\subsection{Turning Signals into Events}
-
-It is sometimes useful to turn a Boolean signal into an event stream,
-which can be done in two different ways:
-\begin{spec}
-edge, when :: Signal Bool -> EventS ()
-\end{spec}
-|edge s| generates an event whenever the Boolean signal |s| changes
-from |False| to |True|---in signal processing this is called an ``edge
-detector,'' and thus the name chosen here.  |when s| is also an edge
-detector, but it generates an event whenever |s| changes either from
-|False| to |True| or from |True| to |False|.
-
-A related operation is:
-\begin{spec}
-unique :: Eq a => Signal a -> EventS a
-\end{spec}
-which generates an event whenever the signal argument changes, and
-attaches the value of the signal at that time to the event.  For
-example, if |ap :: Signal AbsPitch| changes its pitch once every
-second, starting with absolute pitch 0 and incrementally moving
-upward, then |unique ap| will generate an event stream whose attached
-values are successively 0, 1, 2, and so on.  Furthermore, the signal:
-\begin{spec}
-unique ap =>> pitch
-\end{spec}
-generates events once per second, with the attached values being the
-pitches |(C,0)|, |(Cs,0)|, |(D,0)|, and so on.
-
-\begin{table}
-\begin{spec}
-snapshot   :: EventS a -> Signal b -> EventS (a, b)
-snapshot_  :: EventS a -> Signal b -> EventS b
-hold       :: a -> EventS a -> Signal a
-accum      :: a -> EventS (a -> a) -> Signal a
-\end{spec}
-\caption{Signal Samplers}
-\label{fig:sig-samplers}
-\end{table}
-
-\subsection{Signal Samplers}
-
-The useful collection of functions shown in Table
-\ref{fig:sig-samplers} can be thought of as ``signal samplers.''  For
-example, if |ticks :: EventS ()| generates unit events at some
-sampling rate, then |snapshot_ ticks ap| is a stream of events at the
-same rate, but the value attached to each event is the value of the
-absolute pitch |ap| at that time.  |snapshot| behaves similarly, but
-pairs the sampled value with the original event value.
-
-|hold v e| is a signal whose initial value is |v|, which it ``holds''
-until the first event in |e| happens, at which point it changes to the
-value attached to that event, which it then ``holds'' until the next
-event, and so on.  |accum| is a bit like |scan|.  The signal |accum v
-e| starts with the value |v|, but then applies the function attached
-to the first event to that value to get the next value, and so on.
-
-\subsection{Switches and Reactivity}
-
-More generally, perhaps the most fundamental set of operations on
-events are the ones that introduce \emph{reactivity}: the ability to
-change a signal's behavior in response to an event.  There are two
-operations for this purpose:
-\begin{spec}
-switch, untilS :: Signal a -> EventS (Signal a) -> Signal a
-\end{spec}
-The signal |s `untilS` e| initially behaves just like |s|, until the
-first event in |e| occurs.  It then behaves forever after like the
-behavior attached to that event.  |s `switch` e| behaves similarly,
-except that each subsequent event after the first will change the
-behavior to the event's new attached signal value.
-
-It is important to note that the second argument to these functions,
-whose type is |EventS (Signal a)|, reflects a kind of ``higher-order''
-signal, that is, a signal of signals.  Nothing like this can appear in
-an electrical circuit, for example, since it it not possible carry
-entire circuits as values on a wire.
-
-\todo{Insert example or two here}
-
-\section{The UI Level}
+\section{The UISF}
 \label{sec:UI}
 
-It is at the UI level that ``graphical widgets'' are actually created,
-using a style very similar to the way we did IO in Chapter
-\ref{ch:IO}.  But instead of values of type |IO T|, which we referred
-to as \emph{IO actions}, we will use values of type |UI T|, which we
-refer to as \emph{UI actions}.  Just like |IO|, the |UI| type is fully
-abstract (meaning its implementation is hidden), and is an instance of
-the |Monad| class, which means that it can be used with the |do|
-syntax to sequence UI actions.
+The core component of the MUI is the user interface signal function.  
+Using these, we can create ``graphical widgets'' 
+using a style very similar to the way we wired signal functions in 
+Chapter \ref{ch:sigfuns}.  However, instead of having values of type 
+|SF a b|, we will use values of type |UISF a b|.  Just like |SF|, the 
+|UISF| type is fully abstract (meaning its implementation is hidden), 
+and is an instance of the |Arrow| class, which means that it can be 
+used with the arrow syntax.
 
-\subsection{Input Widgets}
+\subsection{Input and Output Widgets}
 
-Euterpea's basic input widgets are shown in Table
-\ref{fig:input-widgets}.  Note that each of them returns, ultimately,
-a value of type |UI T|, for some |T|, and therefore must be used with
-the |do| syntax to properly sequence their execution.  The names and
-type signatures of these functions suggest their functionality, which
-we elaborate on more below:
+Euterpea's basic widgets are shown in Table
+\ref{fig:widgets}.  Note that each of them is, ultimately,
+a value of type |UISF a b|, for some input type |a| and output type |b|, 
+and therefore may be used with the arrow syntax to help coordinate 
+their functionality.  The names and type signatures of these functions 
+suggest their functionality, which we elaborate on more below:
 
 \begin{table}
 \begin{spec}
-label              :: String -> UI ()
-display            :: Signal String -> UI ()
-button             :: String -> UI (Signal Bool)
-checkbox           :: String -> Bool -> UI (Signal Bool)
-radio              :: [String] -> Int -> UI (Signal Int)
-hSlider,vSlider    :: (RealFrac a) => (a, a) -> a -> UI (Signal a)
-hiSlider,viSlider  :: (Integral a) => a -> (a, a) -> a -> UI (Signal a)
-canvas             :: Dimension -> EventS Graphic -> UI ()
+label              :: String -> UISF () ()
+display            :: UISF String ()
+textbox            :: String -> UISF String String
+button             :: String -> UISF () Bool
+checkbox           :: String -> Bool -> UISF () Bool
+radio              :: [String] -> Int -> UISF () Int
+hSlider,vSlider    :: (RealFrac a) => (a, a) -> a -> UISF () a
+hiSlider,viSlider  :: (Integral a) => a -> (a, a) -> a -> UISF () a
+canvas             :: Dimension -> UISF (Event Graphic) ()
 \end{spec}
-\caption{MUI Input Widgets}
-\label{fig:input-widgets}
+\caption{MUI Input/Output Widgets}
+\label{fig:widgets}
 \end{table}
 
 \begin{itemize}
 \item
 A simple (static) text string can be displayed using:
 \begin{spec}
-label :: String -> UI ()
+label :: String -> UISF () ()
 \end{spec}
 
 \item
 Alternatively, a time-varying string can be be displayed using:
 \begin{spec}
-display :: Signal String -> UI ()
+display :: UISF String ()
 \end{spec}
 
 For convenience, Euterpea defines the following useful variations of
 |display|:
 \begin{spec}
-displaySig :: Show a => Signal a -> UI ()
-displaySig = display . lift1 show
+display' :: Show a => UISF a ()
+displaySig = arr show >>> display
 
-withDisplay         :: Show a => UI (Signal a) -> UI (Signal a)
-withDisplay widget  = do  w <- widget
-                          displaySig w
-                          return w
+withDisplay     ::  Show b => UISF a b -> UISF a b
+withDisplay sf  =   proc a -> do
+    b <- sf   -< a
+    display'  -< b
+    returnA   -< b
 \end{spec}
+
+\item
+A textbox that functions for both input and output can be displayed using: 
+\begin{spec}
+textbox :: String -> UISF String String
+\end{spec}
+The textbox is notable because it is ``bidirectional''.  That is, the 
+streaming input argument is displayed, the user can interact with it by 
+typing or deleting, and the result is the streaming output.  Therefore, 
+in practice, the textbox is used almost exclusively with the |rec| 
+keyword (which invoked the |ArrowLoop| instance of |UISF|).  Thus, a 
+code snippet from a MUI that uses |textbox| may look like this:
+\begin{spec}
+  rec str <- textbox "Initial text" -< str
+\end{spec}
+
 
 \item
 |button|, |checkbox|, and |radio| are three kinds of ``pushbuttons.''
@@ -583,7 +560,7 @@ of the slider, respectively.
 
 \item
 |canvas| is a graphical canvas on which images can be drawn.  More
-will be said boit ut later.
+will be said about it later.
 \end{itemize}
 
 As a very simple example, let's combine our running example of
@@ -592,20 +569,24 @@ a single slider representing the absolute pitch, and a display widget
 that displays the pitch corresponding to the current setting of the
 slider:
 \begin{code}
-ui0 :: UI ()
-ui0 = do  ap <- hiSlider 1 (0,100) 0
-          displaySig (pitchS ap)
+ui0  ::  UISF () ()
+ui0  =   proc _ -> do
+    ap <- hiSlider 1 (0,100) 0 -< ()
+    display' -< pitch ap
+
 \end{code}
-Note how the use of signals makes this dynamic MUI trivial to write.
+Note how the use of signal functions makes this dynamic MUI trivial 
+to write.
 
 We can execute this example using the function:
 \begin{spec}
-runUI   ::  String -> UI a -> IO ()
+runUI   ::  String -> UI () () -> IO ()
 \end{spec}
 where the string argument is a title displayed in the window holding
 the widget.  So our first running example of a MUI is:
 \begin{code}
 mui0 = runUI "Simple MUI" ui0
+
 \end{code}
 The resulting MUI, once the slider has been moved a bit, is shown in
 Figure \ref{fig:simple-mui}(a).
@@ -628,50 +609,59 @@ Figure \ref{fig:simple-mui}(a).
 \subsection{UI Transformers}
 
 Table \ref{fig:layout-widgets} shows a set of ``UI
-transformers''--functions that take UI values as input, and return
-modified UI values as output.
+transformers''--functions that take UISF values as input, and return
+modified UISF values as output.
 
 \begin{table}
 \begin{spec}
-title    :: String -> UI a -> UI a
-setSize  :: Dimension -> UI a -> UI a
-pad      :: (Int, Int, Int, Int) -> UI a -> UI a
-topDown, bottomUp, leftRight, rightLeft :: UI a -> UI a
+title       :: String  -> UISF a b -> UISF a b
+setLayout   :: Layout  -> UISF a b -> UISF a b
+pad         :: (Int, Int, Int, Int) -> UISF a b -> UISF a b
+topDown, bottomUp, leftRight, rightLeft :: UISF a b -> UISF a b
 
-type Dimension = (Int, Int)
+makeLayout  :: LayoutType -> LayoutType -> Layout
+data LayoutType  =  Stretchy  { minSize    ::  Int } 
+                 |  Fixed     { fixedSize  ::  Int }
 \end{spec}
 \caption{MUI Layout Widget Transformers}
 \label{fig:layout-widgets}
 \end{table}
 
-|title| simply attaches a title (a string) to a UI, and |setSize|
-establishes a fixed size (in pixels that represent two sides of a
-rectangle) for a UI.  For example we can modify the previous example:
+|title| simply attaches a title (a string) to a UISF, and |setLayout|
+establishes a new layout for a UISF, 
+where the general way to make a new layout is to use |makeLayout|.  
+|makeLayout| takes layout information for first the horizontal 
+dimension and then the vertical.  A dimension can be either stretchy 
+(with a minimum size in pixels but that will expand to fill the space 
+it is given) or fixed (measured in pixels).
+
+For example we can modify the previous example:
 \begin{code}
-ui1   :: UI ()
-ui1   =  setSize (150,150) $
-         do  ap <- title "Absolute Pitch" (hiSlider 1 (0,100) 0)
-             title "Pitch" (displaySig (pitchS ap))
+ui1   ::  UISF () ()
+ui1   =   setLayout (makeLayout (Fixed 150) (Fixed 150)) $ proc _ -> do
+    ap <- title "Absolute Pitch" (hiSlider 1 (0,100) 0) -< ()
+    title "Pitch" display' -< pitch ap
 
 mui1  =  runUI "Simple MUI (sized and titled)" ui1
-\end{code} %% $
+
+\end{code}
 This MUI is shown in Figure \ref{fig:simple-mui}(b).
 
-|pad (w,n,e,s) ui| adds |w| pixels of space to the ``west'' of the UI
+|pad (w,n,e,s) ui| adds |w| pixels of space to the ``west'' of the UISF
 |ui|, and |n|, |e|, and |s| pixels of space to the north, east, and
 south, respectively.  The remaining four functions are used to
-control the relative layout of the widgets within a UI.  By default
+control the relative layout of the widgets within a UISF.  By default
 widgets are arranged top-to-bottom, but, for example, we could modify
-the previous UI program to arrange the two widgets left-to-right:
+the previous UISF program to arrange the two widgets left-to-right:
 \begin{code}
-
-ui2   :: UI ()
-ui2   =  leftRight $ 
-         do  ap <- title "Absolute Pitch" (hiSlider 1 (0,100) 0)
-             title "Pitch" (display (lift1 (show . pitch) ap))
+ui2   ::  UISF () ()
+ui2   =   leftRight $ proc _ -> do
+    ap <- title "Absolute Pitch" (hiSlider 1 (0,100) 0) -< ()
+    title "Pitch" display' -< pitch ap
 
 mui2  =  runUI "Simple MUI (left-to-right layout)" ui2
-\end{code} %% $
+
+\end{code}
 This MUI is shown in Figure \ref{fig:simple-mui}(c).  Layout
 transformers can be nested (as demonstrated in some later examples),
 so a fair amount of flexibility is available.
@@ -681,11 +671,11 @@ so a fair amount of flexibility is available.
 There are two widgets for MIDI, one for input and the other for
 output, but neither of them displays anything graphically:
 \begin{spec}
-midiIn   :: Signal DeviceID -> UI (EventS [MidiMessage])
-midiOut  :: Signal DeviceID -> EventS [MidiMessage] -> UI ()
+midiIn   :: UISF DeviceID (Event [MidiMessage])
+midiOut  :: UISF (DeviceID, Event [MidiMessage]) ()
 \end{spec}
 Except for the |DeviceID| (about which more will be said shortly),
-these functions are fairly straigtforward: |midiOut| takes a stream of
+these functions are fairly straightforward: |midiOut| takes a stream of
 |MidiMessage| events and sends them to the MIDI output device, whereas
 |midiIn| generates a stream of |MidiMessage| events corresponding to
 the messages sent by the MIDI input device.  The |MidiMessage| data
@@ -723,16 +713,17 @@ As an example of the use of |midiOut|, we will modify our previous MUI
 program to output an |ANote| message every time the absolute pitch
 changes:
 \begin{code}
-
-ui3   = do  ap <- title "Absolute Pitch" (hiSlider 1 (0,100) 0)
-            title "Pitch" (displaySig (pitchS ap))
-            let ns = unique ap =>> (\k-> [ANote 0 k 100 0.1])
-            midiOut 0 ns
+ui3  ::  UISF () ()
+ui3  =   proc _ -> do
+    ap <- title "Absolute Pitch" (hiSlider 1 (0,100) 0) -< ()
+    title "Pitch" display' -< pitch ap
+    uap <- unique -< ap
+    midiOut -< (0, fmap (\k-> [ANote 0 k 100 0.1]) uap)
 
 mui3  = runUI "Pitch Player" ui3
+
 \end{code}
-Note the use of |unique| to generate an event when the pitch changes,
-and the use of |(=>>)| to convert those events into |ANote|s.
+Note the use of |unique| to generate an event when the pitch changes.
 
 \subsection{Midi Device IDs}
 
@@ -752,24 +743,25 @@ usually has the best knowledge of which devices are connected, and
 which devices to use.  In Euterpea, the easiest way to do this is using
 the UI widgets:
 \begin{spec}
-selectInput, selectOutput :: UI (Signal DeviceID)
+selectInput, selectOutput :: UISF () DeviceID
 \end{spec}
 Each of these widgets automatically queries the operating system to
 obtain a list of connected MIDI devices, and then displays the list as
-a set of radio buttons, thus allowing the user to select one of them.
-Note that the result is a signal, and the |DeviceID| arguments to
-|midiIn| and |midiOut| are also signals.  This makes wiring up the
+a set of radio buttons, allowing the user to select one of them.
+This makes wiring up the
 user choice very easy.  For example, we can modify the previous
 program to look like this:
 \begin{code}
-ui4   :: UI ()
-ui4   = do  devid <- selectOutput
-            ap <- title "Absolute Pitch" (hiSlider 1 (0,100) 0)
-            title "Pitch" (displaySig (pitchS ap))
-            let ns  = unique ap =>> (\k-> [ANote 0 k 100 0.1])
-            midiOut devid ns
+ui4   ::  UISF () ()
+ui4   =   proc _ -> do
+    devid <- selectOutput -< ()
+    ap <- title "Absolute Pitch" (hiSlider 1 (0,100) 0) -< ()
+    title "Pitch" display' -< pitch ap
+    uap <- unique -< ap
+    midiOut -< (devid, fmap (\k-> [ANote 0 k 100 0.1]) uap)
 
 mui4  = runUI "Pitch Player with MIDI Device Select" ui4
+
 \end{code}
 
 We suggest that this approach is always taken when dealing with MIDI,
@@ -782,62 +774,70 @@ the selected output device:
 \newpage
 
 \begin{code}
-ui5   :: UI ()
-ui5   = do  mi  <- selectInput
-            mo  <- selectOutput
-            m   <- midiIn mi
-            midiOut mo m
+ui5   :: UISF () ()
+ui5   = proc _ -> do
+    mi  <- selectInput   -< ()
+    mo  <- selectOutput  -< ()
+    m   <- midiIn        -< mi
+    midiOut -< (mo, m)
 
 mui5  = runUI "MIDI Input / Output UI" ui5
+
 \end{code}
 
 \subsection{Timer Widgets}
 
 Remember that there is no ``hidden'' time in the MUI---anything that
-depends on the notion of time (such as |integral| discussed earlier)
+depends on the notion of time 
+%% (such as |integral| discussed earlier)
 takes a time signal explicitly as an argument.  For this purpose, the
 following function generates a signal corresponding to the current
 time:
 \begin{spec}
-time :: UI (Signal Time)
+time :: UISF () Time
 \end{spec}
 
-Besides |integral|, another function that depends explicitly on time
+A function that depends explicitly on time
 is the following, which creates a \emph{timer}:
 \begin{spec}
-timer :: Signal Time -> Signal Double -> EventS ()
+timer :: ArrowInit a => a (Time, Double) Bool
 \end{spec}
-|timer t i| takes a time source |t| and a signal |i| that represents
-the timer interval (in seconds), and generates a stream of events,
-with each pair of consecutive events separated by the timer interval.
+|timer -< (t, i)| takes a time source |t| and a signal |i| that represents
+the timer interval (in seconds), and generates a boolean stream,
+with each pair of consecutive |True| values separated by the timer interval.
 Note that the timer interval is itself a signal, so the timer output
 can have varying frequency.
+Note also that, since |timer| does not have any graphical or audio 
+representation, it is not actually of type |UISF|.  Rather, it is a 
+generic |ArrowInit|.  However, as |UISF| is an instance of |ArrowInit|, 
+we can use |timer| in our MUIs.
 
-As an example of this, let's modify our previous UI so that, instead
-of playing a note everytime the absolute pitch changes, we will output
+As an example of this, let's modify our previous MUI so that, instead
+of playing a note every time the absolute pitch changes, we will output
 a note continuously, at a rate controlled by a second slider:
 \begin{code}
-ui6   :: UI ()
-ui6   = do  devid <- selectOutput
-            ap  <- title "Absolute Pitch" (hiSlider 1 (0,100) 0)
-            title "Pitch" (displaySig (pitchS ap))
-            t   <- time
-            f   <- title "Tempo" (hSlider (1,10) 1)
-            let ticks  = timer t (1/f)
-            let ns     = snapshot_  ticks ap =>> 
-                                (\k-> [ANote 0 k 100 0.1])
-            midiOut devid ns
+ui6   ::  UISF () ()
+ui6   =   proc _ -> do
+    devid <- selectOutput -< ()
+    ap  <- title "Absolute Pitch" (hiSlider 1 (0,100) 0) -< ()
+    title "Pitch" display' -< pitch ap
+    t   <- time -< ()
+    f   <- title "Tempo" (hSlider (1,10) 1) -< ()
+    tick <- timer -< (t, 1/f)
+    let n = if tick then Just [ANote 0 ap 100 0.1] else Nothing
+    midiOut -< (devid, n)
 
 mui6  = runUI "Pitch Player with Timer" ui6
+
 \end{code}
 Note that:
 \begin{itemize}
 \item The time |t| is needed solely to drive the timer.
-\item The rate of |ticks| is controlled by the slider.  A higher
+\item The rate of |tick|s is controlled by the slider.  A higher
   slider value causes a lower time between ticks, and thus a higher
   frequency, or tempo.
-\item |snapshot_| uses the timer output to control the sample rate of
-  the absolute pitch.
+%% \item |snapshot_| uses the timer output to control the sample rate of
+%%   the absolute pitch.
 \end{itemize}
 %% \item As before, The expression |... =>> (\k-> [ANote 0 55 64 0.1])|
 %%   replaces each event carrying absolute pitch |k| with an |ANote|
@@ -847,27 +847,27 @@ Note that:
 Finally, an event stream can be delayed by a given (variable) amount
 of time using the following function:
 \begin{spec}
-delayt :: Signal Time -> Signal Double -> EventS a -> EventS a
+delayt :: ArrowInit a => a (Time, Double, Event b) (Event b)
 \end{spec}
-The second argument specifies the amount of delay to be applied to the
-third argument.
+The second input component specifies the amount of delay to be applied 
+to the third argument.
 
 \section{Putting It All Together}
 
 Recall that a Haskell program must eventually be a value of type |IO
-()|, and thus we need a function to turn a |UI| value into a |IO|
-value---i.e.\ the UI needs to be ``run.''  We can do this using one of
+()|, and thus we need a function to turn a |UISF| value into a |IO|
+value---i.e.\ the UISF needs to be ``run.''  We can do this using one of
 the following two functions, the first of which we have already been
 using:
 \begin{spec}
-runUI    ::               String -> UI a -> IO ()
-runUIEx  :: Dimension ->  String -> UI a -> IO ()
+runUI    ::               String -> UISF () () -> IO ()
+runUIEx  :: Dimension ->  String -> UISF () () -> IO ()
 \end{spec}
 Both of these functions take a string argument that is displayed in
 the title bar of the graphical window that is generated.  |runUIEx|
 additionally takes the dimensions of the window as an argument.
 Executing |runUI s ui| or |runUIEx d s ui| will create a single MUI
-window whose behavior is governed by the argument |ui :: UI a|.  
+window whose behavior is governed by the argument |ui :: UISF () ()|.  
 
 \section{Musical Examples}
 
@@ -892,6 +892,7 @@ chordIntervals = [  ("Maj",     [4,3,5]),    ("Maj7",    [4,3,4,1]),
                     ("mMaj7",   [3,4,4,1]),  ("dim",     [3,3,3]),
                     ("dim7",    [3,3,3,3]),  ("Dom7",    [4,3,3,2]),
                     ("Dom9",    [4,3,3,4]),  ("Dom7b9",  [4,3,3,3]) ]
+
 \end{code}
 We will display the list of extensions on the screen as radio buttons
 for the user to click on.
@@ -916,6 +917,7 @@ toChord (ms@(m:_),i) =
     _ -> ms
   where f g c k v = map  (\k' -> Std (g c k' v)) 
                          (scanl (+) k (snd (chordIntervals !! i)))
+
 \end{code}
 
 The MUI is arranged in the following way.  On the left side, the list
@@ -929,18 +931,19 @@ function, and the resulting chord is then sent to the Midi output
 device.
 
 \begin{code}
-buildChord :: UI ()
-buildChord = leftRight $
-  do  (mi,mo)  <-  topDown $
-                   do  mi  <- selectInput
-                       mo  <- selectOutput
-                       return (mi,mo)
-      m        <- midiIn mi
-      i        <-  topDown $ title "Chord Type" $ 
-                   radio (fst (unzip chordIntervals)) 0
-      midiOut mo (snapshot m i =>> toChord)
+buildChord :: UISF () ()
+buildChord = leftRight $ proc _ -> do
+    (mi, mo)  <- (| topDown (do
+                   mi  <- selectInput   -< ()
+                   mo  <- selectOutput  -< ()
+                   returnA -< (mi, mo))|)
+    m       <- midiIn -< mi
+    i       <- topDown $ title "Chord Type" $ 
+                   radio (fst (unzip chordIntervals)) 0 -< ()
+    midiOut -< (mo, fmap (toChord . (,i)) m)
 
 chordBuilder = runUIEx (600,400) "Chord Builder" buildChord
+
 \end{code}
 Figure \ref{fig:chordbuilder} shows this MUI in action.
 
@@ -967,6 +970,7 @@ First we define the growth function in Haskell, which, given a rate
 \begin{code}
 grow      :: Double -> Double -> Double
 grow r x  = r * x * (1-x)
+
 \end{code}
 
 Then we define a signal |ticks| that pulsates at a given frequency
@@ -976,15 +980,16 @@ simulation.
 The next thing we need is a time-varying population.  This is where
 |accum| comes in handy.  |accum| takes an initial value and an event
 signal carrying a modifying function, and updates the current value by
-applying the function to it.  Since we want the growth rate to be
-time-varying, we lift the growth function to the signal level and pass
-in the growth rate signal |r|.  This gives us a value of type |Signal
-(Double -> Double)|, that is, a signal of functions that will update a
-population at the current growth rate.  Then, at every tick, we take a
-snapshot of this signal, producing values of type |EventS
-(Double->Double)|.  This is given to |accum| with an initial value of
-0.1, and we get back our population signal |pop| driven by the clock
-ticks.
+applying the function to it.  
+%% Since we want the growth rate to be
+%% time-varying, we lift the growth function to the signal level and pass
+%% in the growth rate signal |r|.  This gives us a value of type |Signal
+%% (Double -> Double)|, that is, a signal of functions that will update a
+%% population at the current growth rate.  Then, at every tick, we take a
+%% snapshot of this signal, producing values of type |EventS
+%% (Double->Double)|.  This is given to |accum| with an initial value of
+%% 0.1, and we get back our population signal |pop| driven by the clock
+%% ticks.
 
 We can now write a simple function that maps a population value to a
 musical note:
@@ -992,30 +997,30 @@ musical note:
 popToNote :: Double -> [MidiMessage]
 popToNote x =  [ANote 0 n 64 0.05] 
                where n = truncate (x * 127)
+
 \end{code}
 
-Finally, to play the note at every tick, we again take a snapshot of
-the current population at every tick and send the result to
-|popToNote|.  The resulting event signal is played through the
-selected MIDI output device.
+%% Finally, to play the note at every tick, we again take a snapshot of
+%% the current population at every tick and send the result to
+%% |popToNote|.  The resulting event signal is played through the
+%% selected MIDI output device.
 
 \begin{code}
-bifurcateUI :: UI ()
-bifurcateUI = do
-  t   <- time
-  mo  <- selectOutput
-  f   <- title "Frequency" $ withDisplay (hSlider (1, 10) 1)
-  r   <- title "Growth rate" $ withDisplay (hSlider (2.4, 4.0) 2.4)
+bifurcateUI :: UISF () ()
+bifurcateUI = proc _ -> do
+    t  <- time -< ()
+    mo <- selectOutput -< ()
+    f  <- title "Frequency" $ withDisplay (hSlider (1, 10) 1) -< ()
+    r  <- title "Growth rate" $ withDisplay (hSlider (2.4, 4.0) 2.4) -< ()
 
-  let  ticks  :: EventS ()
-       ticks  = timer t (1.0 / f)
-       pop    :: Signal Double
-       pop    = accum 0.1 (snapshot_ ticks (lift1 grow r))
+    tick <- timer -< (t, 1.0 / f)
+    pop <- accum 0.1 -< if tick then Just (grow r) else Nothing
 
-  title "Population" $ displaySig pop
-  midiOut mo (snapshot_ ticks pop =>> popToNote)
+    _ <- title "Population" $ display' -< pop
+    midiOut -< (mo, if tick then Just (popToNote pop) else Nothing)
 
 bifurcate = runUIEx (300,500) "Bifurcate!" $ bifurcateUI
+
 \end{code}
 
 \subsection{MIDI Echo Effect}
@@ -1039,44 +1044,38 @@ event streams into one, and then remove events with empty MIDI
 messages by replacing them with Nothing.  The resulting signal |m'| is
 then processed further as follows.
 
-Whenever there is an event in |m'|, we take a snapshot of the current
-decay rate specified by a slider |r|.  The MIDI messages and the
-current decay rate are passed to a function |k|, which softens each
-note in the list of messages.  We define a function called |decay|
-that reduces the velocity of each note by the given rate.  If the
-velocity drops to 0, the note is removed.  The resulting signal is
+%% Whenever there is an event in |m'|, we take a snapshot of the current
+%% decay rate specified by a slider |r|.  
+The MIDI messages and the
+current decay rate are processed with |decay|, which softens each
+note in the list of messages.  Specifically, |decay| works by 
+reducing the velocity of each note by the given rate and removing 
+the note if the velocity drops to 0.  The resulting signal is
 then delayed by the amount of time determined by another slider |f|,
-producing signal |s|.  |s| is then fed back to the |mergeM| function,
+producing signal |s|.  |s| is then fed back to the |mergeE| function,
 closing the loop of the recursive signal.  At the same time, |m'| is
 sent to the output device.
 
 \begin{code}
-echoUI :: UI ()
-echoUI = do
-  mi  <- selectInput
-  mo  <- selectOutput
-  m   <- midiIn mi
-  t   <- time
-  r   <- title "Decay rate" $ withDisplay $ hSlider (0, 0.9) 0.5
-  f   <- title "Echoing frequency" $  withDisplay $ 
-                                      hSlider (1, 10) 10
+echoUI :: UISF () ()
+echoUI = proc _ -> do
+    mi <- selectInput  -< ()
+    mo <- selectOutput -< ()
+    m <- midiIn -< mi
+    t <- time -< ()
+    r <- title "Decay rate" $ withDisplay (hSlider (0, 0.9) 0.5) -< ()
+    f <- title "Echoing frequency" $ withDisplay (hSlider (1, 10) 10) -< ()
 
-  let  m'        = lift1 removeNull $ lift2 mergeM m s
-       s         = delayt t (1.0 / f) (snapshot m' r =>> k)
-       k (ns,r)  = mapMaybe (decay 0.1 r) ns
-                  
-  midiOut mo m'
+    rec let m' = removeNull $ mergeE (++) m s
+        s <- delayt -< (t, 1.0 / f, fmap (mapMaybe (decay 0.1 r)) m')
+
+    midiOut -< (mo, m')
 
 echo = runUIEx (500,500) "Echo" echoUI
-\end{code} %% $
+
+\end{code}
 
 \begin{code}
-
-mergeM ::   Maybe [MidiMessage] -> Maybe [MidiMessage] -> 
-            Maybe [MidiMessage]
-mergeM (Just ns1)  (Just ns2)  = Just (ns1 ++ ns2)
-mergeM n1          Nothing     = n1
-mergeM Nothing     n2          = n2
 
 removeNull :: Maybe [MidiMessage] -> Maybe [MidiMessage]
 removeNull (Just [])  = Nothing

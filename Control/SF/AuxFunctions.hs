@@ -1,10 +1,17 @@
 {-# LANGUAGE Arrows, ScopedTypeVariables #-}
 
 module Control.SF.AuxFunctions (
-    Event, edge, quantize,
+    Event, 
+    edge, edgeE, 
+    quantize,
+    accum, unique,
+    mergeE, 
     presentFFT, fftA, 
     toMSF, toRealTimeMSF, 
-    Control, buffer
+    Control, buffer,
+    (=>>), (->>), (.|.),
+    snapshot, snapshot_,
+    hold, now
 ) where
 
 import Prelude hiding (init)
@@ -38,18 +45,69 @@ import Control.DeepSeq
 -- Generic Types and Functions
 --------------------------------------
 
-type Event a = Maybe a
+type Event = Maybe
 
+-- | edge generates an event whenever the Boolean input signal changes
+--   from False to True -- in signal processing this is called an ``edge
+--   detector,'' and thus the name chosen here.
 edge :: ArrowInit a => a Bool Bool
 edge = proc b -> do
     prev <- init False -< b
     returnA -< not prev && b
 
--- | Scrutinizes n samples at a time, updating after k new values from a signal function
+-- | edgeE is a version of edge that works with events rather than Bools.
+edgeE :: ArrowInit a => a (Event ()) (Event ())
+edgeE = proc b -> do
+    prev <- init Nothing -< b
+    returnA -< b >> maybe (Just ()) (const Nothing) prev
+
+-- | Scrutinizes n samples at a time, updating after k new values from a 
+--   signal function
 quantize :: ArrowInit a => Int -> Int -> a b (Event [b])
 quantize n k = proc d -> do
     rec (ds,c) <- init ([],0) -< (take n (d:ds), c+1)
     returnA -< if c >= n && c `mod` k == 0 then Just ds else Nothing
+
+-- | The signal function (accum v) starts with the value v, but then 
+--   applies the function attached to the first event to that value 
+--   to get the next value, and so on.
+accum :: ArrowInit a => b -> a (Event (b -> b)) b
+accum x = proc f -> do
+    rec b <- init x -< maybe b ($b) f
+    returnA -< b
+
+unique :: Eq e => ArrowInit a => a e (Event e)
+unique = proc e -> do
+    prev <- init Nothing -< Just e
+    returnA -< if prev == Just e then Nothing else Just e
+
+-- | mergeE merges two events with the given resolution function.
+mergeE :: (a -> a -> a) -> Event a -> Event a -> Event a
+mergeE _       Nothing     Nothing     = Nothing
+mergeE _       le@(Just _) Nothing     = le
+mergeE _       Nothing     re@(Just _) = re
+mergeE resolve (Just l)    (Just r)    = Just (resolve l r)
+
+
+--------------------------------------
+-- Yampa-style combinators
+--------------------------------------
+
+(=>>) :: Event a -> (a -> b) -> Event b
+(=>>) = flip fmap
+(->>) :: Event a -> b -> Event b
+(->>) = flip $ fmap . const
+(.|.) :: Event a -> Event a -> Event a
+(.|.) = flip $ flip maybe Just
+
+snapshot :: Event a -> b -> Event (a,b)
+snapshot = flip $ fmap . flip (,)
+snapshot_ :: Event a -> b -> Event b
+snapshot_ = flip $ fmap . const -- same as ->>
+hold :: ArrowInit a => b -> a (Event b) b
+hold x = arr (fmap (const $)) >>> accum x
+now :: ArrowInit a => a () (Event ())
+now = arr (const Nothing) >>> init (Just ())
 
 
 

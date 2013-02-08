@@ -14,7 +14,11 @@
 > import qualified Codec.Midi as Midi
 
 > import Control.Arrow
-> import Control.SF.AuxFunctions (Event) --edge)
+> import Control.SF.AuxFunctions 
+>   (Event, edgeE, accum, mergeE, 
+>   (=>>), (->>), (.|.),
+>   snapshot, snapshot_,
+>   hold, now)
 
 
 > main = runUIEx (600,700) "Interval Trainer" intervalTrainer
@@ -144,7 +148,7 @@ The main UI:
 >     nowE <- now -< ()
 >     let progChan = nowE ->> (map Std $
 >                     zipWith Midi.ProgramChange [0,1,2,3,4] [0,4,40,66,73])
->         midiMsgs = progChan .|. mergeWithE (++) note0 note1
+>         midiMsgs = progChan .|. mergeE (++) note0 note1
 >     -- Display results:
 >     (| leftRight (do
 >         title "Score:"   $ setSize (120,50) $ 
@@ -163,6 +167,9 @@ Auxilliary Functions:
 > sDisplay              = setSize (50,25) display
 > shiSlider inc ran pre = setSize (300,25) $ hiSlider inc ran pre
 > sButton str           = setSize (75,25)  $ buttonE str
+
+> buttonE :: String -> UISF () (Event ())
+> buttonE s = button s >>> arr (\b -> if b then Just () else Nothing)
 
 > showScore     :: Int -> Int -> String
 > showScore c 0 = c `seq` "0"
@@ -193,10 +200,6 @@ at 60 BPM a whole note is 1 sec
 ANote :: Channel -> Key -> Velocity -> Time -> MidiMessage
 
 
--+-----------------------------+-
- |Yampa-style combinators below| 
--+-----------------------------+-
-
 > mapA :: Arrow a => [a b c] -> a [b] [c]
 > mapA [] = arr $ const []
 > mapA (sf:sfs) = proc (b:bs) -> do
@@ -204,39 +207,6 @@ ANote :: Channel -> Key -> Velocity -> Time -> MidiMessage
 >     cs <- mapA sfs -< bs
 >     returnA -< (c:cs)
 
-> edgeE :: ArrowInit a => a (Event ()) (Event ())
-> edgeE = proc b -> do
->     prev <- init Nothing -< b
->     returnA -< b >> maybe (Just ()) (const Nothing) prev
-
-> buttonE :: String -> UISF () (Event ())
-> buttonE s = button s >>> arr (\b -> if b then Just () else Nothing)
-
-> accum :: ArrowInit a => b -> a (Event (b -> b)) b
-> accum x = proc f -> do
->   rec b <- init x -< maybe b ($b) f
->   returnA -< b
 
 
-> (=>>) :: Event a -> (a -> b) -> Event b
-> (=>>) = flip fmap
-> (->>) :: Event a -> b -> Event b
-> (->>) = flip $ fmap . const
-> (.|.) :: Event a -> Event a -> Event a
-> (.|.) = flip $ flip maybe Just
-
-> snapshot :: Event a -> b -> Event (a,b)
-> snapshot = flip $ fmap . flip (,)
-> snapshot_ :: Event a -> b -> Event b
-> snapshot_ = flip $ fmap . const -- same as ->>
-> hold :: ArrowInit a => b -> a (Event b) b
-> hold x = arr (fmap (const $)) >>> accum x
-> now :: ArrowInit a => a () (Event ())
-> now = arr (const Nothing) >>> init (Just ())
-
-> mergeWithE :: (a -> a -> a) -> Event a -> Event a -> Event a
-> mergeWithE _       Nothing     Nothing     = Nothing
-> mergeWithE _       le@(Just _) Nothing     = le
-> mergeWithE _       Nothing     re@(Just _) = re
-> mergeWithE resolve (Just l)    (Just r)    = Just (resolve l r)
 
