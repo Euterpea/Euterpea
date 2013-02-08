@@ -31,10 +31,27 @@ earlier widgets and maps input signals to outputs, which consists of 6 parts:
 
 > newtype UI a = UI 
 >   { unUI :: (CTX, Focus, Input) -> 
->             IO (Layout, DirtyBit, Focus, Action, [ThreadId], a) }
+>             IO (Layout, DirtyBit, Focus, Action, ControlData, a) }
+
+
+============================================================
+======================= Control Data =======================
+============================================================
+
+> type ControlData = (IO (), [ThreadId])
+> nullCD :: ControlData
+> nullCD = (return (), [])
+
 
 > addThreadID :: ThreadId -> UI ()
-> addThreadID t = UI (\(_,f,_) -> return (nullLayout, False, f, nullAction, [t], ()))
+> addThreadID t = UI (\(_,f,_) -> return (nullLayout, False, f, nullAction, (return (), [t]), ()))
+
+> addSeqAction :: a -> UI ()
+> addSeqAction v = UI (\(_,f,_) -> return (nullLayout, False, f, nullAction, (seq v $ return (), []), ()))
+
+> mergeCD :: ControlData -> ControlData -> ControlData
+> mergeCD (s1, t1) (s2, t2) = (s1 >> s2, t1 ++ t2)
+
 
 ============================================================
 ===================== Rendering Context ====================
@@ -244,17 +261,18 @@ same, so the choice of Monad here is somewhat arbitary.
 > cross f g x = (f x, g x)
 
 > instance Monad UI where
->   return i = UI (\(_,foc,_) -> return (nullLayout, False, foc, nullAction, [], i))
+>   return i = UI (\(_,foc,_) -> return (nullLayout, False, foc, nullAction, nullCD, i))
 
 >   (UI m) >>= f = UI (\(ctx, foc, inp) -> do 
 >     rec let (ctx1, ctx2)      = divideCTX ctx l1 layout
 > --            (ctx2, _)         = divideCTX ctx' l2 l2
->         (l1, db1, foc1, a1, t1, v1) <- m (ctx1, foc, inp)
->         (l2, db2, foc2, a2, t2, v2) <- unUI (f v1) (ctx2, foc1, inp)
+>         (l1, db1, foc1, a1, cd1, v1) <- m (ctx1, foc, inp)
+>         (l2, db2, foc2, a2, cd2, v2) <- unUI (f v1) (ctx2, foc1, inp)
 >         let action            = mergeAction a1 a2
 >             layout            = mergeLayout (flow ctx) l1 l2 
+>             cd                = mergeCD cd1 cd2
 >             dirtybit          = ((||) $! db1) $! db2
->     return (layout, dirtybit, foc2, action, t1++t2, v2))
+>     return (layout, dirtybit, foc2, action, cd, v2))
 
 UIs are also instances of MonadFix so that we can define value
 level recursion.
@@ -263,9 +281,9 @@ level recursion.
 >   mfix f = UI aux
 >     where
 >       aux (ctx, foc, inp) = u
->         where u = do rec (l, db, foc', a, t, r) <- unUI (f r) (ctx, foc, inp)
->                      return (l, db, foc', a, t, r)
+>         where u = do rec (l, db, foc', a, cd, r) <- unUI (f r) (ctx, foc, inp)
+>                      return (l, db, foc', a, cd, r)
 
 > instance MonadIO UI where
->   liftIO a = UI (\(_,foc,_) -> a >>= (\v -> return (nullLayout, False, foc, nullAction, [], v)))
+>   liftIO a = UI (\(_,foc,_) -> a >>= (\v -> return (nullLayout, False, foc, nullAction, nullCD, v)))
 

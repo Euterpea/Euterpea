@@ -1,9 +1,20 @@
 A simple Graphical User Interface with concepts borrowed from Phooey
 by Conal Elliot.
 
-> {-# LANGUAGE Arrows, ExistentialQuantification, ScopedTypeVariables, DoRec #-}
+> {-# LANGUAGE Arrows, ExistentialQuantification, ScopedTypeVariables, DoRec, CPP, OverlappingInstances, FlexibleInstances, TypeSynonymInstances #-}
 
 > module Euterpea.IO.MUI.UISF where
+
+#if __GLASGOW_HASKELL__ >= 610
+> import Control.Category
+> import Prelude hiding ((.), init, exp)
+#else
+> import Prelude hiding (init, exp)
+#endif
+> import Control.Arrow
+> import Control.Monad.Fix
+> import Control.CCA.Types
+
 
 > import Euterpea.IO.MUI.SOE 
 > import Control.Monad (when, unless)
@@ -20,9 +31,6 @@ by Conal Elliot.
 > import Euterpea.IO.Audio.Types (Clock, rate)
 > import Control.CCA.ArrowP (ArrowP(..))
 
-> import Prelude hiding (init)
-> import Control.Arrow
-> import Control.CCA.Types
 > import Control.Concurrent.MonadIO
 > import Control.DeepSeq
 
@@ -30,6 +38,56 @@ by Conal Elliot.
 The main UI signal function, built from the UI monad and MSF.
 
 > type UISF = MSF UI
+
+import Control.SF.UISF
+
+
+#if __GLASGOW_HASKELL__ >= 610
+> instance Arrow UISF where
+>   arr f = MSF h 
+>     where h x = return (f x, MSF h)
+>   first (MSF f) = MSF (h f)
+>     where h f (x, z) = do (y, MSF f') <- f x
+>                           addSeqAction y
+>                           return ((y, z), MSF (h f'))
+>   f &&& g = MSF (h f g)
+>     where
+>       h f g x = do
+>         (y, f') <- msfFun f x
+>         (z, g') <- msfFun g x 
+>         return ((y, z), MSF (h f' g'))
+>   f *** g = MSF (h f g)
+>     where
+>       h f g x = do
+>         (y, f') <- msfFun f (fst x)
+>         (z, g') <- msfFun g (snd x) 
+>         return ((y, z), MSF (h f' g'))
+#else
+> instance Arrow UISF where
+>   arr f = MSF h 
+>     where h x = return (f x, MSF h)
+>   MSF f >>> MSF g = MSF (h f g)
+>     where h f g x    = do (y, MSF f') <- f x
+>                           (z, MSF g') <- g y
+>                           return (z, MSF (h f' g'))
+>   first (MSF f) = MSF (h f)
+>     where h f (x, z) = do (y, MSF f') <- f x
+>                           addSeqAction y
+>                           return ((y, z), MSF (h f'))
+>   f &&& g = MSF (h f g)
+>     where
+>       h f g x = do
+>         (y, f') <- msfFun f x
+>         (z, g') <- msfFun g x 
+>         return ((y, z), MSF (h f' g'))
+>   f *** g = MSF (h f g)
+>     where
+>       h f g x = do
+>         (y, f') <- msfFun f (fst x)
+>         (z, g') <- msfFun g (snd x) 
+>         return ((y, z), MSF (h f' g'))
+#endif
+
 
 
 Now that we're using UISF instead of the old UI monad, we should probably get 
@@ -53,17 +111,17 @@ UISF constructors, transformers, and converters
 These fuctions are various shortcuts for creating UISFs.
 The types pretty much say it all for how they work.
 
-> mkUISF :: (a -> (CTX, Focus, Input) -> (Layout, DirtyBit, Focus, Action, [ThreadId], b)) -> UISF a b
+> mkUISF :: (a -> (CTX, Focus, Input) -> (Layout, DirtyBit, Focus, Action, ControlData, b)) -> UISF a b
 > mkUISF f = pipe (\a -> UI $ (\cfa -> return $ f a cfa))
 
-> mkUISF' :: (a -> (CTX, Focus, Input) -> IO (Layout, DirtyBit, Focus, Action, [ThreadId], b)) -> UISF a b
+> mkUISF' :: (a -> (CTX, Focus, Input) -> IO (Layout, DirtyBit, Focus, Action, ControlData, b)) -> UISF a b
 > mkUISF' f = pipe (\a -> UI $ f a)
 
-> expandUISF :: UISF a b -> a -> (CTX, Focus, Input) -> IO (Layout, DirtyBit, Focus, Action, [ThreadId], (b, UISF a b))
+> expandUISF :: UISF a b -> a -> (CTX, Focus, Input) -> IO (Layout, DirtyBit, Focus, Action, ControlData, (b, UISF a b))
 > {-# INLINE expandUISF #-}
 > expandUISF (MSF f) = unUI . f
 
-> compressUISF :: (a -> (CTX, Focus, Input) -> IO (Layout, DirtyBit, Focus, Action, [ThreadId], (b, UISF a b))) -> UISF a b
+> compressUISF :: (a -> (CTX, Focus, Input) -> IO (Layout, DirtyBit, Focus, Action, ControlData, (b, UISF a b))) -> UISF a b
 > {-# INLINE compressUISF #-}
 > compressUISF f = MSF sf
 >   where
@@ -191,13 +249,15 @@ Some default parameters we start with.
 >   pollEvents <- windowUser w addEv
 >   -- poll events before we start to make sure event queue isn't empty
 >   pollEvents
->   let uiStream = streamMSF sf (repeat undefined)
+>   let uiStream = streamMSF sf (repeat ())
 >       render drawit' (inp:inps) lastFocus uistream tids = do
 >         wSize <- getWindowSize w
 >         let ctx = defaultCTX wSize addEv
->         (_, dirty, foc, (graphic, sound), tids', (_, uistream')) <- (unUI $ stream uistream) (ctx, lastFocus, inp)
+>         (_, dirty, foc, (graphic, sound), (sacts, tids'), (_, uistream')) <- (unUI $ stream uistream) (ctx, lastFocus, inp)
 >         -- always output sound
 >         sound
+>         -- Perform seq actions
+>         sacts
 >         -- and delay graphical output when event queue is not empty
 >         setGraphic' w graphic
 >         let drawit = dirty || drawit'

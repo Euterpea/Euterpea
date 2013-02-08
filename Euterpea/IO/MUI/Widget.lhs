@@ -63,7 +63,7 @@ A helper function to make stateful Widgets easier to write.
 >   returnA -< y
 >   --loop $ second (init i) >>> arr (uncurry inj) >>> mkUISF aux
 >     where
->       aux s1 (ctx,f,inp) = (layout, db, f, action, [], (y, s'))
+>       aux s1 (ctx,f,inp) = (layout, db, f, action, nullCD, (y, s'))
 >         where
 >           (s2, db) = comp (s1, (ctx, inp))
 >           (y, s') = prj s2
@@ -93,7 +93,7 @@ Labels are always left aligned and vertically centered.
 >     d = makeLayout (Fixed minw) (Fixed minh)
 >     drawit ((x, y), (w, h)) = withColor Black $ 
 >       text (x + padding, y + padding) s
->     aux a (ctx,f,inp) = (d, False, f, action, [], a)
+>     aux a (ctx,f,inp) = (d, False, f, action, nullCD, a)
 >       where 
 >         action = justGraphicAction $ drawit bbx
 >         bbx = bounds ctx --computeBBX ctx d
@@ -151,7 +151,7 @@ left, right, end, home, delete, and backspace special keys.
 >     k <- getEvents -< ()
 >     ctx <- getCTX -< ()
 >     rec (s', i) <- init (startingVal, 0) -< if inFocus then update s i ctx k else (s, i)
->     display -< ctx `seq` k `seq` i `seq` s'
+>     display -< seq i s'
 >     t <- time -< ()
 >     b <- timer -< (t, 0.5)
 >     rec willDraw <- init True -< willDraw'
@@ -523,7 +523,7 @@ of MidiMessages and sends the MidiMessages to the device.
 > midiIn :: UISF DeviceID (Event [MidiMessage])
 > midiIn = mkUISF aux 
 >   where 
->     aux dev (ctx,foc,inp) = (nullLayout, False, foc, action, [], v)
+>     aux dev (ctx,foc,inp) = (nullLayout, False, foc, action, nullCD, v)
 >       where 
 >         v = case inp of
 >               MidiEvent d m | d == dev -> Just [Std m]
@@ -536,7 +536,7 @@ of MidiMessages and sends the MidiMessages to the device.
 > midiOut :: UISF (DeviceID, Event [MidiMessage]) ()
 > midiOut = mkUISF aux 
 >   where
->     aux (dev, mmsg) (_,foc,_) = (nullLayout, False, foc, action, [], ())
+>     aux (dev, mmsg) (_,foc,_) = (nullLayout, False, foc, action, nullCD, ())
 >       where
 >         action = justSoundAction $ do
 >           valid <- isValidOutputDevice dev 
@@ -941,7 +941,7 @@ know whether it is currently in focus to change its appearance.  This
 can be achieved with the following signal function.
 
 > isInFocus :: UISF () Bool
-> isInFocus = mkUISF (\_ (_, foc, _) -> (nullLayout, False, foc, nullAction, [], snd foc == HasFocus))
+> isInFocus = mkUISF (\_ (_, foc, _) -> (nullLayout, False, foc, nullAction, nullCD, snd foc == HasFocus))
 
 
 ============================================================
@@ -950,11 +950,11 @@ can be achieved with the following signal function.
 
 > getCTX :: UISF () CTX
 > getCTX = mkUISF f where
->   f _ (c, foc, _) = (nullLayout, False, foc, nullAction, [], c)
+>   f _ (c, foc, _) = (nullLayout, False, foc, nullAction, nullCD, c)
 
 > getEvents :: UISF () Input
 > getEvents = mkUISF f where
->   f _ (_, foc, e) = (nullLayout, False, foc, nullAction, [], e)
+>   f _ (_, foc, e) = (nullLayout, False, foc, nullAction, nullCD, e)
 
 > getMousePosition :: UISF () Point
 > getMousePosition = proc _ -> do

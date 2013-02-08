@@ -155,7 +155,7 @@ The main UI:
 >                             display -< showScore correct total
 >         title "Repeats:" $ setSize (120,50) $ display -< show repeats
 >         title "Answer:"  $ setSize (120,50) $ display -< 
->                 interval `seq` if state==Guessed then intNameList!!(snd interval) else ""
+>                 if state==Guessed then intNameList!!(snd interval) else ""
 >         returnA -< () )|)
 >     -- Midi output
 >     midiOut -< (mo, midiMsgs)
@@ -172,7 +172,7 @@ Auxilliary Functions:
 > buttonE s = button s >>> arr (\b -> if b then Just () else Nothing)
 
 > showScore     :: Int -> Int -> String
-> showScore c 0 = c `seq` "0"
+> showScore c 0 = "0"
 > showScore c t = show c ++ "/" ++ show t ++ " = " ++ 
 >                 take 5 (show (100 * fromIntegral c / fromIntegral t)) ++ "%"
 
