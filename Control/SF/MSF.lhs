@@ -1,4 +1,4 @@
-> {-# LANGUAGE CPP, DoRec, FlexibleInstances, MultiParamTypeClasses #-}
+> {-# LANGUAGE CPP, DoRec, FlexibleInstances, MultiParamTypeClasses, OverlappingInstances #-}
 
 > module Control.SF.MSF where
 
