@@ -86,6 +86,37 @@ takeM d (m1 :+: m2)           =  let  m'1  = takeM d m1
 takeM d (Modify (Tempo r) m)  = tempo r (takeM (d*r) m)
 takeM d (Modify c m)          = Modify c (takeM d m)
 cut = takeM
+dropM :: Dur -> Music a -> Music a
+dropM d m | d <= 0            = m
+dropM d (Prim (Note oldD p))  = note (max (oldD-d) 0) p
+dropM d (Prim (Rest oldD))    = rest (max (oldD-d) 0)
+dropM d (m1 :=: m2)           = dropM d m1 :=: dropM d m2
+dropM d (m1 :+: m2)           =  let  m'1  = dropM d m1
+                                      m'2  = dropM (d - dur m1) m2
+                                 in m'1 :+: m'2
+dropM d (Modify (Tempo r) m)  = tempo r (dropM (d*r) m)
+dropM d (Modify c m)          = Modify c (dropM d m)
+removeZeros :: Music a -> Music a
+removeZeros (Prim p)      = Prim p
+removeZeros (m1 :+: m2)   = 
+  let  m'1  = removeZeros m1
+       m'2  = removeZeros m2
+  in case (m'1,m'2) of
+       (Prim (Note 0 p), m)  -> m
+       (Prim (Rest 0  ), m)  -> m
+       (m, Prim (Note 0 p))  -> m
+       (m, Prim (Rest 0  ))  -> m
+       (m1, m2)              -> m1 :+: m2
+removeZeros (m1 :=: m2)   =
+  let  m'1  = removeZeros m1
+       m'2  = removeZeros m2
+  in case (m'1,m'2) of
+       (Prim (Note 0 p), m)  -> m
+       (Prim (Rest 0  ), m)  -> m
+       (m, Prim (Note 0 p))  -> m
+       (m, Prim (Rest 0  ))  -> m
+       (m1, m2)              -> m1 :=: m2
+removeZeros (Modify c m)  = Modify c (removeZeros m)
 type LazyDur = [Dur]
 durL :: Music a -> LazyDur
 durL m@(Prim _)            =  [dur m]

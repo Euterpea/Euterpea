@@ -19,34 +19,34 @@ $\forall($|a|$)|a->a|$, which can be read ``\emph{for all} types |a|,
 functions mapping elements of type |a| to elements of type |a|.''
 Note the emphasis on ``\emph{for all}.''
 
-In practice, however, there are times when one would prefer to limit a
+In practice, however, there are times when we would prefer to limit a
 polymorphic type to a smaller number of possibilities.  A good example
-is a function such as |(+)|.  It's probably not a good idea to limit
+is a function such as |(+)|.  It is probably not a good idea to limit
 |(+)| to a \emph{single} (that is, \emph{monomorphic}) type such as
 |Integer->Integer->Integer|, since there are other kinds of
-numbers---such as rational and floating-point numbers---that one would
+numbers---such as rational and floating-point numbers---that we would
 like to perform addition on as well.  Nor is it a good idea to have a
 different addition function for each number type, since that would
 require giving each a different name, such as |addInteger|,
 |addRational|, |addFloat|, etc.  And, unfortunately, giving |(+)| a
-type such as |a->a->a| will not work, since this would imply that one
+type such as |a->a->a| will not work, since this would imply that we
 could add things other than numbers, such as characters, pitch
-classes, lists, tuples, functions, and any type that you might define
-on your own!
+classes, lists, tuples, functions, and any type that we might define
+on our own!
 
 \index{type!qualified} \index{class} 
 
 Haskell provides a solution to this problem through the use of {\em
-  qualified types}.  Conceptually, one can think of a qualified type
-just as a polymorphic type, except that in place of ``\emph{for all}
-types |a|'' it will be possible to say ``for all types |a| \emph{that
-  are members of the type class} |C|,'' where the type class |C| can
-be thought of as a set of types.  For example, suppose there is a type
-class \indexwdhs{Num} with members |Integer|, |Rational|, and |Float|.
-Then an accurate type for |(+)| would be $\forall($|a|$\in$|Num|$)$|a
--> a -> a|.  But in Haskell, instead of writing
-$\forall(|a|\in|Num|)\cdots$, the notation |Num a =>|$\cdots$ is used.
-So the proper type signature for |(+)| is:
+  qualified types}.  Conceptually, it is helpful to think of a
+qualified type just as a polymorphic type, except that in place of
+``\emph{for all} types |a|'' it will be possible to say ``for all
+types |a| \emph{that are members of the type class} |C|,'' where the
+type class |C| can be thought of as a set of types.  For example,
+suppose there is a type class \indexwdhs{Num} with members |Integer|,
+|Rational|, and |Float|.  Then an accurate type for |(+)| would be
+$\forall($|a|$\in$|Num|$)$|a -> a -> a|.  But in Haskell, instead of
+writing $\forall(|a|\in|Num|)\cdots$, the notation |Num a =>|$\cdots$
+is used.  So the proper type signature for |(+)| is:
 \begin{spec}
 (+) :: Num a => a -> a -> a
 \end{spec}
@@ -86,11 +86,11 @@ Indeed, this is the preferred, most general type that can be given for
 |Double|, among others.
 
 The ability to qualify polymorphic types is a unique feature of
-Haskell, and, as you will soon see, provides great expressiveness.  In
+Haskell, and, as we will soon see, provides great expressiveness.  In
 the following sections the idea is explored much more thoroughly, and
 in particular it is shown how a programmer can define his or her own
-type classes and their instances.  To begin, a closer look is taken of
-one of the pre-defined type classes in Haskell, having to do with
+type classes and their instances.  To begin, let's take a closer look
+at one of the pre-defined type classes in Haskell, having to do with
 equality.
 
 \section{Equality}
@@ -98,7 +98,7 @@ equality.
 
 \index{equality} \emph{Equality} between two expressions |e1| and |e2|
 in Haskell means that the value of |e1| is the same as the value of
-|e2|.  Another way to view equality is that you should be able to
+|e2|.  Another way to view equality is that we should be able to
 substitute |e1| for |e2|, or vice versa, wherever they appear in a
 program, without affecting the result of that program.
 
@@ -107,18 +107,18 @@ equality of two expressions---consider, for example, determining the
 equality of two infinite lists, two infinite |Music| values, or two
 functions of type |Integer -> Integer|.\footnote{This is the same as
   determining \emph{program equivalence}, a well-known example of an
-  \emph{undecideable problem} in the theory of algoriithms.}  The
+  \emph{undecideable problem} in the theory of computation.}  The
 ability to compute the equality of two values is called
 \emph{computational equality}.  Even though by the above simple
 examples it is clear that computational equality is strictly weaker
-than full equality, it is still an operation that one would like to
+than full equality, it is still an operation that we would like to
 use in many ordinary programs.
 
 \indexhs{(==)} 
 
 Haskell's operator for computational equality is |(==)|.  Partly
 because of the problem mentioned above, there are many types for which
-one would like equality defined, but some for which it might not make
+we would like equality defined, but some for which it might not make
 sense.  For example, it is common to compare two characters, two
 integers, two floating-point numbers, etc.\ On the other hand,
 comparing the equality of infinite data structures, or functions, is
@@ -176,11 +176,11 @@ equation.  The principal type for |(`elem`)| is thus:
 \end{spec}
 This should be read, ``For every type |a| that is an instance of the
 class |Eq|, |(`elem`)| has type |a->[a]->Bool|.''  This is exactly what
-one would hope fort---it expresses the fact that |(`elem`)| is not defined
+we would hope for---it expresses the fact that |(`elem`)| is not defined
 on all types, just those for which computational equality is defined.
 
-The above type for |(`elem`)| is also its principal type, and Haskell will
-infer this type if no signature is given.  Indeed, if one were to
+The above type for |(`elem`)| is also its principal type, and Haskell
+will infer this type if no signature is given.  Indeed, if we were to
 write the type signature:
 \begin{spec}
 (`elem`) :: a -> [a] -> Bool
@@ -188,11 +188,11 @@ write the type signature:
 a type error would result, because this type is fundamentally
 \emph{too general}, and the Haskell type system will complain.
 
-\syn{On the other hand, you could write:
+\syn{On the other hand, we could write:
 \begin{spec}
 (`elem`) :: Integer -> [Integer] -> Bool
 \end{spec}
-if you expect to use |(`elem`)| only on lists of integers.  In other
+if we expect to use |(`elem`)| only on lists of integers.  In other
 words, using a type signature to constrain a value to be less general
 than its principal type is Ok.}
 
@@ -209,10 +209,10 @@ square 4.2  ==>  17.64
 \end{spec}
 The |Num| class will be discusssed in greater detail shortly.
 
-\section{Defining Your Own Type Classes}
+\section{Defining Our Own Type Classes}
 \label{sec:type-class-decls}
 
-Haskell provides a mechanism whereby you can create your own qualified
+Haskell provides a mechanism whereby we can create our own qualified
 types, by defining a new type class and specifying which types are
 members, or ``instances'' of it.  Indeed, the type classes |Num|
 and |Eq| are not built-in as primitives in Haskell, but rather are
@@ -235,12 +235,12 @@ more than one operation is allowed in a class.  More examples of this
 will be introduced shortly.
 
 \index{class!instance}
-So far so good.  But how does one specify which types are instances of
+So far so good.  But how do we specify which types are instances of
 the class |Eq|, and the actual behavior of |(==)| on each of those
 types?  This is done with an \emph{instance declaration}.  For example:
 \begin{spec}
 instance Eq Integer where 
-  x == y   =  integereq x y
+  x == y   =  integerEq x y
 \end{spec}
 \index{class!method}
 
@@ -250,25 +250,25 @@ integers for equality, but in general any valid expression is allowed
 on the right-hand side, just as for any other function definition.
 The overall instance declaration is essentially saying: ``The type
 |Integer| is an instance of the class |Eq|, and here is the method
-corresponding to the operation |(==)|.''  Given this declaration, one
+corresponding to the operation |(==)|.''  Given this declaration, we
 can now compare fixed-precision integers for equality using |(==)|.
 Similarly:
 \begin{spec}
 instance Eq Float where
   x == y  =  floatEq x y
 \end{spec}
-allows one to compare floating-point numbers using |(==)|.
+allows us to compare floating-point numbers using |(==)|.
 
-More importantly, datatypes that you have defined on your own can also
+More importantly, datatypes that we have defined on our own can also
 be made instances of the class |Eq|.  Consider, for example, the
 |PitchClass| data type defined in Chapter \ref{ch:music}:
 \begin{spec}
 data PitchClass  =  Cff | Cf | C | Dff | Cs | Df | Css | D | Eff | Ds 
-                 |  Ef | Fff | Dss | E | Es | Ff | F | Gff | Ess | Fs
+                 |  Ef | Fff | Dss | E | Ff | Es | F | Gff | Ess | Fs
                  |  Gf | Fss | G | Aff | Gs | Af | Gss | A | Bff | As 
                  |  Bf | Ass | B | Bs | Bss
 \end{spec} 
-One can declare |PitchClass| to be an instance of |Eq| as follows:
+We can declare |PitchClass| to be an instance of |Eq| as follows:
 \begin{spec}
 instance Eq PitchClass where
   Cff  == Cff  = True
@@ -279,23 +279,28 @@ instance Eq PitchClass where
   Bss  == Bss  = True
   _    == _    = False
 \end{spec}
-where |...| refers to the other thirty equations to make this
-definition of |(==)| complete.  Indeed, this is rather tedious!  It is
-not only tedious, it is also dead obvious how |(==)| should be
-defined.  Therefore Haskell provides a convenient way to
-\emph{automatically derive} such instance declarations from data type
-declarations, for certain predefined type classes, using a |deriving|
-clause.  For example, in the case of |PitchClass| one simply writes:
+where |...| refers to the other thirty equations needed to make this
+definition complete.  Indeed, this is rather tedious!  It is not only
+tedious, it is also dead obvious how |(==)| should be defined.
+
+\subsection{Dervived Instances}
+\label{sec:derived-instances}
+
+To alleviate the burden of defining instances such as above, Haskell
+provides a convenient way to \emph{automatically derive} such instance
+declarations from data type declarations, for certain predefined type
+classes.  This is done using a |deriving| clause.  For example, in the
+case of |PitchClass| we can simply write:
 \begin{spec}
 
 data PitchClass  =  Cff | Cf | C | Dff | Cs | Df | Css | D | Eff | Ds 
-                 |  Ef | Fff | Dss | E | Es | Ff | F | Gff | Ess | Fs
+                 |  Ef | Fff | Dss | E | Ff | Es | F | Gff | Ess | Fs
                  |  Gf | Fss | G | Aff | Gs | Af | Gss | A | Bff | As 
                  |  Bf | Ass | B | Bs | Bss
      deriving Eq
 \end{spec}
 With this declaration, Haskell will automatically derive the instance
-declaration given above, so that |(==)| behaves in the way one would
+declaration given above, so that |(==)| behaves in the way we would
 expect it to.
 
 Consider now a polymorphic type, such as the |Primitive| type from
@@ -305,7 +310,7 @@ data Primitive a  =  Note Dur a
                   |  Rest Dur
 \end{spec}
 What should an instance for this type in the class |Eq| look like?
-Here's a first attempt:
+Here is a first attempt:
 \begin{spec}
 instance Eq (Primitive a) where
   Note d1 x1  == Note d2 x2  = (d1==d2) && (x1==x2)
@@ -319,7 +324,7 @@ is well there.  (If it were not an instance of |Eq|, a type error
 would result.)
 
 But what about the term |x1==x2|?  |x1| and |x2| are values of the
-polymorphic type |a|, but how does one know that equality is defined
+polymorphic type |a|, but how do we know that equality is defined
 on |a|, i.e.\ that the type |a| is an instance of |Eq|?  In fact this
 is not known in general.  The simple fix is to add a constraint to the
 instance declaration, as follows:
@@ -331,7 +336,7 @@ instance Eq a ==> Eq (Primitive a) where
 \end{spec}
 This can be read, ``For any type |a| in the class |Eq|, the type
 |Primitive a| is also in the class |Eq|, and here is the definition of
-|(==)| for that type.''  Indeed, if one had written the original type
+|(==)| for that type.''  Indeed, if we had written the original type
 declaration like this:
 \begin{spec}
 data Primitive a  =  Note Dur a        
@@ -347,7 +352,7 @@ because |Pitch| is a type synonym for |(PitchClass, Octave)|, and (a)
 is a synonym for |Int|, which is a predefined instance of |Eq|, and
 (c) as mentioned earlier the pair type is a predefined instance of
 |Eq|.  Indeed, now that an instance for a polymorphic type has been
-seen, one can understand what the predefined instance for polymorphic
+seen, we can understand what the predefined instance for polymorphic
 pairs must look like, namely:
 \begin{spec}
 instance (Eq a, Eq b) => Eq (a,b) where
@@ -375,9 +380,12 @@ Indeed, assuming that |Control| is an instance of |Eq|, this is just
 what is expected, and can be automatically derived by adding a
 |deriving| clause to the data type declaration for |Music|.
 
+\subsection{Default Methods}
+\label{sec:default-methods}
+
 In reality, the class \indexwdhs{Eq} as defined in Haskell's Standard
-Prelude is slightly richer than what is defined above.  Here is its
-exact form: \indexhs{(/=)}
+Prelude is slightly richer than what is defined above.  Here it is
+in its exact form: \indexhs{(/=)}
 \begin{spec}
 class Eq a  where
   (==), (/=)       :: a -> a -> Bool
@@ -393,7 +401,7 @@ particular operation is omitted in an instance declaration, then the
 default one defined in the class declaration, if it exists, is used
 instead.  For example, all of the instances of |Eq| defined earlier
 will work perfectly well with the above class declaration, yielding
-just the right definition of inequality that one would want: the
+just the right definition of inequality that we would expect: the
 logical negation of equality.
 
 \syn{Both the inequality and the logical negation operators are shown
@@ -409,13 +417,13 @@ sequence of characters, etc.\ can be captured as a polymorphic |List|,
 whereas equality of integers, equality of trees, etc.\ can be captured
 by a type class such as |Eq|.
 
-\section{Inheritance}
+\subsection{Inheritance}
 \label{sec:inheritance}
 
 \index{class!inheritance}
 
 Haskell also supports a notion called \emph{inheritance}.  For
-example, one may wish to define a class \indexwdhs{Ord} that
+example, we may wish to define a class \indexwdhs{Ord} that
 ``inherits'' all of the operations in |Eq|, but in addition has a set
 of comparison operations and minimum and maximum functions (a fuller
 definition of |Ord|, as taken from the Standard Prelude, is given in
@@ -433,9 +441,9 @@ Note the constraint |Eq a =>| in the |class| declaration.  |Eq| is a
 |Eq|), and any type that is an instance of |Ord| must also be an
 instance of |Eq|.  The reason that this extra constraint makes sense
 is that to perform comparisons such as |a<=b| and |a>=b| implies that
-one knows how to compute |a==b|.
+we know how to compute |a==b|.
 
-For example, following the strategy used for |Eq|, one could declare
+For example, following the strategy used for |Eq|, we could declare
 |Music| an instance of |Ord| as follows (note the constraint |Ord a =>
 ...|):
 \begin{spec}
@@ -496,11 +504,11 @@ overall constraint in the class declaration.}
 \section{Haskell's Standard Type Classes}
 \label{sec:standard-type-classes}
 
-The Standard Prelude defines many useful type classes, including
-|Eq| and |Ord|.  They are described in detail in Appendix
+The Standard Prelude defines many useful type classes, including |Eq|
+and |Ord|.  They are described in detail in Appendix
 \ref{ch:class-tour}.  In addition, the Haskell Report and the Library
 Report contain useful examples and discussions of type classes; you
-should feel encouraged to read through them.
+are encouraged to read through them.
 
 Most of the standard type classes in Haskell are shown in
 Figure~\ref{fig:common-type-classes}, along with their key instances.
@@ -523,12 +531,12 @@ explanation a few more of Haskell's secrets will be revealed.
 \hline
 |Ord|  & |(>),(<),(>=),(<=) ::|            & |Integer, Int, Float, Double,| \\
        & \ \ \ \ |Ord a => a->a->Bool|     & |Rational, Char, Bool, ... | \\
-       & |max,min :: Ord a => a->a->Bool|  & \\
+       & |max,min :: Ord a => a->a->a   |  & \\
 \hline
 |Enum| & |succ,pred :: Enum a => a->a|     & |Integer, Int, Float, Double,| \\
-       & also enables arithmetic sequences & |Rational, Char, Bool, ... | \\
-       & |fromEnum :: Enum a => a -> Int|  & \\
+       & |fromEnum :: Enum a => a -> Int|  & |Rational, Char, Bool, ... | \\
        & |toEnum :: Enum a => Int -> a  |  & \\
+       & also enables arithmetic sequences & \\
 \hline
 |Show| & |show :: Show a => a -> String|   & Almost every type except \\
        &                                   & for functions \\
@@ -544,17 +552,17 @@ explanation a few more of Haskell's secrets will be revealed.
 \subsection{The |Num| Class}
 \label{sec:num-class}
 
-As you know, Haskell provides several kinds of numbers, some of which
-have already been introduced: |Int|, |Integer|, |Rational|, and
+As we already know, Haskell provides several kinds of numbers, some of
+which have already been introduced: |Int|, |Integer|, |Rational|, and
 |Float|.  These numbers are instances of various type classes arranged
 in a rather complicated hierarchy.  The reason for this is that there
 are many operations, such as |(+)|, |abs|, and |sin|, that are common
-amongst some of these number types.  For example, one would expect
+amongst some of these number types.  For example, we would expect
 |(+)| to be defined on every kind of number, whereas |sin| might only
 be applicable to either single precision (|Float|) or double-precision
 (|Double|) floating-point numbers.
 
-Control over which numerical operations are allowed and which aren't
+Control over which numerical operations are allowed and which are not
 is the purpose of the numeric type class hierarchy.  At the top of the
 hierarchy, and therefore containing operations that are valid for all
 numbers, is the class |Num|.  It is defined as:
@@ -579,14 +587,14 @@ certain coercion tasks.
 prefix operator.  However, it is just shorthand for |negate|.  That
 is, |-e| in Haskell is shorthand for |negate e|.
 
-The operation \indexwdhs{fromInteger} also has a special purpose.  one
-might wonder how it is that one can write the constant |42|, say, both
-in a context requiring an |Int| and in one requiring a |Float| (say).
-Somehow Haskell ``knows'' which version of |42| is required in a given
+The operation \indexwdhs{fromInteger} also has a special purpose.  How
+is it that we can write the constant |42|, say, both in a context
+requiring an |Int| and in one requiring a |Float| (say).  Somehow
+Haskell ``knows'' which version of |42| is required in a given
 context.  But, what is the type of |42| itself?  The answer is that it
 has type |Num a ==> a|, for some |a| to be determined by its context.
 (If this seems strange, remember that |[]| by itself is also somewhat
-ambiguous; it is a list, but a list of what?  The most one can say
+ambiguous; it is a list, but a list of what?  The most we can say
 about its type is that it is |[a]| for some |a| yet to be determined.)
 
 The way this is achieved in Haskell is that literal numbers such as
@@ -596,10 +604,10 @@ Since |fromInteger| has type |Num a => Integer -> a|, then
 
 The complete hierarchy of numeric classes is shown in Figure
 \ref{fig:tc-hierarchy}; note that some of the classes are subclasses
-of certain non-numeric classes, such as |Eq| and |Show|.  The
-comments below each class name refer to the Standard Prelude types
-that are instances of that class.  See Appendix \ref{ch:class-tour} for
-more detail.
+of certain non-numeric classes, such as |Eq| and |Show|.  The comments
+below each class name refer to the Standard Prelude types that are
+instances of that class.  See Appendix \ref{ch:class-tour} for more
+detail.
 
 \begin{figure}
 \centerline{
@@ -638,7 +646,7 @@ by this table can be found in the Haskell Report.
 \subsection{The |Show| Class}
 
 It is very common to want to convert a data type value into a string.
-In fact, it happens all the time when one interacts with GHCi at the
+In fact, it happens all the time when we interact with GHCi at the
 command prompt, and GHCi will complain if it does not ``know'' how to
 ``show'' a value.  The type of anything that GHCi prints must be an
 instance of the |Show| class.
@@ -650,7 +658,7 @@ class Show a where
   show :: a -> String
   ...
 \end{spec}
-Instances of |Show| can be derived, so normally one doesn't have to worry
+Instances of |Show| can be derived, so normally we do not have to worry
 about the details of the definition of |show|.  
 
 %% For example, the actual definition of the |Primitive| type that we
@@ -691,6 +699,11 @@ main     = putStr (quine q)
 quine s  = s ++ show s
 q        = "main = putStr (quine q)\nquine s = s ++ show s\nq = "
 \end{spec}
+
+\syn{The |"\n"| that appears twice in the string |q| is a ``newline''
+  character; that is, when |q| is printed (or displayed on a console)
+  the string starting to the right of |"\n"| will appear on a new line.}
+
 Derived |Show| instances are possible for all types whose component
 types also have |Show| instances.  |Show| instances for most of
 the standard types are provided in the Standard Prelude.
@@ -699,8 +712,8 @@ the standard types are provided in the Standard Prelude.
 %% instance that simply generates the string |"<<function>>"|, but not
 %% a corresponding |Read| instance.
 
-\section{Derived Instances}
-\label{sec:derived-instances}
+\section{Other Derived Instances}
+\label{sec:other-derived-instances}
 
 \index{class!derived instance}
 \index{class!\hkw{deriving}}
@@ -720,7 +733,7 @@ consistent with the appearance of constant Haskell expressions
 data Color = Red | Orange | Yellow | Green | Blue | Indigo | Violet
      deriving (Eq,Enum,Show)
 \end{spec}
-one can expect that:
+we can expect that:
 \begin{spec}
 show [Red ..]  
 ===>  "[Red,Orange,Yellow,Green,Blue,Indigo,Violet]"
@@ -729,8 +742,8 @@ Further details about derived instances can be found in the Haskell
 Report.
 
 Many of the predefined data types in Haskell have |deriving| clauses,
-even ones with special syntax.  For example, if one could write a data
-type declaration for lists (the reason one cannot do this is that
+even ones with special syntax.  For example, if we could write a data
+type declaration for lists (the reason we cannot do this is that
 lists have special syntax, both at the value and type level) it would
 look something like this:
 \begin{spec}
@@ -763,7 +776,7 @@ and are shown in Figure~\ref{fig:actual-datatypes}.
 Note that with single and double sharps and flats, there are many
 enharmonic equivalences.  Thus in the data declaration for
 |PitchClass|, the constructors are ordered such that, if |pc1 < pc2|,
-then |pcToInt pc1 < pcToInt pc2|.
+then |pcToInt pc1 <= pcToInt pc2|.
 
 \syn{When instances of more than one type class are derived for the
   same data type, they appear grouped in parentheses as in
@@ -802,12 +815,12 @@ data Control =
 \label{fig:actual-datatypes}
 \end{figure}
 
-For example, the |Show| class allows one to convert values to strings:
+For example, the |Show| class allows us to convert values to strings:
 \begin{spec}
 show Cs              ===> "Cs"
 show concertA        ===> "(A,4)"
 \end{spec}
-The |Read| class allows one to go the other way around:
+The |Read| class allows us to go the other way around:
 \begin{spec}
 read "Cs"            ===> Cs
 read "(A,4)"         ===> (A,4)
@@ -823,8 +836,51 @@ can be ordered:
 C < G                ===> True
 max C G              ===> G
 \end{spec}
-The |Enum| class allows one to use \emph{arithmetic sequences}, which
-will be explained in a later chapter.
+The |Enum| class is for ``enummerable types.''  For example:
+\begin{spec}
+succ C               ===> Dff
+pred 1               ===> 0
+fromEnum C           ===> 2
+toEnum 3             ===> Dff
+\end{spec}
+The |Enum| class is also the basis on which \emph{arithmetic
+  sequences} (defined earlier in Section
+\ref{sec:arithmetic-sequences}) are defined.
+
+\section{The type of |play|}
+\label{sec:play-type}
+
+Ever since the |play| function was introduced in
+Chapter~\ref{ch:music}, we have been using it to ``play'' the results
+of our |Music| values, i.e.\ to listen to their rendering through
+MIDI.  However, it is just a function like any other function in
+Haskell, but we never discussed what its type is.  In fact, here it
+is:
+\begin{spec}
+play :: Performable a => Music a -> IO ()
+\end{spec}
+The type of the result, |IO ()|, is the type of a \emph{command} in
+Haskell, i.e.\ something that ``does I/O.''  We will have more to say
+about this in a later chapter.
+
+But of more relevance to this chapter, note the constraint
+|Performable a => ...|.  You might guess that |Performable| is a type
+class, indeed it is the type class of ``performable values.''  If a
+type is a member of (i.e.\ instance of) |Performable|, then it can be
+``performed,'' i.e.\ rendered as sound.  The point is, some things we
+would not expect to be performable, for example a list or a character
+or a function.  So the type signature for |play| can be read, ``For
+any type |T| that is a member of the class |Performable|, |play| has
+type |Music T -> IO ()|.''
+
+Currently the types |Pitch|, |(Pitch,Volume)|, and
+|(Pitch,[NoteAttribute])| are members of the class |Performable|.
+(The |NoteAttribute| data type will be introduced in
+Chapter~\ref{ch:performance}.)  Indeed, we have used |play| on the
+first two of these types, i.e.\ on values of type |Music Pitch| and
+|Music (Pitch,Volume)| in previous examples, and you might have
+wondered how both could possibly be properly typed---hopefully now it
+is clear.
 
 \section{Reasoning With Type Classes}
 \label{sec:tc-laws}
@@ -832,7 +888,7 @@ will be explained in a later chapter.
 \index{class!laws}
 
 Type classes often imply a set of \emph{laws} that govern the use of
-the operators in the class.  For example, for the |Eq| class, one can
+the operators in the class.  For example, for the |Eq| class, we can
 expect the following laws to hold for every instance of the class:
 \begin{spec}
 x == x
@@ -848,9 +904,9 @@ However, there is no way to guarantee these laws.  A user may create
 an instance of |Eq| that violates them, and in general Haskell has no
 way to enforce them.  Nevertheless, it is useful to state the laws of
 interest for a particular class, and to state the expectation that all
-instances of the class be ``law-abiding.''  Then as a diligent
-functional programmer, one should ensure that every instance that is
-defined, whether for one's own class or someone else's, is in fact
+instances of the class be ``law-abiding.''  Then as diligent
+functional programmers, we should ensure that every instance that is
+defined, whether for our own type class or someone else's, is in fact
 law-abiding.  \index{type!qualified}
 
 As another example, consider the |Ord| class, whose instances are
@@ -916,6 +972,44 @@ the laws of its class.  Also prove that the modified instance of
 \begin{exercise}{\em
 Write out appropriate instance declarations for the |Color| type
 in the classes |Eq|, |Ord|, and |Enum|.}
+\end{exercise}
+
+\begin{exercise}{\em
+Define a type class called |Temporal| whose members are types that can be
+interpreted as having a temporal duration.  |Temporal| should have
+three operations, namely:
+\begin{spec}
+durT  :: Temporal a => a -> Dur
+takeT :: Temporal a => Dur -> a -> a
+dropT :: Temporal a => Dur -> a -> a
+\end{spec}
+Then define instances of |Temporal| for the types |Music| and
+|Primitive|.  (Hint: this is not as hard as it sounds, because you can
+\emph{reuse} the function names previously defined to do these sorts
+of operations.)
+
+Can you think of other types that are temporal?}
+\end{exercise}
+
+\begin{exercise}{\em
+Functions are not members of the |Eq| class, because, in general,
+determining whether two functions are equal is undecideable.  But
+functions whose domains are finite, and can be completely enumerated,
+\emph{can} be tested for equality.  We just need to test that each
+function, when applied to each element in the domain, returns the same
+result.
+
+Define an instance of |Eq| for functions.  Note that if the function
+type is |a->b| then the type |a| must be enumerable (i.e.\ a member of
+the |Enum| class), and the type |b| must admit equality (i.e.\ be a
+member of the |Eq| class).  These constraints must therefore be part
+of the instance declaration.
+
+Hint: to enumerate all the elements in a finite domain, consider using
+the methods |toEnum| and |fromEnum| in the class |Enum|.
+
+Test your implementation by defining some functions with finite
+domains (such as |PitchClass|, |InstrumentName|, |Color|, and so on).}
 \end{exercise}
 
 \vspace{.1in}\hrule

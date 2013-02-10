@@ -669,6 +669,9 @@ the Standard Prelude provides functions |foldr1| and |foldl1|, which
 return an error if applied to an empty list.  And thus we may also
 desire to define versions of |line| and |chord| that adopt this
 behavior:
+
+\pagebreak
+
 \begin{code}
 line1, chord1  :: [Music a] -> Music a
 line1  ms      = foldr1 (:+:)  ms

@@ -82,7 +82,9 @@ timesM n m  = m :+: timesM (n-1) m
 More interestingly, Haskell's non-strict semantics allows us to
 define \emph{infinite} musical values.  For example, a musical value
 may be repeated \emph{ad nauseam} using this simple function:
+
 \pagebreak
+
 \begin{code}
 
 repeatM    :: Music a -> Music a
@@ -229,6 +231,7 @@ pr1 p =  tempo (5/6)
 \end{code}
 
 \pagebreak
+
 \begin{code}
 pr2 p = 
    let  m1   = tempo (5/4) (tempo (3/2) m2 :+: m2)
@@ -273,6 +276,7 @@ Of course, using the new function is not much shorter than using
 |tempo| directly, but it may have mnemonic value.
 
 \pagebreak
+
 \section{Computing Duration}
 \label{sec:duration}
 
@@ -313,7 +317,9 @@ dur (repeatM (a 4 qn))
 Using |dur| we can define a function |revM| that reverses any |Music|
 value whose duration is finite (and is thus considerably more useful
 than |retro| defined earlier):
+
 \pagebreak
+
 \begin{code}
 revM               :: Music a -> Music a
 revM n@(Prim _)    = n
@@ -335,23 +341,17 @@ to account for the difference.
 Note that |revM| of a |Music| value whose duration is infinite is
 |bottom|.  (Analogously, reversing an infinite list is |bottom|.)
 
-\section{Truncating Parallel Composition}
+\section{|takeM| and |dropM|}
+\label{sec:take-and-drop}
 
-The duration of |m1 :=: m2| is the maximum of the durations of |m1|
-and |m2| (and thus if one is infinite, so is the result).  However,
-sometimes it is useful to have the result be of duration equal to the
-\emph{shorter} of the two.  Defining a function to achieve this is not
-as easy as it sounds, since it may require truncating the longer one
-in the middle of a note (or notes), and it may be that one (or both)
-of the |Music| values is infinite.
-
-The goal is to define a ``truncating parallel composition'' operator
-|(/=:) :: Music a -> Music a -> Music a|.  But first an auxiliary
-function |takeM :: Dur -> Music a -> Music a| will be defined such
-that |takeM d m| is a prefix of |m| having duration |d|.  In other
-words, it ``takes'' only the first |d| beats (in whole notes) of |m|.
-We can define this function as follows:
-\pagebreak
+Two other useful operations on |Music| values is the ability to
+``take'' the first so many beats (in whole notes), discarding the
+rest, and conversely, the ability to ``drop'' the first so many beats,
+returning what is left.  We will first define a function |takeM :: Dur
+-> Music a -> Music a| such that |takeM d m| is a \emph{prefix} of |m|
+having duration |d|.  In other words, it ``takes'' only the first |d|
+beats (in whole notes) of |m|.  We can define this function as
+follows:
 \begin{code}
 
 takeM :: Dur -> Music a -> Music a
@@ -365,17 +365,135 @@ takeM d (m1 :+: m2)           =  let  m'1  = takeM d m1
 takeM d (Modify (Tempo r) m)  = tempo r (takeM (d*r) m)
 takeM d (Modify c m)          = Modify c (takeM d m)
 \end{code}
-Note that |takeM| is equipped to handle a |Music| value of infinite
-duration.
-\out{
+This definition is fairly straightforward, except for the case of
+sequential composition, where two cases arise: (1) if |d| is greater
+than |dur m1|, then we return \emph{all} of |m1| (i.e.\ |m'1 = m1|),
+followed by |d - dur m'1| beats of |m2|, and (2) if |d| is less than
+|dur m1|, then we return |d| beats of |m1| (i.e. |m'1|), followed by
+nothing (since |d - dur m'1| will be zero).  Note that this strategy
+will work even if |m1| or |m2| is infinite.  
+\out{ 
 For backward compatibility:
 \begin{code}
 cut = takeM
 \end{code}
 }
 
-With |takeM|, we can make an initial attempt at a suitable definition
-for |(/=:)| as follows:
+Similarly, we can define a function |dropM :: Dur -> Music a -> Music
+a| such that |dropM d m| is a \emph{suffix} of |m| where the first |d|
+beats (in whole notes) of |m| have been ``dropped:''
+\begin{code}
+dropM :: Dur -> Music a -> Music a
+dropM d m | d <= 0            = m
+dropM d (Prim (Note oldD p))  = note (max (oldD-d) 0) p
+dropM d (Prim (Rest oldD))    = rest (max (oldD-d) 0)
+dropM d (m1 :=: m2)           = dropM d m1 :=: dropM d m2
+dropM d (m1 :+: m2)           =  let  m'1  = dropM d m1
+                                      m'2  = dropM (d - dur m1) m2
+                                 in m'1 :+: m'2
+dropM d (Modify (Tempo r) m)  = tempo r (dropM (d*r) m)
+dropM d (Modify c m)          = Modify c (dropM d m)
+\end{code}
+This definition is also straightforward, except for the case of
+sequential composition.  Again, two cases arise: (1) if |d| is greater
+than |dur m1|, then we drop |m1| altogether (i.e.\ |m'1| will be |rest
+0|), and simply drop |d - dur m1| from |m2|, and (2) if |d| is less
+than |dur m1|, then we return |m'1| followed by all of |m2| (since |d
+- dur m1| will be negative).  This definition too will work for
+infinite values of |m1| or |m2|.
+
+\section{Removing Zeros}
+\label{sec:zeros}
+
+Note that functions such as |timesM|, |line|, |revM|, |takeM| and
+|dropM| occasionally insert rests of zero duration, and in the case of
+|takeM| and |dropM|, may insert notes of zero duration.  Doing this
+makes the code simpler and more elegant, and since we cannot hear the
+effect of the zero-duration events, the musical result is the same.
+
+On the other hand, these extraneous notes and rests (which we will
+call ``zeros'') can be annoying when viewing the textual (rather than
+audible) representation of the result.  To alleviate this problem, we
+define a function that removes them from a given |Music| value:
+
+\pagebreak
+
+\begin{code}
+removeZeros :: Music a -> Music a
+removeZeros (Prim p)      = Prim p
+removeZeros (m1 :+: m2)   = 
+  let  m'1  = removeZeros m1
+       m'2  = removeZeros m2
+  in case (m'1,m'2) of
+       (Prim (Note 0 p), m)  -> m
+       (Prim (Rest 0  ), m)  -> m
+       (m, Prim (Note 0 p))  -> m
+       (m, Prim (Rest 0  ))  -> m
+       (m1, m2)              -> m1 :+: m2
+removeZeros (m1 :=: m2)   =
+  let  m'1  = removeZeros m1
+       m'2  = removeZeros m2
+  in case (m'1,m'2) of
+       (Prim (Note 0 p), m)  -> m
+       (Prim (Rest 0  ), m)  -> m
+       (m, Prim (Note 0 p))  -> m
+       (m, Prim (Rest 0  ))  -> m
+       (m1, m2)              -> m1 :=: m2
+removeZeros (Modify c m)  = Modify c (removeZeros m)
+\end{code}
+
+\syn{A |case| expression can only match against one value.  To match
+  against more than one value, we can place them in a tuple of the
+  appropriate length.  In the case above, |removeZeros| matches
+  against |m'1| and |m'2| by placing them in a pair |(m'1,m'2)|.}
+
+This function depends on the ``musical axioms'' that if |m1| in either
+|m1 :+: m2| or |m1 :=: m2| is a zero, then the latter expressions are
+equivalent to just |m2|.  Similarly, if |m2| is a zero, they are
+equivalent to just |m1|.  Although intuitive, a formal proof of these
+axioms is deferred until Chapter \ref{ch:algebra}.
+
+As an example of using |removeZeros|, consider the |Music| value:
+\begin{spec}
+m = c 4 en :+: repeatM (d 4 en)
+\end{spec}
+
+\pagebreak
+
+Then note that:
+\begin{spec}
+takeM hn (dropM hn m)
+===> 
+Prim (Note (0 % 1) (C,4)) :+: (Prim (Note (0 % 1) (D,4)) :+: 
+(Prim (Note (0 % 1) (D,4)) :+: (Prim (Note (0 % 1) (D,4)) :+: 
+(Prim (Note (1 % 8) (D,4)) :+: (Prim (Note (1 % 8) (D,4)) :+: 
+(Prim (Note (1 % 8) (D,4)) :+: (Prim (Note (1 % 8) (D,4)) :+: 
+Prim (Rest (0 % 1)))))))))
+\end{spec}
+Note the zero-duration notes and rests.  But if we apply |removeZeros|
+to the result we get:
+\begin{spec}
+removeZeros (takeM hn (dropM hn m))
+===>
+Prim (Note (1 % 8) (D,4)) :+: (Prim (Note (1 % 8) (D,4)) :+: 
+(Prim (Note (1 % 8) (D,4)) :+: Prim (Note (1 % 8) (D,4))))
+\end{spec}
+Both the zero-duration rests and notes have been removed.
+
+\section{Truncating Parallel Composition}
+\label{sec:truncate}
+
+The duration of |m1 :=: m2| is the maximum of the durations of |m1|
+and |m2| (and thus if one is infinite, so is the result).  However,
+sometimes it is useful to have the result be of duration equal to the
+\emph{shorter} of the two.  Defining a function to achieve this is not
+as easy as it sounds, since it may require truncating the longer one
+in the middle of a note (or notes), and it may be that one (or both)
+of the |Music| values is infinite.
+
+The goal is to define a ``truncating parallel composition'' operator
+|(/=:) :: Music a -> Music a -> Music a|.  Using |takeM|, we can make
+an initial attempt at a suitable definition for |(/=:)| as follows:
 \begin{spec}
 (/=:)      :: Music a -> Music a -> Music a
 m1 /=: m2  = takeM (dur m2) m1 :=: takeM (dur m1) m2
@@ -387,7 +505,7 @@ values, |(/=:)| cannot.  This is because |(/=:)| computes the duration
 of both of its arguments, but if one of them, say |m1|, has infinite
 duration, then |dur m1 ==> bottom|.  If, in a particular context, we
 know that only one of the two arguments is infinite, and we know which
-one (say |m1|), it is always possible to do the following:
+one (say |m1|), it is always possible write:
 \begin{spec}
 takeM (dur m2) m1 :=: m2
 \end{spec}
@@ -395,15 +513,15 @@ But somehow this seems unsatisfactory.
 
 \subsection{Lazy Evaluation to the Rescue}
 
-The root of the problem is that |dur| uses a conventional number type,
-namely the type |Rational| (which is a ratio of |Integer|s), to
-compute with, which does not have a value for infinity (|bottom| is not
-the same as infinity!).  But what if we were to compute a duration
-\emph{lazily}---meaning that we only compute that much of the duration
-that is needed to perform some arithmetic result of interest.  In
-particular, if we have one number |n| that we know is ``at least''
-|x|, and another number |m| that is exactly |y|, then if |x>y|, we
-know that |n>m|, even if |n|'s actual value is infinity!
+The root of this problem is that |dur| uses a conventional number
+type, namely the type |Rational| (which is a ratio of |Integer|s), to
+compute with, which does not have a value for infinity (|bottom| is
+not the same as infinity!).  But what if we were to somehow compute
+the duration \emph{lazily}---meaning that we only compute that much of
+the duration that is needed to perform some arithmetic result of
+interest.  In particular, if we have one number |n| that we know is
+``at least'' |x|, and another number |m| that is exactly |y|, then if
+|x>y|, we know that |n>m|, even if |n|'s actual value is infinity!
 
 To realize this idea, let's first define a type synonym for ``lazy
 durations:''
@@ -436,7 +554,7 @@ mergeLD ld1@(d1:ds1) ld2@(d2:ds2) =
 \end{code}
 
 We can then define a function |minL| to compare a |LazyDur| with
-regular |Dur|, returning the least |Dur| as a result:
+a regular |Dur|, returning the least |Dur| as a result:
 \begin{code}
 minL :: LazyDur -> Dur -> Dur
 minL [d]     d' = min d d'
@@ -457,11 +575,10 @@ takeML ld (m1 :+: m2)           =
 takeML ld (Modify (Tempo r) m)  = tempo r (takeML (map (*r) ld) m)
 takeML ld (Modify c m)          = Modify c (takeML ld m)
 \end{code}
-Compare this definition with that of |takeM|---they are almost the
-same.
+Compare this definition with that of |takeM|---they are very similar.
 
 Finally, we can define a correct (meaning it works properly on
-infinite |Music| values) version of |(/=:)|:
+infinite |Music| values) version of |(/=:)| as follows:
 \begin{code}
 (/=:)      :: Music a -> Music a -> Music a
 m1 /=: m2  = takeML (durL m2) m1 :=: takeML (durL m1) m2
@@ -607,7 +724,6 @@ Define functions to realize these musical ornamentations.}
 
 \vspace{.1in}\hrule
 
-\pagebreak
 \section{Percussion}
 \label{sec:percussion}
 
@@ -676,7 +792,6 @@ basically a MIDI Key is the equivalent of an absolute pitch in
 Euterpea terminology.  So all that remains to be done is a way to
 convert these percussion sound names into a |Music| value; i.e.\ a
 |Note|:
-\pagebreak
 \begin{code}
 
 perc :: PercussionSound -> Dur -> Music Pitch
@@ -748,7 +863,6 @@ Find a drum beat that you like, and express it in Euterpea.  Then use
 
 \vspace{.1in}\hrule
 
-\pagebreak
 \section{A Map for Music}
 \label{sec:music-map}
 
@@ -800,21 +914,30 @@ volume attribute.  We can define a function to do so as follows:
 addVolume    :: Volume -> Music Pitch -> Music (Pitch,Volume)
 addVolume v  = mMap (\p -> (p,v))
 \end{code}
+For MIDI, the variable |v| can range from 0 (softest) to 127 (loudest).  
 
-\pagebreak
-(Currently the |play| function in Euterpea does not know how to play a
-value of type |Music (Pitch,Volume)|, but it does know how to play a
-value of type |Music (Pitch, [NoteAttribute])|.  The |NoteAtttribute|
-data type is not defined until Chapter~\ref{ch:performance}, but for
-now it suffices to know that one of its constructors is |Volume|, and
-thus we can define a function 
-\begin{code}
-addVol    :: Volume -> Music Pitch -> Music (Pitch, [NoteAttribute])
-addVol v  = mMap (\p -> (p, [Volume v]))
-\end{code}
-The variable |v| can range from 0 (softest) to 127 (loudest).  So if
-you wish to hear the effect of adding volume to a |Music| value, use
-|addVol|, not |addVolume|.)
+For example, compare the loudness of these two phrases:
+\begin{spec}
+m1, m2 :: Music (Pitch,Volume)
+m1 = addVolume 100 (c 4 qn :+: d 4 qn :+: e 4 qn :+: c 4 qn)
+m2 = addVolume  30 (c 4 qn :+: d 4 qn :+: e 4 qn :+: c 4 qn)
+\end{spec}
+using the |play| function.  (Recall from Section~\ref{auxiliaries}
+that the type of the argument to |play| must be made clear, as is done
+here with the type signature.)
+
+%% Currently the |play| function in Euterpea does not know how to play a
+%% value of type |Music (Pitch,Volume)|, but it does know how to play a
+%% value of type |Music (Pitch, [NoteAttribute])|.  The |NoteAtttribute|
+%% data type is not defined until Chapter~\ref{ch:performance}, but for
+%% now it suffices to know that one of its constructors is |Volume|, and
+%% thus we can define a function 
+%% \begin{code}
+%% addVol    :: Volume -> Music Pitch -> Music (Pitch, [NoteAttribute])
+%% addVol v  = mMap (\p -> (p, [Volume v]))
+%% \end{code}
+%% So if you wish to hear the effect of adding volume to a |Music| value,
+%% use |addVol|, not |addVolume|.)
 
 \syn{Note that the name |Volume| is used both as a type synonym and as
   a constructor---Haskell allows this, since they can always be
@@ -839,11 +962,20 @@ Using |mMap|, define a function:
 scaleVolume :: Rational  -> Music (Pitch,Volume) 
                          -> Music (Pitch,Volume)
 \end{spec}
-such that |scaleVolume s m| scales the volume of each note in |m| by a
-factor of |s|.}
+such that |scaleVolume s m| scales the volume of each note in |m| by
+the factor |s|.
+
+(This problem requires multiplying a |Rational| number by an |Int|
+(i.e.\ |Volume|).  To do this, some coercions between number types are
+needed, which in Haskell is done using \emph{qualified types}, which
+are discussed in Chapter~\ref{qualified-types}.  For now, you can
+simply do the following:  If |v| is the volume of a note, then
+|round (s * fromIntegral v)| is the desired scaled volume.)} 
 \end{exercise}
 
 \vspace{.1in}\hrule
+
+\pagebreak
 
 \section{A Fold for Music}
 \label{sec:music-fold}
@@ -854,7 +986,6 @@ and the binary constructor |(:)|), |Music| has \emph{four}
 constructors (|Prim|, (:+:), (:=:), and |Modify|).  Thus the following
 function takes four arguments in addition to the |Music| value it is
 transforming, instead of two:
-\pagebreak
 \begin{code}
 mFold ::  (Primitive a -> b) -> (b->b->b) -> (b->b->b) -> 
           (Control -> b -> b) -> Music a -> b
@@ -912,7 +1043,7 @@ and (b) find a value |m :: Music Pitch| such that |m :+: insideOut m
 interesting'' means.)}
 \end{exercise}
 
-%% \vspace{.1in}\hrule
+\vspace{.1in}\hrule
 
 \section{Crazy Recursion}
 
@@ -952,6 +1083,8 @@ final'     = cascades' :+: revM cascades'
 \end{code}
 
 \vspace{.1in}\hrule
+
+\pagebreak
 
 \begin{exercise}{\em
 Consider this sequence of 8 numbers:
@@ -1019,18 +1152,18 @@ any of the functions above to create some ``interesting'' music.
 }
 \end{exercise}
 
-\pagebreak
 \begin{exercise}{\em
 Write a Euterpea program that sounds like an infinitely descending (in
-pitch) sequence of musical lines.  Each descending
-line should fade into the audible range as it begins its descent, and
-then fade out as it descends further.  So the beginning and end of
-each line will be difficult to hear.  And there will be many such
-lines, each starting at a different time, some perhaps descending a
-little faster than others, or perhaps using different instrument
-sounds, and so on.  The effect will be that as the music is listened
-to, everything will seem to be falling, falling, falling with no end,
-but no beginning either.
+pitch) sequence of musical lines.  Each descending line should fade
+into the audible range as it begins its descent, and then fade out as
+it descends further.  So the beginning and end of each line will be
+difficult to hear.  And there will be many such lines, each starting
+at a different time, some perhaps descending a little faster than
+others, or perhaps using different instrument sounds, and so on.  The
+effect will be that as the music is listened to, everything will seem
+to be falling, falling, falling with no end, but no beginning either.
+(This illusion is called the \emph{Shepard Tone}, or \emph{Shepard
+  Scale}, first introduced by Roger Shepard in 1964 \cite{shepard}.)
 
 Use high-order functions, recursion, and whatever other abstraction
 techniques you have learned to write an elegant solution to this

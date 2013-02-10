@@ -107,14 +107,14 @@ like the conventional pitch class names C, C$\sharp$, D$\flat$, D,
 etc.\  The solution is to use an \emph{algebraic data type} in Haskell:
 \begin{spec}
 data PitchClass  =  Cff | Cf | C | Dff | Cs | Df | Css | D | Eff | Ds 
-                 |  Ef | Fff | Dss | E | Es | Ff | F | Gff | Ess | Fs
+                 |  Ef | Fff | Dss | E | Ff | Es | F | Gff | Ess | Fs
                  |  Gf | Fss | G | Aff | Gs | Af | Gss | A | Bff | As 
                  |  Bf | Ass | B | Bs | Bss
 \end{spec}
 \out{
 \begin{code}
 data PitchClass  =  Cff | Cf | C | Dff | Cs | Df | Css | D | Eff | Ds 
-                 |  Ef | Fff | Dss | E | Es | Ff | F | Gff | Ess | Fs
+                 |  Ef | Fff | Dss | E | Ff | Es | F | Gff | Ess | Fs
                  |  Gf | Fss | G | Aff | Gs | Af | Gss | A | Bff | As 
                  |  Bf | Ass | B | Bs | Bss
      deriving (Eq, Ord, Show, Read, Enum)
@@ -152,7 +152,13 @@ The |PitchClass| data type declaration essentially enumerates 35 pitch
 class names (five for each of the note names A through G).  Note that
 both double-sharps and double-flats are included, resulting in many
 enharmonics (i.e., two notes that ``sound the same,'' such as
-G$\sharp$ and A$\flat$).
+G$\sharp$ and A$\flat$).  
+
+(The order of the pitch classes may seem a bit odd, but the idea is
+that if a pitch class |pc1| is to the left of a pitch class |pc2|,
+then |pc1|'s pitch is ``lower than'' that of |pc2|.  This idea will be
+formalized and exploited in Chapter~\ref{sec:qualified-types}.)
+
 %% which may be important in certain applications.
 
 Keep in mind that |PitchClass| is a completely new, user-defined data
@@ -313,6 +319,7 @@ These four constructors then are also polymorphic functions.
   bind more tightly than an operator with a lower precedence).
 }
 
+\newpage
 The |Music| data type declaration essentially says that a value of type
 |Music a| has one of four possible forms:
 \begin{itemize}
@@ -363,6 +370,9 @@ annotate a |Music| value with a \emph{tempo change}, a
 \emph{transposition}, a \emph{phrase attribute}, a \emph{player name},
 or an \emph{instrument}.  This data type is unimportant at the moment,
 but for completeness here is its full definition:
+
+\pagebreak
+
 \begin{spec}
 data Control =
           Tempo       Rational           -- scale the tempo
@@ -665,13 +675,13 @@ let a =  aLongName
 in ...
 \end{spec}
 (The second line in the first example is too far to the left, as is
-the third line in the second example.)}
+the third line in the second example.)
 
-\syn{Although this rule, called the {\em \indexwd{layout rule}}, may
-  seem a bit {\em ad hoc}, it avoids having to use special syntax to
-  denote the end of one equation and the beginning of the next (such
-  as a semicolon), thus enhancing readability.  In practice, use of
-  layout is rather intuitive.  Just remember two things:
+Although this rule, called the {\em \indexwd{layout rule}}, may seem a
+bit {\em ad hoc}, it avoids having to use special syntax (such as a
+semicolon) to denote the end of one equation and the beginning of the
+next, thus enhancing readability.  In practice, use of layout is
+rather intuitive.  Just remember two things:
 
 First, the first character following |let| (and a few other keywords
 that will be introduced later) is what determines the starting column
@@ -692,6 +702,21 @@ play t251
 at the GHCi command line.  Default instruments and tempos are used to
 convert |t251| into MIDI and then play the result through your
 computer's standard sound card.
+
+\syn{It is important when using |play| that the type of its argument
+is made clear.  In the case of |t251|, it is clear from the type
+signature in its definition.  But for reasons to be explained in
+Chapter~\ref{ch:qualified-types}, if we write even something very
+simple such as |play (note qn (C,4))|, Haskell cannot infer exactly
+what kind of number 4 is, and therefore cannot infer that |(C,4)| is
+intended to be a |Pitch|.  We can get around this either by writing:
+\begin{spec}
+m :: Pitch
+m = note qn (C,4)
+\end{spec}
+in which case |play m| will work just fine, or we can include the type
+signature ``in-line'' with the expression, as in |play (note qn
+((C,4)::Pitch))|.}
 
 \vspace{.1in}\hrule
 

@@ -384,6 +384,7 @@ hList d = line . map (hNote d)
 \end{spec}
 
 \section{Higher-Order Thinking}
+\label{sec:higher-order-thinking}
 
 It is worth taking a deep breath here and contemplating what has been
 done with |hList|, which has gone through quite a few transformations.
@@ -495,8 +496,10 @@ childSong6 =  let t = (dhn/qn)*(69/120)
               in instrument  RhodesPiano 
                              (tempo t (bassLine :=: mainVoice))
 \end{spec}
-We can rewrite the last few lines a bit more clearly as follows:
+
 \pagebreak
+
+We can rewrite the last few lines a bit more clearly as follows:
 \begin{spec}
 childSong6 =  let t = (dhn/qn)*(69/120)
               in  instrument  RhodesPiano  $
