@@ -8,7 +8,7 @@ type Octave = Int
 type Pitch = (PitchClass, Octave)
 type Dur   = Rational
 data PitchClass  =  Cff | Cf | C | Dff | Cs | Df | Css | D | Eff | Ds 
-                 |  Ef | Fff | Dss | E | Es | Ff | F | Gff | Ess | Fs
+                 |  Ef | Fff | Dss | E | Ff | Es | F | Gff | Ess | Fs
                  |  Gf | Fss | G | Aff | Gs | Af | Gss | A | Bff | As 
                  |  Bf | Ass | B | Bs | Bss
      deriving (Eq, Ord, Show, Read, Enum)

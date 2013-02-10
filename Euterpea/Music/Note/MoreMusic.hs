@@ -227,8 +227,6 @@ mMap f (Modify c m)  = Modify c (mMap f m)
 type Volume = Int
 addVolume    :: Volume -> Music Pitch -> Music (Pitch,Volume)
 addVolume v  = mMap (\p -> (p,v))
-addVol    :: Volume -> Music Pitch -> Music (Pitch, [NoteAttribute])
-addVol v  = mMap (\p -> (p, [Volume v]))
 data NoteAttribute = 
         Volume  Int   -- MIDI convention: 0=min, 127=max
      |  Fingering Integer

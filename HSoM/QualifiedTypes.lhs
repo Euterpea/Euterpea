@@ -770,13 +770,11 @@ derived.
 
 The data type declarations for |PitchClass|, |Primitive|, |Music| and
 |Control| given in Chapter~\ref{ch:intro} are not the ones actually
-used in Eutperpea.  The actual definitions use a |deriving| clause,
-and are shown in Figure~\ref{fig:actual-datatypes}.
-
-Note that with single and double sharps and flats, there are many
-enharmonic equivalences.  Thus in the data declaration for
-|PitchClass|, the constructors are ordered such that, if |pc1 < pc2|,
-then |pcToInt pc1 <= pcToInt pc2|.
+used in Eutperpea.  The actual definitions each use a |deriving|
+clause, and are shown in Figure~\ref{fig:actual-datatypes}.  The
+|InstrumentName| data type from Chapter~\ref{ch:intro} also has a
+deriving clause for |Show|, |Eq|, and |Ord| (but is ommitted here to
+save space).
 
 \syn{When instances of more than one type class are derived for the
   same data type, they appear grouped in parentheses as in
@@ -815,7 +813,13 @@ data Control =
 \label{fig:actual-datatypes}
 \end{figure}
 
-For example, the |Show| class allows us to convert values to strings:
+Note that with single and double sharps and flats, there are many
+enharmonic equivalences.  Thus in the data declaration for
+|PitchClass|, the constructors are ordered such that, if |pc1 < pc2|,
+then |pcToInt pc1 <= pcToInt pc2|.
+
+For some examples, the |Show| class allows us to convert values to
+strings:
 \begin{spec}
 show Cs              ===> "Cs"
 show concertA        ===> "(A,4)"
@@ -864,9 +868,9 @@ Haskell, i.e.\ something that ``does I/O.''  We will have more to say
 about this in a later chapter.
 
 But of more relevance to this chapter, note the constraint
-|Performable a => ...|.  You might guess that |Performable| is a type
-class, indeed it is the type class of ``performable values.''  If a
-type is a member of (i.e.\ instance of) |Performable|, then it can be
+|Performable a|.  You might guess that |Performable| is a type class,
+indeed it is the type class of ``performable values.''  If a type is a
+member of (i.e.\ instance of) |Performable|, then it can be
 ``performed,'' i.e.\ rendered as sound.  The point is, some things we
 would not expect to be performable, for example a list or a character
 or a function.  So the type signature for |play| can be read, ``For
