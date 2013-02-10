@@ -6,7 +6,7 @@ lhs2tex --code Additive.lhs         > ../Euterpea/Music/Signal/Additive.hs
 lhs2tex --code SigFuns.lhs          > ../Euterpea/Music/Signal/SigFuns.hs
 lhs2tex --code SpectrumAnalysis.lhs > ../Euterpea/Music/Signal/SpectrumAnalysis.hs
 
-lhs2tex --code FromMidi.lhs         > ../Euterpea/IO/MIDI/FromMidi.hs
+REM lhs2tex --code FromMidi.lhs     > ../Euterpea/IO/MIDI/FromMidi.hs
 lhs2tex --code GeneralMidi.lhs      > ../Euterpea/IO/MIDI/GeneralMidi.hs
 lhs2tex --code ToMidi.lhs           > ../Euterpea/IO/MIDI/ToMidi.hs
 
