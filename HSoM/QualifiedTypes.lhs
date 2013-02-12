@@ -512,6 +512,10 @@ are encouraged to read through them.
 
 Most of the standard type classes in Haskell are shown in
 Figure~\ref{fig:common-type-classes}, along with their key instances.
+Since each of these has various default mthods defined, also shown is
+the minimal set of methods that must defined---the rest are taken care
+of by the default methods.  For example, for |Ord|, all we have to
+provide is a definition for |(<=)|.
 
 The \indexwdhs{Num} class, which has been used implicitly throughout
 much of the text, is described in more detail below.  With this
@@ -524,19 +528,22 @@ explanation a few more of Haskell's secrets will be revealed.
 \hline
 |Num|  & |(+),(-),(*) :: Num a => a->a->a| & |Integer, Int, Float, Double,| \\ 
        & |negate :: Num a => a->a|         & |Rational| \\
-
+       & minimal set: all but |(-)| or |negate| & \\
 \hline
 |Eq|   & |(==),(/=) :: Eq a => a->a->Bool| & |Integer, Int, Float, Double,| \\
-&&                                           |Rational, Char, Bool, ... | \\
+       &                                   & |Rational, Char, Bool, ... | \\
+       & minimal set: either (==) or (/=)  & \\
 \hline
 |Ord|  & |(>),(<),(>=),(<=) ::|            & |Integer, Int, Float, Double,| \\
        & \ \ \ \ |Ord a => a->a->Bool|     & |Rational, Char, Bool, ... | \\
        & |max,min :: Ord a => a->a->a   |  & \\
+       & minimal set: |(<=)|               & \\
 \hline
 |Enum| & |succ,pred :: Enum a => a->a|     & |Integer, Int, Float, Double,| \\
        & |fromEnum :: Enum a => a -> Int|  & |Rational, Char, Bool, ... | \\
        & |toEnum :: Enum a => Int -> a  |  & \\
        & also enables arithmetic sequences & \\
+       & minimal set: |toEnum| \& |fromEnum| & \\
 \hline
 |Show| & |show :: Show a => a -> String|   & Almost every type except \\
        &                                   & for functions \\
@@ -974,8 +981,10 @@ the laws of its class.  Also prove that the modified instance of
 \end{exercise}
 
 \begin{exercise}{\em
-Write out appropriate instance declarations for the |Color| type
-in the classes |Eq|, |Ord|, and |Enum|.}
+Write out appropriate instance declarations for the |Color| type in
+the classes |Eq|, |Ord|, and |Enum|.  (For simplicity you may define
+|Color| to have fewer constructors, say just |Red|, |Green| and
+|Blue|.)}
 \end{exercise}
 
 \begin{exercise}{\em
@@ -989,7 +998,7 @@ dropT :: Temporal a => Dur -> a -> a
 \end{spec}
 Then define instances of |Temporal| for the types |Music| and
 |Primitive|.  (Hint: this is not as hard as it sounds, because you can
-\emph{reuse} the function names previously defined to do these sorts
+\emph{reuse} some function names previously defined to do these sorts
 of operations.)
 
 Can you think of other types that are temporal?}

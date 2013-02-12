@@ -28,6 +28,9 @@ data Control =
        |  Phrase      [PhraseAttribute]  -- phrase attributes
        |  Player      PlayerName         -- player label
   deriving (Show, Eq, Ord)
+
+data Mode = Major | Minor
+  deriving (Eq, Ord, Show)
 type PlayerName = String
 data InstrumentName =
      AcousticGrandPiano     | BrightAcousticPiano    | ElectricGrandPiano

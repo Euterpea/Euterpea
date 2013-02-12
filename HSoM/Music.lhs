@@ -378,8 +378,11 @@ data Control =
           Tempo       Rational           -- scale the tempo
        |  Transpose   AbsPitch           -- transposition
        |  Instrument  InstrumentName     -- instrument label
+--        |  Key         PitchClass Mode
        |  Phrase      [PhraseAttribute]  -- phrase attributes
        |  Player      PlayerName         -- player label
+
+data Mode = Major | Minor
 \end{spec}
 \out{
 \begin{code}
@@ -390,6 +393,9 @@ data Control =
        |  Phrase      [PhraseAttribute]  -- phrase attributes
        |  Player      PlayerName         -- player label
   deriving (Show, Eq, Ord)
+
+data Mode = Major | Minor
+  deriving (Eq, Ord, Show)
 \end{code}
 }
 

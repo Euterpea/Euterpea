@@ -512,6 +512,7 @@ takeM (dur m2) m1 :=: m2
 But somehow this seems unsatisfactory.
 
 \subsection{Lazy Evaluation to the Rescue}
+\label{sec:lazy-rescue}
 
 The root of this problem is that |dur| uses a conventional number
 type, namely the type |Rational| (which is a ratio of |Integer|s), to
@@ -588,6 +589,70 @@ Whew!  This may seem like a lot of effort, but the new code is
 actually not much different from the old, and now we can freely use
 |(/=:)| without worrying about which if any of its arguments are
 infinite.
+
+\out{
+A potential generalization of these ideas:
+
+Let's represent numbers as a non-empty list of monotonically
+increasing numbers whose last number is the limit:
+
+newtype ANum a = ANum [a]
+  deriving (Eq, Show)
+
+instance Num a => Num (ANum a) where
+  ANum xs + ANum ys = ANum (nLift (+) xs ys)
+--ANum xs - ANum ys = ANum (nLift (-) xs ys)   -- not valid!!!
+  ANum xs - ANum ys = ANum (nSub xs ys)
+  ANum xs * ANum ys = ANum (nLift (*) xs ys)
+  abs (ANum xs)     = ANum (map abs xs)
+  signum (ANum xs)  = ANum (map signum xs)
+  fromInteger x     = ANum [fromInteger x]
+  
+nLift op [x] ys        = map (x `op`) ys
+nLift op xs [y]        = map (`op` y) xs
+nLift op (x:xs) (y:ys) = (x `op` y) : nLift op xs ys
+
+nSub [x] ys = map (x-) ys
+nSub xs [y] = map (subtract y) xs
+nSub (x:xs) (y:ys) = nSub xs ys
+
+ANum [x] =* ANum [y] = x == y
+ANum (x:xs) =* ANum (y:ys) = ANum xs =* ANum ys
+
+ANum [x] >* ANum (y:ys)    = if x<=y then False else ANum [x] >* ANum ys
+ANum (x:xs) >* ANum [y]    = if x>y  then True  else ANum xs >* ANum [y]
+ANum (x:xs) >* ANum (y:ys) = ANum xs >* ANum ys
+
+an1 >=* an2 = an1 >* an2 || an1 =* an2
+an1 <*  an2 = not (an1 >=* an2)
+an1 <=* an2 = not (an1 >* an2)
+
+The reason that subtraction cannot be handled like addition or
+multiplication is that, if one number is at least x and another number
+is at least y, we cannot conclude ANYTHING about the difference
+between them.
+
+Here are the merge functions for the parallel short constructor:
+
+mergeS :: Performance -> Performance -> Performance
+
+mergeS a@(e1:es1)) b@(e2:es2)) = 
+  if e1 < e2 then foo e1 es1 b
+             else foo e2 a es2
+merge [] es2 = []
+merge es1 [] = []
+
+foo e es1 es2 =
+  let pf  = mergeS es1 es2
+      dft = eTime (head pf) - eTime e
+      d  = min (eDur e) (aDur pf + dft)
+  in e { eDur = d } : pf
+
+
+aDur es = Anum (foo 0 es)
+  where foo d []     = d
+        foo d (e:es) = 
+}
 
 \vspace{.1in}\hrule
 

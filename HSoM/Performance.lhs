@@ -27,21 +27,24 @@ instance Show (a -> b) where
    showsPrec p f = showString "<<function>>"
 \end{code} 
 
+So far, our presentation of musical values in Haskell has been mostly
+structural, i.e.\ \emph{syntactic}.  Although we have given an
+interpretation of the ``duration'' of |Music| values (as manifested in
+|dur|, |takeM|, |dropM|, and so on), we have not given any deeper
+musical interpretation.  What do these musical values actually
+\emph{mean}, i.e.\ what is their \emph{semantics}, or
+\emph{interpretation}?  The formal process of giving a semantic
+interpretation to syntactic constructs is very common in computer
+science, especially in programming language theory.  But it is
+obviously also common in music: the interpretation of music is the
+very essence of musical performance.  However, in conventional music
+this process is usually informal, appealing to aesthetic judgments and
+values.  What we would like to do is make the process formal in
+Euterpea---but still flexible, so that more than one interpretation is
+possible, just as in music.
+
 \section{Abstract Performance}
 \label{sec:performance}
-
-So far, our presentation of musical values in Haskell has been
-entirely structural, i.e.\ \emph{syntactic}.  But what do these
-musical values actually \emph{mean}, i.e.\ what is their
-\emph{semantics}, or \emph{interpretation}?  The formal process of
-giving a semantic interpretation to syntactic constructs is very
-common in computer science, especially in programming language theory.
-But it is obviously also common in music: the interpretation of music
-is the very essence of musical performance.  However, in conventional
-music this process is usually informal, appealing to aesthetic
-judgments and values.  What we would like to do is make the process
-formal in Euterpea---but still flexible, so that more than one
-interpretation is possible, just as in music.
 
 To begin, we need to say exactly what an abstract \emph{performance}
 is.  Our approach is to consider a performance to be a time-ordered
@@ -120,27 +123,24 @@ type by name rather than by position.}
 An event |Event {eTime = s, eInst = i, ePitch = p, eDur = d, eVol = v}|
 captures the fact that at start time |s|, instrument |i| sounds pitch
 |p| with volume |v| for a duration |d| (where now duration is measured
-in seconds, rather than beats).  (The |pField| of an event is for
+in seconds, rather than beats).  (The |eParams| of an event is for
 special instruments that require extra parameters, and will not be
 discussed much further in this chapter.)
 
 An abstract performance is the lowest of our music representations not
-yet committed to MIDI, csound, or some other low-level computer music
-representation.  In Chapter \ref{ch:midi} we will discuss how to map a
+yet committed to MIDI or some other low-level computer music
+representation.  In Chapter~\ref{ch:midi} we will discuss how to map a
 performance into MIDI.
+
+\subsection{Context}
+\label{sec:context}
 
 To generate a complete performance of, i.e.\ give an interpretation
 to, a musical value, we must know the time to begin the performance,
-and the proper instrument, volume, key and tempo.  In addition, to
-give flexibility to our interpretations, we must also know what {\em
-  player} to use; that is, we need a mapping from the |PlayerName|s in
-a |Music| value to the actual players to be used.\footnote{We don't
-  need a mapping from |InstrumentNames| to instruments, since this is
-  handled in the translation from a performance into MIDI, which
-  is discussed in Chapter \ref{ch:midi}.}  
-We capture these ideas in Haskell as a ``context'' and ``player map,''
+and the proper instrument, volume, key and tempo.  We can think of
+this as the ``context'' in which a musical value is interpreted.  This
+context can be captured formally in Haskell as a data type:
 respectively:
-%% as defined in Section \ref{midi}.)
 \begin{code}
 
 data Context a = Context {  cTime    :: PTime, 
@@ -150,14 +150,64 @@ data Context a = Context {  cTime    :: PTime,
                             cKey     :: Key, 
                             cVol     :: Volume}
      deriving Show
-type PMap a  = PlayerName -> Player a
+
 type Key     = AbsPitch
 \end{code}
+When a |Music| value is interpreted, it will be given an inital
+context, but as the |Music| value is recursively interpreted, the
+context will be updated to reflect things like tempo change,
+transposition, and so on.  This will be made clear shortly.
+
+The |DurT| component of the context is the duration, in seconds,
+of one whole note.  To make it easier to compute, we can define a
+``metronome'' function that, given a standard metronome marking (in
+beats per minute) and the note type associated with one beat (quarter
+note, eighth note, etc.) generates the duration of one whole note:
+\begin{code}
+metro              :: Int -> Dur -> DurT
+metro setting dur  = 60 / (fromIntegral setting * dur)
+\end{code} 
+Thus, for example, |metro 96 qn| creates a tempo of 96 quarter
+notes per minute.
+
+\syn{|fromIntegral :: (Integral a, Num b) => a -> b| coerces a value
+  whose type is a member of the |Integral| class to a value whose type
+  is a member of the |Num| class.  As used here, it is effectively
+  converting the |Int| value |setting| to a |Rational| value, because
+  |dur| is a |Rational| value, |Rational| is a member of the |Num|
+  class, and multiplication has type |(*) :: Num a => a->a->a|.}
+
+\subsection{Player Map}
+\label{sec:player-map}
+
+In addition to the context, we also need to know what {\em player} to
+use; that is, we need a mapping from each |PlayerName| in a |Music|
+value to the actual player to be used.\footnote{We do not need a
+  mapping from |InstrumentName|s to instruments, since that is handled
+  in the translation from a performance into MIDI, which is discussed
+  in Chapter \ref{ch:midi}.}  The details of what a player is, and how
+it gives great flexibility to Euterpea, will be explained later in
+this chapter.  For now, we simply define a type synonym to capture the
+mapping of |PlayerName| to |Player|:
+\begin{code}
+
+type PMap a  = PlayerName -> Player a
+\end{code}
+
+\subsection{Interpretation}
+\label{sec:perform}
 
 Finally, we are ready to give an interpretation to a piece of music,
-which we do by defining a function |perform|, which is conceptually
-perhaps the most important function defined in this book, and is shown
-in Figure \ref{fig:perform}.
+which we do by defining a function |perform|, whose type is:
+\begin{spec}
+perform :: PMap a -> Context a -> Music a -> Performance
+\end{spec}
+So |perform pm c m| is the |Performance| that results from
+interpreting |m| using player map |pm| in the initial context |c|.
+Conceptually, |perform| is perhaps the most important function defined
+in this textbook, and is shown in Figure \ref{fig:perform}.  To help
+in understanding the definition of |perform|, let's step through the
+equations one at a time.
 
 \begin{figure}
 \begin{spec}
@@ -182,148 +232,105 @@ perform pm
 \label{fig:perform}
 \end{figure}
 
-%%     m1 :=/ m2                 ->  mergeS  (perform pm c m1) 
-%%                                           (perform pm c m2)
-
-Some things to note about |perform|:
 \begin{enumerate} 
 \item
-The |Context| is the running ``state'' of the performance, and
-gets updated in several different ways.  For example, the
-interpretation of the |Tempo| constructor involves scaling
-|dt| appropriately and updating the |DurT| field of the context.
-
+The interpretation of a note is player dependent.  This is handled in
+|perform| using the |playNote| function, which takes the player as an
+argument.  Precisely how the |playNote| function works is described in
+Section~\ref{sec:players}, but for now you can think of it as
+returning a |Performance| (a list of events) with just one event: the
+note being played.
 \item
-The interpretation of notes and phrases is player dependent.
-Ultimately a single note is played by the |playNote| function, which
-takes the player as an argument.  Similarly, phrase interpretation is
-also player dependent, reflected in the use of |interpPhrase|.
-Precisely how these two functions work is described in Section
-\ref{players}.
-
+In the interpretation of |(:+:)|, note that the |Performance|s of the
+two arguments are appended together, with the start time of the second
+|Performance| delayed by the duration of the first (as captured in the
+context |c'|).  The function |dur| (defined in Section
+\ref{sec:duration}) is used to compute this duration.  Note that the
+interpretation of |(:+:)| is well-defined even for infinite |Music|
+values.
 \item
-The |DurT| component of the context is the duration, in seconds,
-of one whole note.  To make it easier to compute, we can define a
-``metronome'' function that, given a standard metronome marking (in
-beats per minute) and the note type associated with one beat (quarter
-note, eighth note, etc.)  generates the duration of one whole note:
-\begin{code}
-metro              :: Int -> Dur -> DurT
-metro setting dur  = 60 / (fromIntegral setting * dur)
-\end{code} 
-Thus, for example, |metro 96 qn| creates a tempo of 96 quarter
-notes per minute.
+In the interpretation of |(:=:)|, the |Performance|s derived from the
+two arguments are merged into a time-ordered stream.  The definition
+of |merge| is given below:
+\begin{spec}
+merge :: Performance -> Performance -> Performance
 
-\syn{|fromIntegral :: (Integral a, Num b) => a -> b| coerces a value
-  whose type is a member of the |Integral| class to a value whose type
-  is a member of the |Num| class.  As used here, it is effectively
-  converting the |Int| value |setting| to a |Rational| value, because
-  |dur| is a |Rational| value, |Rational| is a member of the |Num|
-  class, and multiplication has type |(*) :: Num a => a->a->a|.}
-
+merge []          es2         =  es2
+merge es1         []          =  es1
+merge a@(e1:es1)  b@(e2:es2)  =  
+  if e1 < e2  then  e1  : merge es1 b
+              else  e2  : merge a es2
+\end{spec} 
+Note that |merge| is esssentially the same as the |mergeLD| function
+defined in Section~\ref{sec:lazy-rescue}.
 \item
-In the treatment of |(:+:)|, note that the sub-sequences are appended
-together, with the start time of the second argument delayed by the
-duration of the first.  The function |dur| (defined in Section
-\ref{sec:duration}) is used to compute this duration.  However, this
-results in a quadratic time complexity for |perform|.  A more
+In the interpretation of |Modify|, first recall the definition of
+|Control| from Chapter~\ref{sec:music}:
+\begin{spec}
+data Control =
+          Tempo       Rational           -- scale the tempo
+       |  Transpose   AbsPitch           -- transposition
+       |  Instrument  InstrumentName     -- intrument label
+       |  Phrase      [PhraseAttribute]  -- phrase attributes
+       |  Player      PlayerName         -- player label
+     deriving (Show, Eq, Ord)
+
+type PlayerName = String
+\end{spec}
+Each of these five constructors is handled by a separate equation in
+the definition of |perform|.  Note how the context is updated in each
+case---the |Context|, in general, is the running ``state'' of the
+performance, and gets updated in several different ways.
+
+Also of note is the treatment of |Phrase|.  Like the playing of a
+note, the playing of a phrase is player dependent.  This is captured
+through the function |interpPhrase|, which takes the player as an
+argument.  Like |playNote|, this too, along with the |PhraseAttribute|
+data type, will be described in full detail in
+Section~\ref{sec:players}.
+\end{enumerate}
+
+Figure~\ref{fig:PerformBD} is a block diagram showing how |perform|
+fits into the ``big picture'' of Euterpea.  |Music| values are most
+abstract, |Performance| values are less abstract, and MIDI or audio
+streams are the least abstract.  This chapter focuses on converting a
+|Music| value into a |Performance|; subsequent chapters will focus on
+translating a |Performance| into either MIDI (still at the ``note''
+level, and fairly straightforward) or audio (now at the ``signal''
+level, and more complex).
+
+\begin{figure}[hbtp]
+\centering
+\includegraphics[height=4in]{pics/PerformBD.eps} 
+\caption{Block Diagram of Performance Concepts}
+\label{fig:PerformBD}
+\end{figure}
+
+%% For example, the interpretation of the |Tempo| constructor involves
+%% scaling |dt| appropriately and updating the |DurT| field of the
+%% context.
+
+\subsection{Efficiency Concerns}
+
+The use of |dur| in the treatment of |(:+:)| can, in the worst case,
+result in a quadratic time complexity for |perform|.  (Why?)  A more
 efficient solution is to have |perform| compute the duration directly,
 returning it as part of its result.  This version of |perform| is
 shown in Figure \ref{fig:real-perform}.
 
-\item
-The sub-sequences derived from the arguments to |(:=:)| are merged
-into a time-ordered stream.  The definition of |merge| is given below.
-
-\begin{spec}
-merge :: Performance -> Performance -> Performance
-
-merge a@(e1:es1)  b@(e2:es2)  =  if e1 < e2  
-                                 then e1 : merge es1 b
-                                 else e2 : merge a es2
-merge []          es2         =  es2
-merge es1         []          =  es1
-\end{spec} 
-
-Note that |merge| compares entire events rather than just start times.
-This is to ensure that it is commutative, a desirable condition for
-some of the proofs used later in the text.  
-
-\newpage
-
-Here is a more efficient version of |merge| that will work just as
-well in practice:
+Also note that |merge| compares entire events rather than just start
+times.  This is to ensure that it is commutative, a desirable
+condition for some of the proofs used later in the text.  Here is a
+more efficient version of |merge| that will work just as well in
+practice:
 \begin{code}
 
-merge a@(e1:es1)  b@(e2:es2)  =  if eTime e1 < eTime e2
-                                 then e1 : merge es1 b
-                                 else e2 : merge a es2
 merge []          es2         =  es2
 merge es1         []          =  es1
+merge a@(e1:es1)  b@(e2:es2)  =  
+  if eTime e1 < eTime e2  then  e1  : merge es1 b
+                          else  e2  : merge a es2
 \end{code} 
-\end{enumerate} 
-
-\out{
-Let's represent numbers as a non-empty list of monotonically
-increasing numbers whose last number is the limit:
-
-newtype ANum a = ANum [a]
-  deriving (Eq, Show)
-
-instance Num a => Num (ANum a) where
-  ANum xs + ANum ys = ANum (nLift (+) xs ys)
---ANum xs - ANum ys = ANum (nLift (-) xs ys)   -- not valid!!!
-  ANum xs - ANum ys = ANum (nSub xs ys)
-  ANum xs * ANum ys = ANum (nLift (*) xs ys)
-  abs (ANum xs)     = ANum (map abs xs)
-  signum (ANum xs)  = ANum (map signum xs)
-  fromInteger x     = ANum [fromInteger x]
-  
-nLift op [x] ys        = map (x `op`) ys
-nLift op xs [y]        = map (`op` y) xs
-nLift op (x:xs) (y:ys) = (x `op` y) : nLift op xs ys
-
-nSub [x] ys = map (x-) ys
-nSub xs [y] = map (subtract y) xs
-nSub (x:xs) (y:ys) = nSub xs ys
-
-ANum [x] =* ANum [y] = x == y
-ANum (x:xs) =* ANum (y:ys) = ANum xs =* ANum ys
-
-ANum [x] >* ANum (y:ys)    = if x<=y then False else ANum [x] >* ANum ys
-ANum (x:xs) >* ANum [y]    = if x>y  then True  else ANum xs >* ANum [y]
-ANum (x:xs) >* ANum (y:ys) = ANum xs >* ANum ys
-
-an1 >=* an2 = an1 >* an2 || an1 =* an2
-an1 <*  an2 = not (an1 >=* an2)
-an1 <=* an2 = not (an1 >* an2)
-
-The reason that subtraction cannot be handled like addition or
-multiplication is that, if one number is at least x and another number
-is at least y, we cannot conclude ANYTHING about the difference
-between them.
-
-Here are the merge functions for the parallel short constructor:
-
-mergeS :: Performance -> Performance -> Performance
-
-mergeS a@(e1:es1)) b@(e2:es2)) = 
-  if e1 < e2 then foo e1 es1 b
-             else foo e2 a es2
-merge [] es2 = []
-merge es1 [] = []
-
-foo e es1 es2 =
-  let pf  = mergeS es1 es2
-      dft = eTime (head pf) - eTime e
-      d  = min (eDur e) (aDur pf + dft)
-  in e { eDur = d } : pf
-
-
-aDur es = Anum (foo 0 es)
-  where foo d []     = d
-        foo d (e:es) = 
-}
 
 \begin{figure}
 \begin{code}
@@ -360,10 +367,8 @@ perf pm
 %%                   (pf2,d2) = perf pm c m2
 %%              in (merge pf1 pf2, max d1 d2)
 
-\newpage
-
 \section{Players}
-\label{players}
+\label{sec:players}
 
 %% \begin{spec}
 %% module Players (module Players, module Music, module Performance)
@@ -372,30 +377,25 @@ perf pm
 %% import Performance
 %% \end{spec} 
 
-Recall from Section \ref{sec:music} the definition of the |Control|
-data type:
+Recall from Section~\ref{sec:music} that the |Phrase| constructor in
+the |Control| data type takes a list of |PhraseAttribute|s as an
+argument:
 \begin{spec}
-data Control =
-          Tempo       Rational           -- scale the tempo
-       |  Transpose   AbsPitch           -- transposition
-       |  Instrument  InstrumentName     -- intrument label
-       |  Phrase      [PhraseAttribute]  -- phrase attributes
-       |  Player      PlayerName         -- player label
-     deriving (Show, Eq, Ord)
-
-type PlayerName = String
+data Control = ...
+       | Phrase [PhraseAttribute]  -- phrase attributes
+       ...
 \end{spec}
-We mentioned, but did not define, the |PhraseAttribute| data type,
-shown now fully in Figure \ref{fig:phrase-attributes}.  These
-attributes give us great flexibility in the interpretation process,
-because they can be interpreted by different players in different
-ways.  For example, how should ``legato'' be interpreted in a
-performance?  Or ``diminuendo?''  Different players interpret things
-in different ways, of course, but even more fundamental is the fact
-that a pianist, for example, realizes legato in a way fundamentally
-different from the way a violinist does, because of differences in
-their instruments.  Similarly, diminuendo on a piano and diminuendo on
-a harpsichord are different concepts.
+It is now time to unveil the definition of |PhraseAttribute|!  Shown
+fully in Figure \ref{fig:phrase-attributes}, these attributes give us
+great flexibility in the interpretation process, because they can be
+interpreted by different players in different ways.  For example, how
+should ``legato'' be interpreted in a performance?  Or ``diminuendo?''
+Different human players interpret things in different ways, of course,
+but even more fundamental is the fact that a pianist, for example,
+realizes legato in a way fundamentally different from the way a
+violinist does, because of differences in their instruments.
+Similarly, diminuendo on a piano and diminuendo on a harpsichord are
+very different concepts.
 
 \begin{figure}{\small
 \begin{spec}
@@ -403,7 +403,10 @@ data PhraseAttribute  =  Dyn Dynamic
                       |  Tmp Tempo
                       |  Art Articulation
                       |  Orn Ornament
+--                       |  Key PitchClass Mode
      deriving (Eq, Ord, Show)
+
+-- data Mode = Major | Minor
 
 data Dynamic  =  Accent Rational | Crescendo Rational
               |  Diminuendo Rational | StdLoudness StdLoudness 
@@ -437,17 +440,37 @@ data NoteHead  =  DiamondHead | SquareHead | XHead | TriangleHead
 \label{fig:phrase-attributes}
 \end{figure}
 
-With a slight stretch of the imagination, we can even consider a
-``notator'' of a score as a kind of player: exactly how the music is
-rendered on the written page may be a personal, stylized process.  For
-example, how many, and which staves should be used to notate a
-particular instrument?
+In addition to phrase attributes, Euterpea has a notion of \emph{note
+  attributes} that can similarly be interpreted in different ways by
+different players.  This is done by exploiting polymorphism to define
+a version of |Music| that in addition to pitch, carries a list of note
+attributes for each individual note:
+\begin{spec}
+data NoteAttribute = 
+        Volume  Int   -- MIDI convention: 0=min, 127=max
+     |  Fingering Integer
+     |  Dynamics String
+     |  Params [Double]
+     deriving (Eq, Show)
+\end{spec}
+Our goal then is to define a player for music values of type:
+\begin{code}
+type Note1   = (Pitch, [NoteAttribute])
+type Music1  = Music Note1
+\end{code}
 
-In any case, to handle these issues, Euterpea has a notion of a
-\emph{player} that ``knows'' about differences with respect to
-performance and notation.  A Euterpea player is a 4-tuple consisting of
-a name and three functions: one for interpreting notes, one for
-phrases, and one for producing a properly notated score.
+Finally, with a slight stretch of the imagination, we can even
+consider the generation of a \emph{score} as a kind of player: exactly
+how the music is notated on the written page may be a personal,
+stylized process.  For example, how many, and which staves should be
+used to notate a particular instrument?
+
+To handle these three different kinds of interpretation, Euterpea has
+a notion of a \emph{player} that ``knows'' about differences with
+respect to performance and notation.  An Euterpean |Player| is a
+four-tuple consisting of a name and three functions: one for
+interpreting notes, one for phrases, and one for producing a properly
+notated score:
 \begin{code}
 data Player a = MkPlayer {  pName         :: PlayerName, 
                             playNote      :: NoteFun a,
@@ -469,23 +492,6 @@ In this section we define a ``default player'' called |defPlayer| (not
 to be confused with a ``deaf player''!) for use when none other is
 specified in a score; it also functions as a basis from which other
 players can be derived.
-
-In order to provide the most flexibility, we exploit poymorphism to
-define a version of |Music| that in addition to pitch, carries a list
-of ``note attributes'' for each individual note:
-\begin{spec}
-data NoteAttribute = 
-        Volume  Int   -- MIDI convention: 0=min, 127=max
-     |  Fingering Integer
-     |  Dynamics String
-     |  Params [Double]
-   deriving (Eq, Show)
-\end{spec}
-Our goal then is to define a player for music values of type:
-\begin{code}
-type Music1  = Music Note1
-type Note1   = (Pitch, [NoteAttribute])
-\end{code}
 
 \out{
 Convert from Music to Music1:
@@ -627,14 +633,14 @@ myPasHandler  pa                  pf = defPasHandler pa pf
 
 Figure \ref{fancy-Player} defines a relatively sophisticated player
 called |fancyPlayer| that knows all that |defPlayer| knows, and more.
-Note that |Slurred| is different from |Legato| in that it doesn't
+Note that |Slurred| is different from |Legato| in that it does not
 extend the duration of the {\em last} note(s).  The behavior of
-|Ritardando x| can be explained as follows.  We'd like to ``stretch''
-the time of each event by a factor from $0$ to $x$, linearly
-interpolated based on how far along the musical phrase the event
-occurs.  I.e., given a start time $t_0$ for the first event in the
-phrase, total phrase duration $D$, and event time $t$, the new event
-time $t'$ is given by:
+|Ritardando x| can be explained as follows.  We would like to
+``stretch'' the time of each event by a factor from $0$ to $x$,
+linearly interpolated based on how far along the musical phrase the
+event occurs.  I.e., given a start time $t_0$ for the first event in
+the phrase, total phrase duration $D$, and event time $t$, the new
+event time $t'$ is given by:
 \[ t'   = (1 + \frac{t-t_0}{D}x)(t-t_0) + t_0 \]
 Further, if $d$ is the duration of the event, then the end of
 the event $t+d$ gets stretched to a new time $t_d'$ given by:
@@ -670,7 +676,7 @@ Note that if anything other than a |"Fancy"| player is specified in
 the |Music| value, such as |player "Strange" m|, then the default
 player |defPlayer| is used.
 
-If instead one wishes to use her own player, say |newPlayer| defined
+If instead we wish to use our own player, say |newPlayer| defined
 in Section \ref{sec:new-player}, then a new player map can be defined,
 such as:
 \begin{spec}
@@ -682,21 +688,21 @@ myPMap p            = defPMap p
 Similarly, different versions of the context can be defined based on a
 user's needs.
 
-One could, then, use these versions of player maps and contexts to
+We could, then, use these versions of player maps and contexts to
 invoke the |perform| function to generate an abstract |Performance|.
 Of course, we ultimately want to hear our music, not just see an
 abstract |Performance|.  Recall that |play|'s type signature is:
 \begin{spec}
 play :: Performable a => Music a -> IO ()
 \end{spec}
-To allow using different player maps and contexts, Eutperpea also has
+To allow using different player maps and contexts, Euterpea also has
 a version of |play| called |playA| whose type signature is:
 \begin{spec}
 playA ::  Performable a => 
           PMap Note1 -> Context Note1 -> Music a -> IO ()
 \end{spec}
 For example, to play a |Music| value |m| using |myPMap| defined above
-and the default context |defCon|, one can do:
+and the default context |defCon|, we can do:
 \begin{spec}
 playA myPMap defCon m
 \end{spec}
@@ -807,9 +813,6 @@ fancyInterpPhrase pm
     Art _                -> pfd
     Orn _                -> pfd
 \end{code}}
-\todo{Design Bug: To do things right we need to keep the key signature
-      around to determine, for example, what the trill note is.
-      Alternatively, provide an argument to Trill to carry this info.}
 \caption{Definition of Player |fancyPlayer|.}
 \label{fancy-Player}
 \end{figure}

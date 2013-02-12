@@ -30,16 +30,18 @@ data Context a = Context {  cTime    :: PTime,
                             cKey     :: Key, 
                             cVol     :: Volume}
      deriving Show
-type PMap a  = PlayerName -> Player a
+
 type Key     = AbsPitch
 metro              :: Int -> Dur -> DurT
 metro setting dur  = 60 / (fromIntegral setting * dur)
  
-merge a@(e1:es1)  b@(e2:es2)  =  if eTime e1 < eTime e2
-                                 then e1 : merge es1 b
-                                 else e2 : merge a es2
+type PMap a  = PlayerName -> Player a
+
 merge []          es2         =  es2
 merge es1         []          =  es1
+merge a@(e1:es1)  b@(e2:es2)  =  
+  if eTime e1 < eTime e2  then  e1  : merge es1 b
+                          else  e2  : merge a es2
  
 perform :: PMap a -> Context a -> Music a -> Performance
 perform pm c m = fst (perf pm c m)
@@ -63,6 +65,8 @@ perf pm
      Modify  (Instrument i) m   -> perf pm (c {cInst = i}) m
      Modify  (Player pn) m      -> perf pm (c {cPlayer = pm pn}) m
      Modify  (Phrase pas) m     -> interpPhrase pl pm c pas m
+type Note1   = (Pitch, [NoteAttribute])
+type Music1  = Music Note1
 data Player a = MkPlayer {  pName         :: PlayerName, 
                             playNote      :: NoteFun a,
                             interpPhrase  :: PhraseFun a, 
@@ -73,8 +77,6 @@ type NoteFun a    =  Context a -> Dur -> a -> Performance
 type PhraseFun a  =  PMap a -> Context a -> [PhraseAttribute]
                      -> Music a -> (Performance, DurT)
 type NotateFun a  =  ()
-type Music1  = Music Note1
-type Note1   = (Pitch, [NoteAttribute])
 
 toMusic1 :: Music Pitch -> Music1
 toMusic1 = mMap (\p -> (p, []))
