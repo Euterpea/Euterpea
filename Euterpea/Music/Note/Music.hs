@@ -27,11 +27,12 @@ data Control =
        |  Instrument  InstrumentName     -- instrument label
        |  Phrase      [PhraseAttribute]  -- phrase attributes
        |  Player      PlayerName         -- player label
+       |  KeySig      PitchClass Mode    -- key signature and mode
   deriving (Show, Eq, Ord)
 
-data Mode = Major | Minor
+type PlayerName  = String
+data Mode        = Major | Minor
   deriving (Eq, Ord, Show)
-type PlayerName = String
 data InstrumentName =
      AcousticGrandPiano     | BrightAcousticPiano    | ElectricGrandPiano
   |  HonkyTonkPiano         | RhodesPiano            | ChorusedPiano
@@ -104,11 +105,13 @@ data Ornament  =  Trill | Mordent | InvMordent | DoubleMordent
                |  Turn | TrilledTurn | ShortTrill
                |  Arpeggio | ArpeggioUp | ArpeggioDown
                |  Instruction String | Head NoteHead
+               |  DiatonicTrans Int
      deriving (Eq, Ord, Show)
 
 data NoteHead  =  DiamondHead | SquareHead | XHead | TriangleHead
                |  TremoloHead | SlashHead | ArtHarmonic | NoHead
      deriving (Eq, Ord, Show)
+
 note            :: Dur -> a -> Music a
 note d p        = Prim (Note d p)
 
@@ -129,6 +132,9 @@ phrase pa m     = Modify (Phrase pa) m
 
 player          :: PlayerName -> Music a -> Music a
 player pn m     = Modify (Player pn) m
+
+keysig          :: PitchClass -> Mode -> Music a -> Music a
+keysig pc mo m  = Modify (KeySig pc mo) m
 cff,cf,c,cs,css,dff,df,d,ds,dss,eff,ef,e,es,ess,fff,ff,f,
   fs,fss,gff,gf,g,gs,gss,aff,af,a,as,ass,bff,bf,b,bs,bss :: 
     Octave -> Dur -> Music Pitch

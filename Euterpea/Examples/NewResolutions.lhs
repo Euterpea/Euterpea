@@ -7,7 +7,8 @@ New Resolutions by Jean-Luc Ponty, Scott O'Neil, and John Garvin
 >                      cPlayer = fancyPlayer,
 >                      cInst = Marimba,
 >                      cDur = 1.0,
->                      cKey = 0,
+>                      cPch = 0,
+>                      cKey = (C,Major),
 >                      cVol = 100}
 >
 > tNewRes m = makeMidi (m, nrContext, defUpm)

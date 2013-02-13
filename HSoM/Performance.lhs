@@ -137,21 +137,20 @@ performance into MIDI.
 
 To generate a complete performance of, i.e.\ give an interpretation
 to, a musical value, we must know the time to begin the performance,
-and the proper instrument, volume, key and tempo.  We can think of
-this as the ``context'' in which a musical value is interpreted.  This
-context can be captured formally in Haskell as a data type:
-respectively:
+and the proper instrument, volume, starting pitch and tempo.  We can
+think of this as the ``context'' in which a musical value is
+interpreted.  This context can be captured formally in Haskell as a
+data type: respectively:
 \begin{code}
 
 data Context a = Context {  cTime    :: PTime, 
                             cPlayer  :: Player a, 
                             cInst    :: InstrumentName, 
                             cDur     :: DurT, 
-                            cKey     :: Key, 
-                            cVol     :: Volume}
+                            cPch     :: AbsPitch,
+                            cVol     :: Volume,
+                            cKey     :: (PitchClass, Mode) }
      deriving Show
-
-type Key     = AbsPitch
 \end{code}
 When a |Music| value is interpreted, it will be given an inital
 context, but as the |Music| value is recursively interpreted, the
@@ -213,7 +212,7 @@ equations one at a time.
 \begin{spec}
 perform :: PMap a -> Context a -> Music a -> Performance
 perform pm 
-  c@Context {cTime = t, cPlayer = pl, cDur = dt, cKey = k} m =
+  c@Context {cTime = t, cPlayer = pl, cDur = dt, cPch = k} m =
   case m of
      Prim (Note d p)           ->  playNote pl c d p
      Prim (Rest d)             ->  []
@@ -222,11 +221,12 @@ perform pm
                in  perform pm c m1 ++ perform pm c' m2
      m1 :=: m2                 ->  merge   (perform pm c m1) 
                                            (perform pm c m2)
-     Modify  (Tempo r) m       ->  perform pm (c {cDur = dt / r}) m
-     Modify  (Transpose p) m   ->  perform pm (c {cKey = k + p}) m
-     Modify  (Instrument i) m  ->  perform pm (c {cInst = i}) m
-     Modify  (Player pn) m -> perform pm (c {cPlayer = pm pn}) m
-     Modify  (Phrase pa) m     ->  interpPhrase pl pm c pa m
+     Modify (Tempo r)       m  ->  perform pm (c {cDur = dt / r})    m
+     Modify (Transpose p)   m  ->  perform pm (c {cPch = k + p})     m
+     Modify (Instrument i)  m  ->  perform pm (c {cInst = i})        m
+     Modify (KeySig pc mo)  m  ->  perform pm (c {cKey = (pc,mo)})   m
+     Modify (Player pn)     m  ->  perform pm (c {cPlayer = pm pn})  m
+     Modify (Phrase pa)     m  ->  interpPhrase pl pm c pa           m
 \end{spec}
 \caption{An abstract |perform| function}
 \label{fig:perform}
@@ -270,12 +270,15 @@ In the interpretation of |Modify|, first recall the definition of
 data Control =
           Tempo       Rational           -- scale the tempo
        |  Transpose   AbsPitch           -- transposition
-       |  Instrument  InstrumentName     -- intrument label
+       |  Instrument  InstrumentName     -- instrument label
        |  Phrase      [PhraseAttribute]  -- phrase attributes
        |  Player      PlayerName         -- player label
-     deriving (Show, Eq, Ord)
+       |  KeySig      PitchClass Mode    -- key signature and mode
+  deriving (Show, Eq, Ord)
 
-type PlayerName = String
+type PlayerName  = String
+data Mode        = Major | Minor
+  deriving (Eq, Ord, Show)
 \end{spec}
 Each of these five constructors is handled by a separate equation in
 the definition of |perform|.  Note how the context is updated in each
@@ -340,7 +343,7 @@ perform pm c m = fst (perf pm c m)
 
 perf :: PMap a -> Context a -> Music a -> (Performance, DurT)
 perf pm 
-  c@Context {cTime = t, cPlayer = pl, cDur = dt, cKey = k} m =
+  c@Context {cTime = t, cPlayer = pl, cDur = dt, cPch = k} m =
   case m of
      Prim (Note d p)            -> (playNote pl c d p, d*dt)
      Prim (Rest d)              -> ([], d*dt)
@@ -352,11 +355,12 @@ perf pm
              let  (pf1,d1)  = perf pm c m1
                   (pf2,d2)  = perf pm c m2
              in (merge pf1 pf2, max d1 d2)
-     Modify  (Tempo r) m        -> perf pm (c {cDur = dt / r}) m
-     Modify  (Transpose p) m    -> perf pm (c {cKey = k + p}) m
-     Modify  (Instrument i) m   -> perf pm (c {cInst = i}) m
-     Modify  (Player pn) m      -> perf pm (c {cPlayer = pm pn}) m
-     Modify  (Phrase pas) m     -> interpPhrase pl pm c pas m
+     Modify  (Tempo r)       m  -> perf pm (c {cDur = dt / r})    m
+     Modify  (Transpose p)   m  -> perf pm (c {cPch = k + p})     m
+     Modify  (Instrument i)  m  -> perf pm (c {cInst = i})        m
+     Modify  (KeySig pc mo)  m  -> perf pm (c {cKey = (pc,mo)})   m
+     Modify  (Player pn)     m  -> perf pm (c {cPlayer = pm pn})  m
+     Modify  (Phrase pas)    m  -> interpPhrase pl pm c pas       m
 \end{code}
 \caption{A more efficient |perform| function}
 \label{fig:real-perform}
@@ -403,10 +407,7 @@ data PhraseAttribute  =  Dyn Dynamic
                       |  Tmp Tempo
                       |  Art Articulation
                       |  Orn Ornament
---                       |  Key PitchClass Mode
      deriving (Eq, Ord, Show)
-
--- data Mode = Major | Minor
 
 data Dynamic  =  Accent Rational | Crescendo Rational
               |  Diminuendo Rational | StdLoudness StdLoudness 
@@ -458,12 +459,25 @@ Our goal then is to define a player for music values of type:
 type Note1   = (Pitch, [NoteAttribute])
 type Music1  = Music Note1
 \end{code}
+To facilitate the use of |Music1| values we define these auxiliary
+functions:
+\begin{code}
+
+toMusic1 :: Music Pitch -> Music1
+toMusic1 = mMap (\p -> (p, []))
+
+toMusic1' :: Music (Pitch, Volume) -> Music1
+toMusic1' = mMap (\(p, v) -> (p, [Volume v]))
+\end{code}
 
 Finally, with a slight stretch of the imagination, we can even
 consider the generation of a \emph{score} as a kind of player: exactly
 how the music is notated on the written page may be a personal,
 stylized process.  For example, how many, and which staves should be
-used to notate a particular instrument?
+used to notate a particular instrument?  
+
+%% As another example, the |Key| phrase attribute is needed to implement
+%% a proper trill or turn, and also how to notate accidentals in a score.
 
 To handle these three different kinds of interpretation, Euterpea has
 a notion of a \emph{player} that ``knows'' about differences with
@@ -493,22 +507,6 @@ to be confused with a ``deaf player''!) for use when none other is
 specified in a score; it also functions as a basis from which other
 players can be derived.
 
-\out{
-Convert from Music to Music1:
-\begin{code}
-
-toMusic1 :: Music Pitch -> Music1
-toMusic1 = mMap (\p -> (p, []))
-\end{code}
-
-Convert from Music(Pitch, Volume) to Music1:
-
-\begin{code}
-toMusic1' :: Music (Pitch, Volume) -> Music1
-toMusic1' = mMap (\(p, v) -> (p, [Volume v]))
-\end{code}
-}
-
 At the upper-most level, |defPlayer| is defined as a four-tuple:
 \begin{code}
 defPlayer  :: Player Note1
@@ -532,9 +530,9 @@ phrase attributes.
 defPlayNote ::  (Context (Pitch,[a]) -> a -> Event-> Event)
                 -> NoteFun (Pitch, [a])
 defPlayNote nasHandler 
-  c@(Context cTime cPlayer cInst cDur cKey cVol) d (p,nas) =
+  c@(Context cTime cPlayer cInst cDur cPch cVol cKey) d (p,nas) =
     let initEv = Event {  eTime    = cTime, eInst  = cInst,
-                          ePitch   = absPitch p + cKey,
+                          ePitch   = absPitch p + cPch,
                           eDur     = d * cDur, eVol = cVol,
                           eParams  = [] }
     in [ foldr (nasHandler c) initEv nas ]
@@ -546,6 +544,8 @@ defNasHandler _            _   ev = ev
 
 defInterpPhrase :: 
    (PhraseAttribute -> Performance -> Performance) -> PhraseFun a
+-- type PhraseFun a  =  PMap a -> Context a -> [PhraseAttribute]
+--                      -> Music a -> (Performance, DurT)
 defInterpPhrase pasHandler pm context pas m =
        let (pf,dur) = perf pm context m
        in (foldr pasHandler pf pas, dur)
@@ -669,7 +669,8 @@ defCon  = Context {  cTime    = 0,
                      cPlayer  = fancyPlayer,
                      cInst    = AcousticGrandPiano,
                      cDur     = metro 120 qn,
-                     cKey     = 0,
+                     cPch     = 0,
+                     cKey     = (C, Major),
                      cVol     = 127 }
 \end{code}
 Note that if anything other than a |"Fancy"| player is specified in
@@ -773,7 +774,7 @@ fancyInterpPhrase             :: PhraseFun a
 fancyInterpPhrase pm c [] m   = perf pm c m
 fancyInterpPhrase pm 
   c@Context {  cTime = t, cPlayer = pl, cInst = i, 
-               cDur = dt, cKey = k, cVol = v}
+               cDur = dt, cPch = k, cVol = v}
   (pa:pas) m =
   let  pfd@(pf,dur)  =  fancyInterpPhrase pm c pas m
        loud x        =  fancyInterpPhrase pm c (Dyn (Loudness x) : pas) m

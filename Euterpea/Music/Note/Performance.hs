@@ -27,11 +27,10 @@ data Context a = Context {  cTime    :: PTime,
                             cPlayer  :: Player a, 
                             cInst    :: InstrumentName, 
                             cDur     :: DurT, 
-                            cKey     :: Key, 
-                            cVol     :: Volume}
+                            cPch     :: AbsPitch,
+                            cVol     :: Volume,
+                            cKey     :: (PitchClass, Mode) }
      deriving Show
-
-type Key     = AbsPitch
 metro              :: Int -> Dur -> DurT
 metro setting dur  = 60 / (fromIntegral setting * dur)
  
@@ -48,7 +47,7 @@ perform pm c m = fst (perf pm c m)
 
 perf :: PMap a -> Context a -> Music a -> (Performance, DurT)
 perf pm 
-  c@Context {cTime = t, cPlayer = pl, cDur = dt, cKey = k} m =
+  c@Context {cTime = t, cPlayer = pl, cDur = dt, cPch = k} m =
   case m of
      Prim (Note d p)            -> (playNote pl c d p, d*dt)
      Prim (Rest d)              -> ([], d*dt)
@@ -60,13 +59,20 @@ perf pm
              let  (pf1,d1)  = perf pm c m1
                   (pf2,d2)  = perf pm c m2
              in (merge pf1 pf2, max d1 d2)
-     Modify  (Tempo r) m        -> perf pm (c {cDur = dt / r}) m
-     Modify  (Transpose p) m    -> perf pm (c {cKey = k + p}) m
-     Modify  (Instrument i) m   -> perf pm (c {cInst = i}) m
-     Modify  (Player pn) m      -> perf pm (c {cPlayer = pm pn}) m
-     Modify  (Phrase pas) m     -> interpPhrase pl pm c pas m
+     Modify  (Tempo r)       m  -> perf pm (c {cDur = dt / r})    m
+     Modify  (Transpose p)   m  -> perf pm (c {cPch = k + p})     m
+     Modify  (Instrument i)  m  -> perf pm (c {cInst = i})        m
+     Modify  (KeySig pc mo)  m  -> perf pm (c {cKey = (pc,mo)})   m
+     Modify  (Player pn)     m  -> perf pm (c {cPlayer = pm pn})  m
+     Modify  (Phrase pas)    m  -> interpPhrase pl pm c pas       m
 type Note1   = (Pitch, [NoteAttribute])
 type Music1  = Music Note1
+
+toMusic1 :: Music Pitch -> Music1
+toMusic1 = mMap (\p -> (p, []))
+
+toMusic1' :: Music (Pitch, Volume) -> Music1
+toMusic1' = mMap (\(p, v) -> (p, [Volume v]))
 data Player a = MkPlayer {  pName         :: PlayerName, 
                             playNote      :: NoteFun a,
                             interpPhrase  :: PhraseFun a, 
@@ -77,11 +83,6 @@ type NoteFun a    =  Context a -> Dur -> a -> Performance
 type PhraseFun a  =  PMap a -> Context a -> [PhraseAttribute]
                      -> Music a -> (Performance, DurT)
 type NotateFun a  =  ()
-
-toMusic1 :: Music Pitch -> Music1
-toMusic1 = mMap (\p -> (p, []))
-toMusic1' :: Music (Pitch, Volume) -> Music1
-toMusic1' = mMap (\(p, v) -> (p, [Volume v]))
 defPlayer  :: Player Note1
 defPlayer  = MkPlayer 
              {  pName         = "Default",
@@ -91,9 +92,9 @@ defPlayer  = MkPlayer
 defPlayNote ::  (Context (Pitch,[a]) -> a -> Event-> Event)
                 -> NoteFun (Pitch, [a])
 defPlayNote nasHandler 
-  c@(Context cTime cPlayer cInst cDur cKey cVol) d (p,nas) =
+  c@(Context cTime cPlayer cInst cDur cPch cVol cKey) d (p,nas) =
     let initEv = Event {  eTime    = cTime, eInst  = cInst,
-                          ePitch   = absPitch p + cKey,
+                          ePitch   = absPitch p + cPch,
                           eDur     = d * cDur, eVol = cVol,
                           eParams  = [] }
     in [ foldr (nasHandler c) initEv nas ]
@@ -105,6 +106,8 @@ defNasHandler _            _   ev = ev
 
 defInterpPhrase :: 
    (PhraseAttribute -> Performance -> Performance) -> PhraseFun a
+-- type PhraseFun a  =  PMap a -> Context a -> [PhraseAttribute]
+--                      -> Music a -> (Performance, DurT)
 defInterpPhrase pasHandler pm context pas m =
        let (pf,dur) = perf pm context m
        in (foldr pasHandler pf pas, dur)
@@ -128,7 +131,8 @@ defCon  = Context {  cTime    = 0,
                      cPlayer  = fancyPlayer,
                      cInst    = AcousticGrandPiano,
                      cDur     = metro 120 qn,
-                     cKey     = 0,
+                     cPch     = 0,
+                     cKey     = (C, Major),
                      cVol     = 127 }
 
 fancyPlayer :: Player (Pitch, [NoteAttribute])
@@ -141,7 +145,7 @@ fancyInterpPhrase             :: PhraseFun a
 fancyInterpPhrase pm c [] m   = perf pm c m
 fancyInterpPhrase pm 
   c@Context {  cTime = t, cPlayer = pl, cInst = i, 
-               cDur = dt, cKey = k, cVol = v}
+               cDur = dt, cPch = k, cVol = v}
   (pa:pas) m =
   let  pfd@(pf,dur)  =  fancyInterpPhrase pm c pas m
        loud x        =  fancyInterpPhrase pm c (Dyn (Loudness x) : pas) m

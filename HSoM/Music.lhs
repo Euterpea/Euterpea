@@ -378,11 +378,12 @@ data Control =
           Tempo       Rational           -- scale the tempo
        |  Transpose   AbsPitch           -- transposition
        |  Instrument  InstrumentName     -- instrument label
---        |  Key         PitchClass Mode
        |  Phrase      [PhraseAttribute]  -- phrase attributes
        |  Player      PlayerName         -- player label
+       |  KeySig      PitchClass Mode    -- key signature and mode
 
-data Mode = Major | Minor
+type PlayerName  = String
+data Mode        = Major | Minor
 \end{spec}
 \out{
 \begin{code}
@@ -392,22 +393,24 @@ data Control =
        |  Instrument  InstrumentName     -- instrument label
        |  Phrase      [PhraseAttribute]  -- phrase attributes
        |  Player      PlayerName         -- player label
+       |  KeySig      PitchClass Mode    -- key signature and mode
   deriving (Show, Eq, Ord)
 
-data Mode = Major | Minor
+type PlayerName  = String
+data Mode        = Major | Minor
   deriving (Eq, Ord, Show)
 \end{code}
 }
 
-\begin{code}
-type PlayerName = String
-\end{code}
-|AbsPitch| (``absolute pitch,'' defined in Section \ref{sec:abspitch})
-is just a type synonym for |Int|.  Instrument names are borrowed from
-the General MIDI standard \cite{MIDI}, and are captured as an
-algebraic data type in Figure \ref{fig:instrument-names}.  Phrase
-attributes and the concept of a ``player'' are closely related, but a
-full explanation is deferred until Chapter \ref{ch:performance}.
+|AbsPitch| (``absolute pitch,'' to be defined in Section
+\ref{sec:abspitch}) is just a type synonym for |Int|.  Instrument
+names are borrowed from the General MIDI standard \cite{MIDI}, and are
+captured as an algebraic data type in Figure
+\ref{fig:instrument-names}.  Phrase attributes and the concept of a
+``player'' are closely related, but a full explanation is deferred
+until Chapter \ref{ch:performance}.  The |KeySig| constructor attaches
+a key signature to a |Music| value, and is different conceptually from
+transposition.
 
 %% are defined in Figure \ref{fig:phase-attributes}.  The 
 
@@ -499,11 +502,13 @@ data Ornament  =  Trill | Mordent | InvMordent | DoubleMordent
                |  Turn | TrilledTurn | ShortTrill
                |  Arpeggio | ArpeggioUp | ArpeggioDown
                |  Instruction String | Head NoteHead
+               |  DiatonicTrans Int
      deriving (Eq, Ord, Show)
 
 data NoteHead  =  DiamondHead | SquareHead | XHead | TriangleHead
                |  TremoloHead | SlashHead | ArtHarmonic | NoHead
      deriving (Eq, Ord, Show)
+
 \end{code}}
 \caption{Phrase Attributes}
 \label{fig:phase-attributes}
@@ -548,6 +553,9 @@ phrase pa m     = Modify (Phrase pa) m
 
 player          :: PlayerName -> Music a -> Music a
 player pn m     = Modify (Player pn) m
+
+keysig          :: PitchClass -> Mode -> Music a -> Music a
+keysig pc mo m  = Modify (KeySig pc mo) m
 \end{code}
 Note that each of these functions is polymorphic, a trait inherited
 from the data types that it uses.  Also recall that the first two of
