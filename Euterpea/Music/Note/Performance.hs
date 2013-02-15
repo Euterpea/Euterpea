@@ -3,8 +3,7 @@
 
 {-# LANGUAGE FlexibleInstances, TypeSynonymInstances #-}
 
-module Euterpea.Music.Note.Performance
-       where
+module Euterpea.Music.Note.Performance where
 
 import Euterpea.Music.Note.Music
 import Euterpea.Music.Note.MoreMusic
@@ -105,9 +104,9 @@ defNasHandler c (Params pms)   ev = ev {eParams = pms}
 defNasHandler _            _   ev = ev
 
 defInterpPhrase :: 
-   (PhraseAttribute -> Performance -> Performance) -> PhraseFun a
--- type PhraseFun a  =  PMap a -> Context a -> [PhraseAttribute]
---                      -> Music a -> (Performance, DurT)
+   (PhraseAttribute -> Performance -> Performance) -> -- PhraseFun a
+   PMap a -> Context a -> [PhraseAttribute] -> Music a -> 
+   (Performance, DurT)
 defInterpPhrase pasHandler pm context pas m =
        let (pf,dur) = perf pm context m
        in (foldr pasHandler pf pas, dur)

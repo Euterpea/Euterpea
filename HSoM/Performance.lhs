@@ -17,8 +17,7 @@
 \begin{code}
 {-# LANGUAGE FlexibleInstances, TypeSynonymInstances #-}
 
-module Euterpea.Music.Note.Performance
-       where
+module Euterpea.Music.Note.Performance where
 
 import Euterpea.Music.Note.Music
 import Euterpea.Music.Note.MoreMusic
@@ -26,6 +25,11 @@ import Euterpea.Music.Note.MoreMusic
 instance Show (a -> b) where
    showsPrec p f = showString "<<function>>"
 \end{code} 
+
+\syn{The first line above is a GHC \emph{pragma} that, in this case,
+  relaxes certain constraints on instance declarations.  Specifically,
+  instances cannot normally be declared for type synonyms---but the
+  above pragma overrides that constraint.}
 
 So far, our presentation of musical values in Haskell has been mostly
 structural, i.e.\ \emph{syntactic}.  Although we have given an
@@ -83,8 +87,9 @@ data Event = Event  PTime InstrumentName
 \end{spec}
 except that the former also defines ``field labels'' |eTime|, |eInst|, 
 |ePitch|, |eDur|, |eVol|, and |eParams|, which can be used to
-create, update, and select from |Event| values.  For example, this
-equation: 
+create, update, and select from |Event| values.}
+
+\syn{For example, this equation:
 \begin{spec}
 e = Event 0 Cello 27 (1/4) 50 []
 \end{spec}
@@ -96,16 +101,8 @@ e = Event {  eTime = 0, ePitch = 27, eDur = 1/4,
 Although more verbose, the latter is also more descriptive, and the
 order of the fields does not matter (indeed the order here is not the
 same as above).
-%% this equation would do just as well:
-%% \begin{spec}
-%% e = Event { eDur = 1/4, eVol = 50, eParams = [],
-%%             eTime = 0, eInst = Cello, ePitch = 27 }
-%% \end{spec}
-%% The use of field labels in a data declaration does not preclude the
-%% positional style of field access.
-}
 
-\syn{Field labels can be used to \emph{select} fields from an |Event|
+Field labels can be used to \emph{select} fields from an |Event|
 value; for example, using the value of |e| above, |eInst e => Cello|,
 |eDur e => 1/4|, and so on.  They can also be used to selectively
 \emph{update} fields of an existing |Event| value.  For example:
@@ -137,10 +134,13 @@ performance into MIDI.
 
 To generate a complete performance of, i.e.\ give an interpretation
 to, a musical value, we must know the time to begin the performance,
-and the proper instrument, volume, starting pitch and tempo.  We can
-think of this as the ``context'' in which a musical value is
+and the proper instrument, volume, starting pitch offset, and tempo.
+We can think of this as the ``context'' in which a musical value is
 interpreted.  This context can be captured formally in Haskell as a
 data type: respectively:
+
+\pagebreak
+
 \begin{code}
 
 data Context a = Context {  cTime    :: PTime, 
@@ -280,7 +280,7 @@ type PlayerName  = String
 data Mode        = Major | Minor
   deriving (Eq, Ord, Show)
 \end{spec}
-Each of these five constructors is handled by a separate equation in
+Each of these six constructors is handled by a separate equation in
 the definition of |perform|.  Note how the context is updated in each
 case---the |Context|, in general, is the running ``state'' of the
 performance, and gets updated in several different ways.
@@ -299,8 +299,8 @@ abstract, |Performance| values are less abstract, and MIDI or audio
 streams are the least abstract.  This chapter focuses on converting a
 |Music| value into a |Performance|; subsequent chapters will focus on
 translating a |Performance| into either MIDI (still at the ``note''
-level, and fairly straightforward) or audio (now at the ``signal''
-level, and more complex).
+level, and fairly straightforward) or audio (at the ``signal'' level,
+and more complex).
 
 \begin{figure}[hbtp]
 \centering
@@ -431,6 +431,7 @@ data Ornament  =  Trill | Mordent | InvMordent | DoubleMordent
                |  Turn | TrilledTurn | ShortTrill
                |  Arpeggio | ArpeggioUp | ArpeggioDown
                |  Instruction String | Head NoteHead
+               |  DiatonicTrans Int
      deriving (Eq, Ord, Show)
 
 data NoteHead  =  DiamondHead | SquareHead | XHead | TriangleHead
@@ -446,6 +447,9 @@ In addition to phrase attributes, Euterpea has a notion of \emph{note
 different players.  This is done by exploiting polymorphism to define
 a version of |Music| that in addition to pitch, carries a list of note
 attributes for each individual note:
+
+\pagebreak
+
 \begin{spec}
 data NoteAttribute = 
         Volume  Int   -- MIDI convention: 0=min, 127=max
@@ -543,9 +547,9 @@ defNasHandler c (Params pms)   ev = ev {eParams = pms}
 defNasHandler _            _   ev = ev
 
 defInterpPhrase :: 
-   (PhraseAttribute -> Performance -> Performance) -> PhraseFun a
--- type PhraseFun a  =  PMap a -> Context a -> [PhraseAttribute]
---                      -> Music a -> (Performance, DurT)
+   (PhraseAttribute -> Performance -> Performance) -> -- PhraseFun a
+   PMap a -> Context a -> [PhraseAttribute] -> Music a -> 
+   (Performance, DurT)
 defInterpPhrase pasHandler pm context pas m =
        let (pf,dur) = perf pm context m
        in (foldr pasHandler pf pas, dur)
@@ -626,7 +630,7 @@ myPasHandler (Dyn (Crescendo x))  pf = ...
 myPasHandler  pa                  pf = defPasHandler pa pf
 \end{spec} 
 
-\todo{Expain more... in particular, how ``inheritance'' works.}
+\todo{Explain more... in particular, how ``inheritance'' works.}
 
 \subsection{A Fancy Player}
 \label{sec:fancy-player}
@@ -736,12 +740,6 @@ of |defPlayer|.}
 \end{exercise}
 
 \begin{exercise}{\em
-%% Define a function |jazzMan| (or |jazzWoman| if you prefer) whose type
-%% is |Music1 -> Music1| such that |jazzMan m| is the melody |m| modified to
-%% reflect a jazz ``swing'' rhythm.
-
-%% Should |jazzMan| instead be defined as a player?  Discuss.
-
 Define a player |jazzMan| (or |jazzWoman| if you prefer) that plays a
 melody using a jazz ``swing'' feel.  Since there are different kinds
 and degrees of swing, we can be more specific as follows: whenever
@@ -749,11 +747,25 @@ there is a sequence of two eighth notes, they should be interpreted
 instead as a quarter note followed by an eighth note, but with tempo
 3/2.  So in essence, the first note is lengthened, and the second note
 is shortened, so that the first note is twice as long as the second,
-but they still take up the same amount of overall time.
+but they still take up the same amount of overall time.  
 
-To do this at the |Player| level, some assumptions need to be made, such as
-what is an eighth note, where is the downbeat, etc.\
-}
+Hint: To do this at the |Player| level, some assumptions need to be
+made, such as what is an eighth note, where is the downbeat, etc.}
+\end{exercise}
+
+\begin{exercise}{\em
+Implement the ornamentation |DiatonicTrans|, which is intended to be a
+``diatonic tranposition'' of a phrase within a particular key.  The
+argument to |DiatonicTrans| is an integer representing the number of
+\emph{scale degrees} to do the transposition.  For example, the
+diatonic transposition of |c 4 en :+: d 4 en :+: e 4 en| in C major by
+2 scale degrees should yield |e 4 en :+: f 4 en :+: g 4 en|, whereas
+in G major should yield |e 4 en :+: fs 4 en :+: g 4 en|.
+
+Hint: You will need to access the key from the context (using |cKey|),
+but the trickier part is how to treat the |cPch| field.  Once a
+|Performance| is generated, you can think of each abolute pitch as
+being relative to a zero offset.}
 \end{exercise}
 
 \vspace{.1in}\hrule

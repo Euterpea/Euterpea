@@ -532,7 +532,7 @@ explanation a few more of Haskell's secrets will be revealed.
 \hline
 |Eq|   & |(==),(/=) :: Eq a => a->a->Bool| & |Integer, Int, Float, Double,| \\
        &                                   & |Rational, Char, Bool, ... | \\
-       & minimal set: either (==) or (/=)  & \\
+       & minimal set: either |(==)| or |(/=)|  & \\
 \hline
 |Ord|  & |(>),(<),(>=),(<=) ::|            & |Integer, Int, Float, Double,| \\
        & \ \ \ \ |Ord a => a->a->Bool|     & |Rational, Char, Bool, ... | \\
@@ -657,6 +657,8 @@ In fact, it happens all the time when we interact with GHCi at the
 command prompt, and GHCi will complain if it does not ``know'' how to
 ``show'' a value.  The type of anything that GHCi prints must be an
 instance of the |Show| class.
+
+\pagebreak
 
 Not all of the operations in the |Show| class will be discussed here,
 in fact the only one of interest is |show|:
@@ -992,9 +994,9 @@ Define a type class called |Temporal| whose members are types that can be
 interpreted as having a temporal duration.  |Temporal| should have
 three operations, namely:
 \begin{spec}
-durT  :: Temporal a => a -> Dur
-takeT :: Temporal a => Dur -> a -> a
-dropT :: Temporal a => Dur -> a -> a
+durT   :: Temporal a => a -> Dur
+takeT  :: Temporal a => Dur -> a -> a
+dropT  :: Temporal a => Dur -> a -> a
 \end{spec}
 Then define instances of |Temporal| for the types |Music| and
 |Primitive|.  (Hint: this is not as hard as it sounds, because you can
