@@ -39,55 +39,10 @@ The main UI signal function, built from the UI monad and MSF.
 
 > type UISF = MSF UI
 
-import Control.SF.UISF
+We probably want this to be a deepseq, but changing the types is a pain.
 
-
-#if __GLASGOW_HASKELL__ >= 610
-> instance Arrow UISF where
->   arr f = MSF h 
->     where h x = return (f x, MSF h)
->   first (MSF f) = MSF (h f)
->     where h f (x, z) = do (y, MSF f') <- f x
->                           addSeqAction y
->                           return ((y, z), MSF (h f'))
->   f &&& g = MSF (h f g)
->     where
->       h f g x = do
->         (y, f') <- msfFun f x
->         (z, g') <- msfFun g x 
->         return ((y, z), MSF (h f' g'))
->   f *** g = MSF (h f g)
->     where
->       h f g x = do
->         (y, f') <- msfFun f (fst x)
->         (z, g') <- msfFun g (snd x) 
->         return ((y, z), MSF (h f' g'))
-#else
-> instance Arrow UISF where
->   arr f = MSF h 
->     where h x = return (f x, MSF h)
->   MSF f >>> MSF g = MSF (h f g)
->     where h f g x    = do (y, MSF f') <- f x
->                           (z, MSF g') <- g y
->                           return (z, MSF (h f' g'))
->   first (MSF f) = MSF (h f)
->     where h f (x, z) = do (y, MSF f') <- f x
->                           addSeqAction y
->                           return ((y, z), MSF (h f'))
->   f &&& g = MSF (h f g)
->     where
->       h f g x = do
->         (y, f') <- msfFun f x
->         (z, g') <- msfFun g x 
->         return ((y, z), MSF (h f' g'))
->   f *** g = MSF (h f g)
->     where
->       h f g x = do
->         (y, f') <- msfFun f (fst x)
->         (z, g') <- msfFun g (snd x) 
->         return ((y, z), MSF (h f' g'))
-#endif
-
+> instance ArrowInit UISF where
+>   init i = MSF (h i) where h i x = seq i $ return (i, MSF (h x))
 
 
 Now that we're using UISF instead of the old UI monad, we should probably get 
@@ -253,11 +208,9 @@ Some default parameters we start with.
 >       render drawit' (inp:inps) lastFocus uistream tids = do
 >         wSize <- getWindowSize w
 >         let ctx = defaultCTX wSize addEv
->         (_, dirty, foc, (graphic, sound), (sacts, tids'), (_, uistream')) <- (unUI $ stream uistream) (ctx, lastFocus, inp)
+>         (_, dirty, foc, (graphic, sound), tids', (_, uistream')) <- (unUI $ stream uistream) (ctx, lastFocus, inp)
 >         -- always output sound
 >         sound
->         -- Perform seq actions
->         sacts
 >         -- and delay graphical output when event queue is not empty
 >         setGraphic' w graphic
 >         let drawit = dirty || drawit'

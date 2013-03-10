@@ -38,19 +38,24 @@ earlier widgets and maps input signals to outputs, which consists of 6 parts:
 ======================= Control Data =======================
 ============================================================
 
-> type ControlData = (IO (), [ThreadId])
+> type ControlData = [ThreadId]
+> --type ControlData = (IO (), [ThreadId])
 > nullCD :: ControlData
-> nullCD = (return (), [])
+> nullCD = []
+> --nullCD = (return (), [])
 
 
 > addThreadID :: ThreadId -> UI ()
-> addThreadID t = UI (\(_,f,_) -> return (nullLayout, False, f, nullAction, (return (), [t]), ()))
+> addThreadID t = UI (\(_,f,_) -> return (nullLayout, False, f, nullAction, [t], ()))
 
-> addSeqAction :: a -> UI ()
-> addSeqAction v = UI (\(_,f,_) -> return (nullLayout, False, f, nullAction, (seq v $ return (), []), ()))
+addSeqAction :: a -> UI ()
+addSeqAction v = UI (\(_,f,_) -> return (nullLayout, False, f, nullAction, (seq v $ return (), []), ()))
+
+mergeCD :: ControlData -> ControlData -> ControlData
+mergeCD (s1, t1) (s2, t2) = (s1 >> s2, t1 ++ t2)
 
 > mergeCD :: ControlData -> ControlData -> ControlData
-> mergeCD (s1, t1) (s2, t2) = (s1 >> s2, t1 ++ t2)
+> mergeCD = (++)
 
 
 ============================================================
