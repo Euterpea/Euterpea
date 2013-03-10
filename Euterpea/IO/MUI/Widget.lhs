@@ -6,7 +6,7 @@ GLFW library to provide window and input support.
 
 The monadic UI concept is borrowed from Phooey by Conal Elliott.
 
-> {-# LANGUAGE DoRec, Arrows, OverlappingInstances #-}
+> {-# LANGUAGE DoRec, Arrows #-}
 
 > module Euterpea.IO.MUI.Widget where
 
@@ -327,7 +327,7 @@ returns the continuous stream representing the index of the selected
 choice.
 
 > radio :: [String] -> Int -> UISF () Int
-> radio labels i = undefined {- proc _ -> do
+> radio labels i = proc _ -> do
 >   rec s   <- init i -< s''
 >       s'  <- aux 0 labels -< s
 >       let s'' = maybe s id s'
@@ -350,7 +350,7 @@ choice.
 >              (if down then circle gray3 (x,y) (5,6) (9,10) else nullGraphic) //
 >              (circle gray3 (x,y) (2,3) (12,13)) //
 >              (circle gray0 (x,y) (2,3) (13,14)) //
->              (if inFocus then circle gray2 (x,y) (0,0) (14,15) else nullGraphic) -}
+>              (if inFocus then circle gray2 (x,y) (0,0) (14,15) else nullGraphic)
 
 
 -------------
@@ -671,13 +671,13 @@ that just the radio button index as the radio widget would return.
 > selectOutput = selectDev "Output device" output
 
 > selectDev :: String -> (DeviceInfo -> Bool) -> UISF () DeviceID
-> selectDev t f = undefined {- title t $ proc () -> do
+> selectDev t f = title t $ proc _ -> do
 >   r <- radio (map name $ snd $ unzip devs) defaultChoice -< ()
 >   let devId = if r == -1 then r else fst (devs !! r)
 >   returnA -< devId
 >       where devs = filter (\(i,d) -> f d && name d /= "Microsoft MIDI Mapper") $ 
 >                      zip [0..] $ unsafePerformIO getAllDeviceInfo
->             defaultChoice = if null devs then (-1) else 0 -}
+>             defaultChoice = if null devs then (-1) else 0
 
 
 The selectInputM and selectOutputM widgets use checkboxes instead of 
