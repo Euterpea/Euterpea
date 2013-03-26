@@ -1,24 +1,15 @@
 > {-# LANGUAGE Arrows #-}
 
-> module IntervalTrainer where
+> module Euterpea.Examples.IntervalTrainer where
 
-> import Prelude hiding (init)
 > import Control.Arrow
-> import Control.CCA.Types
 
-> import Euterpea hiding (Event)
-> import Euterpea.IO.MUI
-> import Euterpea.IO.MIDI.MidiIO
+> import Euterpea
 > import System.IO.Unsafe (unsafePerformIO)
 > import System.Random (randomRIO)
 > import qualified Codec.Midi as Midi
 
-> import Control.Arrow
-> import Control.SF.AuxFunctions 
->   (Event, edgeE, accum, mergeE, 
->   (=>>), (->>), (.|.),
->   snapshot, snapshot_,
->   hold, now)
+> import Control.SF.AuxFunctions ((=>>), (->>), (.|.), snapshot, snapshot_)
 
 
 > main = runUIEx (600,700) "Interval Trainer" intervalTrainer
@@ -115,12 +106,12 @@ The main UI:
 >     rec -- the state
 >         state    <- accum Start -< updates
 >         -- event filter based on MUI state
->         let whileIn' :: Event a -> State -> Event a
+>         let whileIn' :: SEvent a -> State -> SEvent a
 >             e `whileIn'` s = if s == state then e else Nothing
 >             updates  = (giveUpE `whileIn'` Base ->> const Guessed)         .|.
 >                        (nextE ->> const Base) .|. (resetE ->> const Start) .|.
 >                        (guessesE `whileIn'` Base ->> const Guessed)
->     let whileIn :: Event a -> State -> Event a
+>     let whileIn :: SEvent a -> State -> SEvent a
 >         e `whileIn` s = if s == state then e else Nothing
 >  
 >     -- Random intervals:
@@ -143,8 +134,8 @@ The main UI:
 >         del0 = f 2 pns dur -- lo note delay only when "hi then lo"
 >         del1 = f 1 pns dur -- hi note delay only when "lo then hi"
 >     -- Random interval & Midi signals:
->     note0 <- delayt -< (t, del0, (trigger =>> mkNote 0))
->     note1 <- delayt -< (t, del1, (trigger =>> mkNote 1))
+>     note0 <- vdelay -< (t, del0, (trigger =>> mkNote 0))
+>     note1 <- vdelay -< (t, del1, (trigger =>> mkNote 1))
 >     nowE <- now -< ()
 >     let progChan = nowE ->> (map Std $
 >                     zipWith Midi.ProgramChange [0,1,2,3,4] [0,4,40,66,73])
@@ -168,7 +159,7 @@ Auxilliary Functions:
 > shiSlider inc ran pre = setSize (300,25) $ hiSlider inc ran pre
 > sButton str           = setSize (75,25)  $ buttonE str
 
-> buttonE :: String -> UISF () (Event ())
+> buttonE :: String -> UISF () (SEvent ())
 > buttonE s = button s >>> arr (\b -> if b then Just () else Nothing)
 
 > showScore     :: Int -> Int -> String

@@ -94,7 +94,7 @@ versions of the unit generators.
 > import Control.CCA.ArrowP
 > import Control.CCA.Types
 > import Control.CCA.CCNF
-> import Control.SF.AuxFunctions (Event)
+> import Control.SF.AuxFunctions (SEvent)
 > import Data.Array.Base (unsafeAt)
 > import Data.Array.Unboxed
 
@@ -1229,23 +1229,23 @@ For a particular point, sum all partials.
 -- Time events
 --------------------------------------
 
-> samples :: forall p . Clock p => Signal p () (Event ())
+> samples :: forall p . Clock p => Signal p () (SEvent ())
 > samples = constA (Just ())
 
-> timeBuilder :: forall p . Clock p => Double -> Signal p () (Event ())
+> timeBuilder :: forall p . Clock p => Double -> Signal p () (SEvent ())
 > timeBuilder d =
 >     let r = (rate (undefined :: p))*d
 >     in proc _ -> do
 >         rec i <- init 0 -< if i >= r then i-r else i+1
 >         outA -< if i < 1 then Just () else Nothing
 
-> milliseconds :: Clock p => Signal p () (Event ())
+> milliseconds :: Clock p => Signal p () (SEvent ())
 > milliseconds = timeBuilder (1/1000)
 
-> seconds :: Clock p => Signal p () (Event ())
+> seconds :: Clock p => Signal p () (SEvent ())
 > seconds = timeBuilder 1
 
-> countTime :: Clock p => Int -> Signal p () (Event ()) -> Signal p () (Event ())
+> countTime :: Clock p => Int -> Signal p () (SEvent ()) -> Signal p () (SEvent ())
 > countTime n t = proc _ -> do
 >   e <- t -< ()
 >   rec i <- init 0 -< maybe i' (const $ i'+1) e

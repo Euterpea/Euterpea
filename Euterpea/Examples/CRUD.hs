@@ -15,12 +15,8 @@
 
 {-# LANGUAGE Arrows, DoRec #-}
 module Crud where
-import Prelude hiding (init, exp)
 import Euterpea
-import Euterpea.IO.MUI
 import Control.Arrow
-import Control.CCA.Types
-import Control.SF.AuxFunctions (edge)
 
 import Data.List (isInfixOf)
 import Data.Char (toLower)
@@ -60,7 +56,7 @@ crudUISF initnamesDB = proc _ -> do
     (i, db, fdb, nameStr, surnStr) <- (| leftRight (do
         (i, db, fdb) <- (| topDown (do
             rec i <- listbox -< (fdb, i')
-                db <- init initnamesDB -< db'
+                db <- delay initnamesDB -< db'
                 let fdb = filter (filterFun fStr) db
             returnA -< (i, db, fdb)) |)
         (nameStr, surnStr) <- (| topDown (do
@@ -72,7 +68,7 @@ crudUISF initnamesDB = proc _ -> do
         returnA -< (i, db, fdb, nameStr, surnStr)) |)
     buttons <- leftRight $ (edge <<< button "Create") &&& 
                            (edge <<< button "Delete") -< ()
-    previ <- init 0 -< i
+    previ <- delay 0 -< i
     let (db', i') = case buttons of
             (True, False) -> (db ++ [NameEntry nameStr surnStr], length fdb)
             (False, True) -> (deleteElem (filterFun fStr) i db,
@@ -94,7 +90,7 @@ crudUISF initnamesDB = proc _ -> do
 --   rec
 --     (fStr,fi) <- leftRight $ label "Filter text: " >>> cursoredTextbox False ("",0) -< (fStr,fi)
 --     i <- listbox -< (fdb, i')
---     db <- init initnamesDB -< db'
+--     db <- delay initnamesDB -< db'
 --     let fdb = filter (filterFun fStr) db
 --     (nameStr, ni) <- leftRight $ label "Name:    " >>> cursoredTextbox False "" -< (nameStr', ni)
 --     (surnStr, si) <- leftRight $ label "Surname: " >>> cursoredTextbox False "" -< (surnStr', si)
@@ -102,7 +98,7 @@ crudUISF initnamesDB = proc _ -> do
 --         surnStr' = if previ == i' then surnStr else lastName ((filter (filterFun fStr) db') `at` i')
 --     buttons <- leftRight $ (edge <<< button "Create") &&& 
 --                            (edge <<< button "Delete") -< ()
---     previ <- init 0 -< i
+--     previ <- delay 0 -< i
 --     let (db', i') = case buttons of
 --             (True, False) -> (db ++ [NameEntry nameStr surnStr], length fdb)
 --             (False, True) -> (deleteElem (filterFun fStr) i db,

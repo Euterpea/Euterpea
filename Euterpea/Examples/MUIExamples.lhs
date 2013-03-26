@@ -2,16 +2,11 @@
 
 > module Euterpea.Examples.MUIExamples where
 
-> import Prelude hiding (init)
+> import Euterpea
 > import Control.Arrow
-> import Control.CCA.Types (init)
+> import qualified Codec.Midi as Midi
 
 > import Data.Maybe (mapMaybe)
-
-> import Euterpea
-> import Euterpea.IO.MUI
-
-> import qualified Codec.Midi as Midi
 
 
 =============
@@ -99,7 +94,7 @@ specified by slider f.  This is the signal that will drive the
 simulation.  The timer function takes in a time signal and a frequency.
 
 The next thing we need is a time-varying population.  This is where 
-the init function and the rec keyword come in handy.  We initialize 
+the delay function and the rec keyword come in handy.  We initialize 
 the 'pop' signal with the value 0.1, and then on every tick, we 
 grow it with the instantaneous value of the growth rate signal.
 
@@ -119,10 +114,10 @@ popToNote, and send the result to the selected Midi output device.
 >   r  <- title "Growth rate" $ withDisplay (hSlider (2.4, 4.0) 2.4) -< ()
 >   
 >   tick <- timer -< (t, 1.0 / f)
->   rec pop <- init 0.1 -< if tick then grow r pop else pop
+>   rec pop <- delay 0.1 -<  maybe pop (const $ grow r pop) tick
 >       
->   _ <- title "Population" $ display' -< pop
->   midiOut -< (mo, if tick then Just (popToNote pop) else Nothing)
+>   _ <- title "Population" $ display -< pop
+>   midiOut -< (mo, fmap (const (popToNote pop)) tick)
 
 
 ============
@@ -134,7 +129,7 @@ echoes the note at a given rate, while playing each successive note
 more softly until the velocity reduces to 0.
 
 The key component we need for this problem is a delay function that
-can delay a given event signal for a certain amount of time.  delayt
+can delay a given event signal for a certain amount of time.  vdelay
 takes in a time signal, the amount of time to delay, and an input signal,
 and outputs the delayed signal.
 
@@ -148,7 +143,7 @@ The resulting signal, m', is then sent to the Midi output device.
 The echo signal s is created recursively from m' as follows.  We examine 
 the signal m' and decay any events that we find there, using the decay 
 rate indicated by the instantaneous value from the slider r.  This 
-decayed signal is fed into the delayt signal function along with current 
+decayed signal is fed into the vdelay signal function along with current 
 time and the amount of time to delay (the inverse of the echo frequency, 
 which is given by the other slider f).
 
@@ -161,7 +156,7 @@ which is given by the other slider f).
 >   f <- title "Echoing frequency" $ withDisplay (hSlider (1, 10) 10) -< ()
 >   
 >   rec let m' = removeNull $ mergeS m s
->       s <- delayt -< (t, 1.0 / f, fmap (mapMaybe (decay 0.1 r)) m')
+>       s <- vdelay -< (t, 1.0 / f, fmap (mapMaybe (decay 0.1 r)) m')
 >   
 >   midiOut -< (mo, m')
 

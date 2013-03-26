@@ -1,22 +1,27 @@
 {-# LANGUAGE Arrows, ScopedTypeVariables #-}
 
 module Control.SF.AuxFunctions (
-    Event, 
+    SEvent, Time, 
     edge, edgeE, 
-    quantize,
-    accum, unique,
+    accum, unique, 
+    hold, now, 
     mergeE, 
-    presentFFT, fftA, 
-    toMSF, toRealTimeMSF, 
-    Control, buffer,
+    delay, vdelay, fdelay, 
+    timer, genEvents, 
+    
     (=>>), (->>), (.|.),
     snapshot, snapshot_,
-    hold, now
+
+    toMSF, toRealTimeMSF, 
+    quantize, presentFFT, fftA, 
+    Control, buffer,
 ) where
 
 import Prelude hiding (init)
 import Control.Arrow
 import Control.CCA.Types
+
+import Codec.Midi (Time) -- for reexporting
 
 import Numeric.FFT (fft)
 import Data.Complex
@@ -42,10 +47,19 @@ import Control.DeepSeq
 
 
 --------------------------------------
--- Generic Types and Functions
+-- Types
 --------------------------------------
 
-type Event = Maybe
+-- | SEvent is short for "Stream Event" and is a type synonym for Maybe
+type SEvent = Maybe
+
+-- Time is reexported from Codec.Midi
+-- type Time = Double 
+
+
+--------------------------------------
+-- Useful SF Utilities (Mediators)
+--------------------------------------
 
 -- | edge generates an event whenever the Boolean input signal changes
 --   from False to True -- in signal processing this is called an ``edge
@@ -56,58 +70,135 @@ edge = proc b -> do
     returnA -< not prev && b
 
 -- | edgeE is a version of edge that works with events rather than Bools.
-edgeE :: ArrowInit a => a (Event ()) (Event ())
+edgeE :: ArrowInit a => a (SEvent ()) (SEvent ())
 edgeE = proc b -> do
     prev <- init Nothing -< b
     returnA -< b >> maybe (Just ()) (const Nothing) prev
 
--- | Scrutinizes n samples at a time, updating after k new values from a 
---   signal function
-quantize :: ArrowInit a => Int -> Int -> a b (Event [b])
-quantize n k = proc d -> do
-    rec (ds,c) <- init ([],0) -< (take n (d:ds), c+1)
-    returnA -< if c >= n && c `mod` k == 0 then Just ds else Nothing
-
 -- | The signal function (accum v) starts with the value v, but then 
 --   applies the function attached to the first event to that value 
 --   to get the next value, and so on.
-accum :: ArrowInit a => b -> a (Event (b -> b)) b
+accum :: ArrowInit a => b -> a (SEvent (b -> b)) b
 accum x = proc f -> do
     rec b <- init x -< maybe b ($b) f
     returnA -< b
 
-unique :: Eq e => ArrowInit a => a e (Event e)
+unique :: Eq e => ArrowInit a => a e (SEvent e)
 unique = proc e -> do
     prev <- init Nothing -< Just e
     returnA -< if prev == Just e then Nothing else Just e
 
+-- | hold is a signal function whose output starts as the value of the 
+--   static argument.  This value is held until the first input event 
+--   happens, at which point it changes to the value attached to that 
+--   event, which it then holds until the next event, and so on.
+hold :: ArrowInit a => b -> a (SEvent b) b
+hold x = arr (fmap (const $)) >>> accum x
+
+-- | Now is a signal function that produces one event and then forever 
+--   after produces nothing.  It is essentially an impulse function.
+now :: ArrowInit a => a () (SEvent ())
+now = arr (const Nothing) >>> init (Just ())
+
 -- | mergeE merges two events with the given resolution function.
-mergeE :: (a -> a -> a) -> Event a -> Event a -> Event a
+mergeE :: (a -> a -> a) -> SEvent a -> SEvent a -> SEvent a
 mergeE _       Nothing     Nothing     = Nothing
 mergeE _       le@(Just _) Nothing     = le
 mergeE _       Nothing     re@(Just _) = re
 mergeE resolve (Just l)    (Just r)    = Just (resolve l r)
 
+-- | Returns n samples of type b from the input stream at a time, 
+--   updating after k samples.  This function is good for chunking 
+--   data and is a critical component to fftA
+quantize :: ArrowInit a => Int -> Int -> a b (SEvent [b])
+quantize n k = proc d -> do
+    rec (ds,c) <- init ([],0) -< (take n (d:ds), c+1)
+    returnA -< if c >= n && c `mod` k == 0 then Just ds else Nothing
+
 
 --------------------------------------
--- Yampa-style combinators
+-- Delays and Timers
 --------------------------------------
 
-(=>>) :: Event a -> (a -> b) -> Event b
+-- | delay is a unit delay.  It is the same as init from ArrowInit, but 
+--   we rename it to avoid the namespace conflict it has with init from 
+--   the standard prelude.
+delay :: ArrowInit a => b -> a b b
+delay = init
+
+-- NOTE: The following two functions may be better off with implementations
+--  that use Data.Sequence
+
+-- | fdelay is a delay function that delays for a fixed amount of time, 
+--   given as the static argument.  It returns a signal function that 
+--   takes the current time and an event stream and delays the event 
+--   stream by the delay amount.
+fdelay :: ArrowInit a => Double -> a (Time, SEvent b) (SEvent b)
+fdelay d = proc (t, e) -> do
+    rec q <- init [] -< maybe q' (\e' -> q' ++ [(t+d,e')]) e
+        let (ret, q') = case q of
+                [] -> (Nothing, q)
+                (t0,e0):qs -> if t >= t0 then (Just e0, qs) else (Nothing, q)
+    returnA -< ret
+
+-- | vdelay is a delay function that delays for a variable amount of time.
+--   It takes the current time, an amount of time to delay, and an event 
+--   stream and delays the event stream by the delay amount.
+vdelay :: ArrowInit a => a (Time, Double, SEvent b) (SEvent b)
+vdelay = proc (t, d, e) -> do
+    rec q <- init [] -< maybe q' (\e' -> q' ++ [(t,e')]) e
+        let (ret, q') = case q of
+                [] -> (Nothing, q)
+                (t0,e0):qs -> if t-t0 >= d then (Just e0, qs) else (Nothing, q)
+    returnA -< ret
+
+
+-- | timer is a variable duration timer.
+--   This timer takes the current time as well as the (variable) time between 
+--   events and returns an SEvent steam.  When the second argument is non-positive, 
+--   the output will be a steady stream of events.  As long as the clock speed is 
+--   fast enough compared to the timer frequency, this should give accurate and 
+--   predictable output and stay synchronized with any other timer and with 
+--   time itself.
+timer :: ArrowInit a => a (Time, Double) (SEvent ())
+timer = proc (now, i) -> do
+    rec last <- init 0 -< t'
+        let ret = now >= last + i
+            t'  = latestEventTime last i now
+    returnA -< if ret then Just () else Nothing
+  where
+    latestEventTime last i now | i <= 0 = now
+    latestEventTime last i now = 
+        if now > last + i
+        then latestEventTime (last+i) i now
+        else last
+
+
+-- | genEvents is a timer that instead of returning unit events 
+--   returns the next element of the input list.  The input list is 
+--   assumed to be infinite in length.
+genEvents :: ArrowInit a => [b] -> a (Time, Double) (SEvent b)
+genEvents lst = proc inp -> do
+    e <- timer -< inp
+    rec l <- init lst -< maybe l (const $ tail l) e
+    returnA -< fmap (const $ head l) e
+
+
+--------------------------------------
+-- Yampa-style utilities
+--------------------------------------
+
+(=>>) :: SEvent a -> (a -> b) -> SEvent b
 (=>>) = flip fmap
-(->>) :: Event a -> b -> Event b
+(->>) :: SEvent a -> b -> SEvent b
 (->>) = flip $ fmap . const
-(.|.) :: Event a -> Event a -> Event a
+(.|.) :: SEvent a -> SEvent a -> SEvent a
 (.|.) = flip $ flip maybe Just
 
-snapshot :: Event a -> b -> Event (a,b)
+snapshot :: SEvent a -> b -> SEvent (a,b)
 snapshot = flip $ fmap . flip (,)
-snapshot_ :: Event a -> b -> Event b
+snapshot_ :: SEvent a -> b -> SEvent b
 snapshot_ = flip $ fmap . const -- same as ->>
-hold :: ArrowInit a => b -> a (Event b) b
-hold x = arr (fmap (const $)) >>> accum x
-now :: ArrowInit a => a () (Event ())
-now = arr (const Nothing) >>> init (Just ())
 
 
 
@@ -128,7 +219,7 @@ presentFFT clockRate a = Map.fromList $ map mkAssoc (zip [0..(length a)] a) wher
 --   successive FFT calculation) and a fundamental period, this will decompose
 --   the input signal into its constituent frequencies.
 --   NOTE: The fundamental period must be a power of two!
-fftA :: ArrowInit a => Int -> Int -> a Double (Event [Double])
+fftA :: ArrowInit a => Int -> Int -> a Double (SEvent [Double])
 fftA qf fp = proc d -> do
     carray <- quantize fp qf -< d :+ 0
     returnA -< fmap (map magnitude . take (fp `div` 2) . fft) carray

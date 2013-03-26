@@ -6,17 +6,13 @@
 -- This file is a set of various UI examples showing off the features 
 -- of the various widgets in Euterpea.IO.MUI.
 
-import Prelude hiding (init)
-import Control.Arrow
-import Control.CCA.Types
-import Control.SF.SF
-import Control.SF.AuxFunctions (edge, fftA, Event)
+module Euterpea.Examples.UIExamples where
 
-import Euterpea hiding (Event)
-import Euterpea.IO.MUI
+import Euterpea
 import Euterpea.IO.MUI.SOE (withColor', rgb, polygon)
-import Euterpea.IO.Audio.BasicSigFuns (osc, tableSinesN)
-import Euterpea.IO.Audio.Types (SigFun, CtrRate, AudRate)
+
+import Control.Arrow
+import Control.SF.AuxFunctions (fftA)
 
 import Numeric (showHex)
 import Data.Maybe (listToMaybe, catMaybes)
@@ -29,9 +25,9 @@ import Data.Maybe (listToMaybe, catMaybes)
 fftEx :: UISF () ()
 fftEx = proc _ -> do
     f1 <- hSlider (1, 2000) 440 -< ()
-    _ <- leftRight (label "Freq 1: " >>> display') -< f1
+    _ <- leftRight (label "Freq 1: " >>> display) -< f1
     f2 <- hSlider (1, 2000) 440 -< ()
-    _ <- leftRight (label "Freq 2: " >>> display') -< f2
+    _ <- leftRight (label "Freq 2: " >>> display) -< f2
     d <- convertToUISF 0.1 myPureSignal -< (f1, f2)
     t <- time -< ()
     let fft = listToMaybe $ catMaybes $ map (snd . fst) d
@@ -41,7 +37,7 @@ fftEx = proc _ -> do
     outA -< ()
   where
     squareTable = tableLinearN 2048 0 [(1024,0),(1,1),(1023,1)]
-    myPureSignal :: SigFun CtrRate (Double, Double) (Double, Event [Double])
+    myPureSignal :: SigFun CtrRate (Double, Double) (Double, SEvent [Double])
     myPureSignal = proc (f1, f2) -> do
         s1 <- osc (tableSinesN 4096 [1]) 0 -< f1
         s2 <- osc (tableSinesN 4096 [1]) 0 -< f2
@@ -56,7 +52,7 @@ t0 = runUIEx (500,600) "fft Test" fftEx
 
 -- This example displays the time from the start of the GUI application.
 timeEx :: UISF () ()
-timeEx = title "Time" $ time >>> display'
+timeEx = title "Time" $ time >>> display
 
 -- This example shows off buttons and state by presenting a plus and 
 -- minus button with a counter that is adjusted by them.
@@ -66,11 +62,11 @@ buttonEx = title "Buttons" $ proc _ -> do
     x <- edge <<< button "+" -< ()
     y <- edge <<< button "-" -< ()
     returnA -< (x, y)) -< ()
-  rec v <- init 0 -< (case (x,y) of
+  rec v <- delay 0 -< (case (x,y) of
             (True, False) -> v+1
             (False, True) -> v-1
             _ -> v)
-  display' -< v
+  display -< v
 
 -- This example shows off the checkbox widgets.
 checkboxEx :: UISF () ()
@@ -79,14 +75,14 @@ checkboxEx = title "Checkboxes" $ proc _ -> do
   y <- checkbox "Tuesday" True -< ()
   z <- checkbox "Wednesday" True -< ()
   let v = bin x ++ bin y ++ bin z
-  display -< v
+  displayStr -< v
   where
     bin True = "1"
     bin False = "0"
 
 -- This example shows off the radio button widget.
 radioButtonEx :: UISF () ()
-radioButtonEx = title "Radio Buttons" $ radio list 0 >>> arr (list!!) >>> display
+radioButtonEx = title "Radio Buttons" $ radio list 0 >>> arr (list!!) >>> displayStr
   where
     list = ["apple", "orange", "banana"]
 
@@ -95,7 +91,7 @@ shoppinglist :: UISF () ()
 shoppinglist = title "Shopping List" $ proc _ -> do
   a <- title "apples"  $ hiSlider 1 (0,10) 3 -< ()
   b <- title "bananas" $ hiSlider 1 (0,10) 7 -< () 
-  title "total" $ display' -< (a + b)
+  title "total" $ display -< (a + b)
 
 -- This example shows off both vertical sliders as well as the canvas 
 -- widget.  The canvas widget can be used to easily create custom graphics 
@@ -106,15 +102,15 @@ colorDemo = setSize (300, 220) $ title "Color" $ pad (4,0,4,0) $ leftRight $ pro
   r <- newColorSlider "R" -< ()
   g <- newColorSlider "G" -< ()
   b <- newColorSlider "B" -< ()
-  prevRGB <- init (0,0,0) -< (r,g,b)
-  changed <- init True    -< (r,g,b) == prevRGB
+  prevRGB <- delay (0,0,0) -< (r,g,b)
+  changed <- delay True    -< (r,g,b) == prevRGB
   let rect = withColor' (rgb r g b) (box ((0,0),d))
   pad (4,8,0,0) $ canvas d -< if changed then Just rect else Nothing
   where
     d = (170,170)
     newColorSlider l = title l $ topDown $ proc _ -> do
       v <- viSlider 16 (0,255) 0 -< ()
-      _ <- display -< showHex v ""
+      _ <- displayStr -< showHex v ""
       returnA -< v
     box ((x,y), (w, h)) = polygon [(x, y), (x + w, y), (x + w, y + h), (x, y + h)]
 
@@ -126,8 +122,8 @@ textboxdemo = proc _ -> do
   rec
     str <- leftRight $ label "Text: " >>> textbox "" -< str
     b <- button "Save text to below" -< ()
-    str' <- init "" -< if b then str else str'
-    leftRight $ label "Saved value: " >>> display -< str'
+    str' <- delay "" -< if b then str else str'
+    leftRight $ label "Saved value: " >>> displayStr -< str'
   outA -< ()
 
 -- This is the main demo that incorporates all of the other examples 

@@ -9,11 +9,17 @@
 >   module Euterpea.IO.MIDI.MidiIO,
 >   module Euterpea.IO.MIDI.ToMidi,
 >   module Euterpea.IO.MIDI.FromMidi,
->   module Euterpea.IO.Audio
+>   module Euterpea.IO.Audio,
 >   -- fromMidi, toMidi,
 >   -- mToMF, defUpm, defPMap, defCon, 
 >   -- testMidi, test, testA, play, playM, playA,
 >   -- makeMidi, gmUpm, gmTest, Performable, perfDur
+>   module Euterpea.IO.MUI,
+>   SEvent, edge, edgeE, accum, 
+>   unique, hold, now, mergeE, 
+>   delay, vdelay, fdelay, 
+>   timer, genEvents
+>   
 >   ) where
 >
 > import Euterpea.Music.Note.Music hiding (t251)
@@ -25,11 +31,12 @@
 > import Euterpea.IO.MIDI.FromMidi
 > import Euterpea.IO.MIDI.FromMidi
 > import Euterpea.IO.Audio
+> import Euterpea.IO.MUI
+
+> import Control.SF.AuxFunctions
 
 > import Codec.Midi(exportFile, importFile, Midi)
 > import Sound.PortMidi
 
-To make things easier, we'll declare both Music and Primitive as members of
-Functor class. Eventually this will be moved into a separate module.
 
 

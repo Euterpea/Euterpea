@@ -13,8 +13,8 @@ module Euterpea.IO.MUI
   , time                -- :: UISF () Time
     -- Widgets
   , label               -- :: String -> UISF a a
-  , display             -- :: UISF String ()
-  , display'            -- :: Show a => UISF a ()
+  , displayStr          -- :: UISF String ()
+  , display             -- :: Show a => UISF a ()
   , withDisplay         -- :: Show b => UISF a b -> UISF a b
   , textbox             -- :: String -> UISF String String
   , title               -- :: String -> UISF a b -> UISF a b
@@ -38,9 +38,6 @@ module Euterpea.IO.MUI
   , canvas              -- :: Dimension -> UISF (Event Graphic) ()
   , canvas'             -- :: Layout -> (a -> Dimension -> Graphic) -> UISF (Event a) ()
   -- Widget Utilities
-  , timer               -- :: ArrowInit a => a (Time, Double) Bool
-  , delay               -- :: ArrowInit a => Double -> a (Time, Event b) (Event b)
-  , delayt              -- :: ArrowInit a => a (Time, Double, Event b) (Event b)
   , makeLayout          -- :: LayoutType -> LayoutType -> Layout
   , LayoutType (..)     -- data LayoutType = Stretchy { minSize :: Int } | Fixed { fixedSize :: Int }
   , Color (..)          -- data Color = Black | Blue | Green | Cyan | Red | Magenta | Yellow | White

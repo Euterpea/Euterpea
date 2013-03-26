@@ -5,14 +5,12 @@
 
 module Euterpea.Music.Signal.SpectrumAnalysis where
 
-import Euterpea hiding (Event)
-import Euterpea.IO.MUI
-import Euterpea.IO.MUI.SOE (Color(..))
+import Euterpea
+import Control.SF.AuxFunctions (fftA)
 
 import Data.Complex
 import Data.Maybe (listToMaybe, catMaybes)
 
-import Control.SF.AuxFunctions (fftA, Event)
 dft :: RealFloat a => [Complex a] -> [Complex a]
 dft xs = 
   let  lenI = length xs

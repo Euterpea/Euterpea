@@ -28,12 +28,13 @@ The monadic UI concept is borrowed from Phooey by Conal Elliott.
 > import Data.Map (Map)
 > import qualified Data.Map as Map
 > import Data.Char (isPrint, ord)
-> import Codec.Midi
+> import Codec.Midi (Message(..))
 > import Euterpea.IO.MIDI.ToMidi
 > import Euterpea.IO.MIDI.GeneralMidi
 > import Euterpea.Music.Note.Performance hiding (Event)
 > import Euterpea.Music.Note.Music
 > import Data.List hiding (init)
+> import Data.Maybe (isJust)
 
 ============================================================
 ============== Shorthand and Helper Functions ==============
@@ -101,11 +102,11 @@ Labels are always left aligned and vertically centered.
 -----------------
  | Display Box | 
 -----------------
-Display is an output widget showing the instantaneous value of
+DisplayStr is an output widget showing the instantaneous value of
 a signal of strings.
 
-> display :: UISF String ()
-> display = mkWidget "" d draw (const nullSound) pair 
+> displayStr :: UISF String ()
+> displayStr = mkWidget "" d draw (const nullSound) pair 
 >   (\((v, v'), (_, _)) -> (v, v /= v'))
 >   (\s -> ((), s))
 >   where
@@ -116,10 +117,10 @@ a signal of strings.
 >       in withColor Black (text (x + padding, y + padding) (take n s)) // 
 >          (box pushed b) // (withColor White $ block b) 
 
-display' is a widget that takes any show-able value and displays it.
+display is a widget that takes any show-able value and displays it.
 
-> display' :: Show a => UISF a ()
-> display' = arr show >>> display
+> display :: Show a => UISF a ()
+> display = arr show >>> displayStr
 
 withDisplay is a widget modifier that modifies the given widget 
 so that it also displays its output value.
@@ -127,7 +128,7 @@ so that it also displays its output value.
 > withDisplay :: Show b => UISF a b -> UISF a b
 > withDisplay sf = proc a -> do
 >   b <- sf -< a
->   display -< show b
+>   display -< b
 >   returnA -< b
 
 
@@ -151,11 +152,11 @@ left, right, end, home, delete, and backspace special keys.
 >     k <- getEvents -< ()
 >     ctx <- getCTX -< ()
 >     rec (s', i) <- init (startingVal, 0) -< if inFocus then update s i ctx k else (s, i)
->     display -< seq i s'
+>     displayStr -< seq i s'
 >     t <- time -< ()
 >     b <- timer -< (t, 0.5)
 >     rec willDraw <- init True -< willDraw'
->         let willDraw' = if b then not willDraw else willDraw
+>         let willDraw' = if isJust b then not willDraw else willDraw
 >     canvas' displayLayout drawCursor -< Just (willDraw && inFocus, i)
 >     returnA -< s'
 >   where
@@ -203,8 +204,8 @@ Title frames a UI by borders, and displays a static title text.
 ------------
  | Button | 
 ------------
-Button is an input widget with a state of being on or off,
-it also shows a static text label.
+Button is an input widget with a state of being on or off.  
+It also shows a static text label.
 
 > button :: String -> UISF () Bool
 > button label = focusable $ 
@@ -333,7 +334,7 @@ choice.
 >       let s'' = maybe s id s'
 >   returnA -< s''
 >   where
->     aux :: Int -> [String] -> UISF Int (Event Int)
+>     aux :: Int -> [String] -> UISF Int (SEvent Int)
 >     aux j [] = arr (const Nothing)
 >     aux j (l:labels) = proc n -> do
 >       u <- edge <<< toggle (i == j) d draw -< n == j
@@ -403,7 +404,7 @@ It takes a dimension parameter, the length of the history of the graph
 measured in time, and a color for the graphed line.
 The signal function then takes an input stream of time as well as 
 (value,time) event pairs, but since there can be zero or more points 
-at once, we use [] rather than Event for the type.
+at once, we use [] rather than SEvent for the type.
 The values in the (value,time) event pairs should be between -1 and 1.
 
 The below two implementation of realtimeGraph produce the same output, 
@@ -442,7 +443,7 @@ that the elements are to be displayed linearly and evenly spaced.
 Similar to realtimeGraph above, these two histograms are the same, but 
 the first one performs better for some reason.
 
-> histogram :: RealFrac a => Layout -> UISF (Event [a]) ()
+> histogram :: RealFrac a => Layout -> UISF (SEvent [a]) ()
 > histogram layout = 
 >   mkWidget Nothing layout draw (const nullSound) inj process (\s -> ((), s))
 >   where inj inp prev = maybe prev Just inp
@@ -454,11 +455,11 @@ the first one performs better for some reason.
 >                 adjust i = buffer + truncate (fromIntegral (h - 2*buffer) * (1 - i))
 >                 normalize lst = map (/m) lst where m = maximum lst
 >                 buffer = truncate $ fromIntegral h / 10
->                 mymap :: ([a] -> Graphic) -> Event [a] -> Graphic
+>                 mymap :: ([a] -> Graphic) -> SEvent [a] -> Graphic
 >                 mymap f (Just lst@(_:_)) = f lst
 >                 mymap _ _ = nullGraphic
 
- histogram :: RealFrac a => Layout -> UISF (Event [a]) ()
+ histogram :: RealFrac a => Layout -> UISF (SEvent [a]) ()
  histogram layout = canvas' layout draw where
    draw lst (w,h) = maybeEmptyList nullGraphic (polyline . mkPts) lst where
        mkPts l  = zip (xs $ length l) (map adjust . normalize . reverse $ l)
@@ -520,7 +521,7 @@ stream of MidiMessages that that device is producing.
 midiOut is a widget that accepts a MIDI device ID as well as a stream 
 of MidiMessages and sends the MidiMessages to the device.
 
-> midiIn :: UISF DeviceID (Event [MidiMessage])
+> midiIn :: UISF DeviceID (SEvent [MidiMessage])
 > midiIn = mkUISF aux 
 >   where 
 >     aux dev (ctx,foc,inp) = (nullLayout, False, foc, action, nullCD, v)
@@ -533,7 +534,7 @@ of MidiMessages and sends the MidiMessages to the device.
 >           when valid $ pollMidi dev (cb dev)
 >         cb d (t, m) = inject ctx (MidiEvent d m)
  
-> midiOut :: UISF (DeviceID, Event [MidiMessage]) ()
+> midiOut :: UISF (DeviceID, SEvent [MidiMessage]) ()
 > midiOut = mkUISF aux 
 >   where
 >     aux (dev, mmsg) (_,foc,_) = (nullLayout, False, foc, action, nullCD, ())
@@ -549,13 +550,13 @@ of MidiMessages and sends the MidiMessages to the device.
 The midiInM widget takes input from multiple devices and combines 
 it into a single stream. 
 
-> midiInM :: UISF ([(DeviceID, Bool)]) (Event [MidiMessage])
+> midiInM :: UISF ([(DeviceID, Bool)]) (SEvent [MidiMessage])
 > midiInM = proc ds -> do
 >   midiInGroup (map fst devs) -< ds
 >       where devs = filter (\(i,d) -> input d && name d /= "Microsoft MIDI Mapper") $ 
 >                      zip [0..] $ unsafePerformIO getAllDeviceInfo
 
-> midiInGroup :: [DeviceID] -> UISF ([(DeviceID, Bool)]) (Event [MidiMessage])
+> midiInGroup :: [DeviceID] -> UISF ([(DeviceID, Bool)]) (SEvent [MidiMessage])
 > midiInGroup [] = proc bs -> do
 >     returnA -< Nothing
 > midiInGroup (i:is) = proc bs -> do 
@@ -575,13 +576,13 @@ the events through a single midiOut. The same messages are sent to
 each device. The midiOutM is designed to be hooked up to a stream like
 that from a checkGroup.
 
-> midiOutM :: UISF ([(DeviceID, Bool)], Event [MidiMessage]) ()
+> midiOutM :: UISF ([(DeviceID, Bool)], SEvent [MidiMessage]) ()
 > midiOutM = proc (ds, ms) -> do
 >   midiOutGroup (map fst devs) -< (ds, ms)
 >       where devs = filter (\(i,d) -> output d && name d /= "Microsoft MIDI Mapper") $ 
 >                      zip [0..] $ unsafePerformIO getAllDeviceInfo 
 
-> midiOutGroup :: [Int] -> UISF ([(DeviceID, Bool)], Event [MidiMessage]) ()
+> midiOutGroup :: [Int] -> UISF ([(DeviceID, Bool)], SEvent [MidiMessage]) ()
 > midiOutGroup [] = proc _ -> do
 >     returnA -< ()
 > midiOutGroup (i:is) = proc (bs, ms) -> do 
@@ -602,7 +603,7 @@ events are handed to midiOut at the same timestep. Finally, the
 widget returns a flat that is True if the buffer is empty and False
 if the buffer is full (meaning that items are still being played).
 
-> midiOutB :: UISF (DeviceID, Event [(Time, MidiMessage)]) (Bool)
+> midiOutB :: UISF (DeviceID, SEvent [(Time, MidiMessage)]) (Bool)
 > midiOutB = proc (devID, msgs) -> do
 >   t <- time -< ()
 >   rec tLast <- init 0.0 -< nextT
@@ -801,7 +802,7 @@ Canvas displays any graphics. The input is a signal of graphics
 event because we only want to redraw the screen when the input
 is there.
 
-> canvas :: Dimension -> UISF (Event Graphic) ()
+> canvas :: Dimension -> UISF (SEvent Graphic) ()
 > canvas (w, h) = mkWidget nullGraphic layout draw (const nullSound)
 >                 pair process (\s -> ((), s)) 
 >   where
@@ -814,7 +815,7 @@ is there.
 canvas' uses a layout and a graphic generator which allows canvas to be 
 used in cases with stretchy layouts.
 
-> canvas' :: Layout -> (a -> Dimension -> Graphic) -> UISF (Event a) ()
+> canvas' :: Layout -> (a -> Dimension -> Graphic) -> UISF (SEvent a) ()
 > canvas' layout draw = mkWidget Nothing layout drawit (const nullSound)
 >                       pair process (\s -> ((), s))
 >   where
@@ -822,73 +823,6 @@ used in cases with stretchy layouts.
 >     process ((ea, a'), _) = case ea of
 >       Just a  -> (Just a, True)
 >       Nothing -> (a',     False)
-
-
-============================================================
-========================= Utilities ========================
-============================================================
-
------------------------------
- | Variable Duration Timer | 
------------------------------
-This timer takes the current time as well as the (variable) time between 
-events and returns a Bool steam representing an event stream (where an 
-event is simply a True output).  When the second argument is non-positive, 
-the output will be a steady stream of True.  As long as the clock speed is 
-fast enough compared to the timer frequency, this should give accurate and 
-predictable output and stay synchronized with any other timer and with 
-time itself.
-
-
-> timer :: ArrowInit a => a (Time, Double) Bool
-> timer = proc (now, i) -> do
->   rec last <- init 0 -< t'
->       let ret = now >= last + i
->           t'  = latestEventTime last i now
->   returnA -< ret
->  where
->   latestEventTime last i now | i <= 0 = now
->   latestEventTime last i now = 
->       if now > last + i
->       then latestEventTime (last+i) i now
->       else last
-
-
-NOTE: The following two functions may be better off with Data.Sequence
-
------------------
- | Fixed Delay | 
------------------
-Given a time to delay, this returns a signal function that takes the 
-current time and an event stream and delays the event stream by the 
-delay amount.
-
-> delay :: ArrowInit a => Double -> a (Time, Event b) (Event b)
-> delay d = proc (t, e) -> do
->   rec q <- init [] -< maybe q' (\e' -> q' ++ [(t+d,e')]) e
->       let (ret, q') = case q of
->               [] -> (Nothing, q)
->               (t0,e0):qs -> if t >= t0 then (Just e0, qs) else (Nothing, q)
->   returnA -< ret
-
-
---------------------
- | Variable Delay | 
---------------------
-This is a signal function that takes the current time, an amount of time 
-to delay, and an event stream and delays the event stream by the 
-delay amount.
-
-> delayt :: ArrowInit a => a (Time, Double, Event b) (Event b)
-> delayt = proc (t, d, e) -> do
->   rec q <- init [] -< maybe q' (\e' -> q' ++ [(t,e')]) e
->       let (ret, q') = case q of
->               [] -> (Nothing, q)
->               (t0,e0):qs -> if t-t0 >= d then (Just e0, qs) else (Nothing, q)
->   returnA -< ret
-
-
-
 
 
 ============================================================
