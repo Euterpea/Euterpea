@@ -15,7 +15,7 @@
 >   -- testMidi, test, testA, play, playM, playA,
 >   -- makeMidi, gmUpm, gmTest, Performable, perfDur
 >   module Euterpea.IO.MUI,
->   SEvent, edge, edgeE, accum, 
+>   SEvent, edge, accum, 
 >   unique, hold, now, mergeE, 
 >   delay, vdelay, fdelay, 
 >   timer, genEvents

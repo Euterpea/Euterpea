@@ -2,7 +2,7 @@
 
 module Control.SF.AuxFunctions (
     SEvent, Time, 
-    edge, edgeE, 
+    edge, 
     accum, unique, 
     hold, now, 
     mergeE, 
@@ -64,16 +64,10 @@ type SEvent = Maybe
 -- | edge generates an event whenever the Boolean input signal changes
 --   from False to True -- in signal processing this is called an ``edge
 --   detector,'' and thus the name chosen here.
-edge :: ArrowInit a => a Bool Bool
+edge :: ArrowInit a => a Bool (SEvent ())
 edge = proc b -> do
     prev <- init False -< b
-    returnA -< not prev && b
-
--- | edgeE is a version of edge that works with events rather than Bools.
-edgeE :: ArrowInit a => a (SEvent ()) (SEvent ())
-edgeE = proc b -> do
-    prev <- init Nothing -< b
-    returnA -< b >> maybe (Just ()) (const Nothing) prev
+    returnA -< if not prev && b then Just () else Nothing
 
 -- | The signal function (accum v) starts with the value v, but then 
 --   applies the function attached to the first event to that value 

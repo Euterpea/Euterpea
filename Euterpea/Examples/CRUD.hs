@@ -70,8 +70,8 @@ crudUISF initnamesDB = proc _ -> do
                            (edge <<< button "Delete") -< ()
     previ <- delay 0 -< i
     let (db', i') = case buttons of
-            (True, False) -> (db ++ [NameEntry nameStr surnStr], length fdb)
-            (False, True) -> (deleteElem (filterFun fStr) i db,
+            (Just _, Nothing) -> (db ++ [NameEntry nameStr surnStr], length fdb)
+            (Nothing, Just _) -> (deleteElem (filterFun fStr) i db,
                               if i == length fdb - 1 then length fdb - 2 else i)
             _ -> (db, i)
   returnA -< ()

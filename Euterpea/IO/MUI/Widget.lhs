@@ -279,7 +279,7 @@ It has a static label as well as an initial state.
 > checkbox label state = proc _ -> do
 >   rec s  <- init state -< s'
 >       e  <- edge <<< toggle state d draw -< s
->       let s' = if e then not s else s --maybe s (\_ -> not s) e
+>       let s' = maybe s (const $ not s) e
 >   returnA -< s'
 >   where
 >     (tw, th) = (8 * length label, 16) 
@@ -339,7 +339,7 @@ choice.
 >     aux j (l:labels) = proc n -> do
 >       u <- edge <<< toggle (i == j) d draw -< n == j
 >       v <- aux (j + 1) labels -< n
->       returnA -< if u then Just j else v --maybe v (const $ Just j) u
+>       returnA -< maybe v (const $ Just j) u
 >       where
 >         (tw, th) = (8 * length l, 16) 
 >         (minw, minh) = (tw + padding * 2, th + padding * 2)

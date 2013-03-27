@@ -87,18 +87,18 @@ The main UI:
 >               radio ["Acous Piano","Elec Piano","Violin","Saxophone","Flute"] 0 -< ()
 >     -- Control:
 >     (nextE,repeatE,giveUpE,resetE) <- (| (setSize (600,60) . title "Control" . leftRight) (do
->         next   <- edgeE <<< sButton "Next"      -< ()
->         repeat <- edgeE <<< sButton "Repeat"    -< ()
->         giveUp <- edgeE <<< sButton "Give Up"   -< ()
->         reset  <- edgeE <<< sButton "Reset"     -< ()
+>         next   <- edge <<< button "Next"      -< ()
+>         repeat <- edge <<< button "Repeat"    -< ()
+>         giveUp <- edge <<< button "Give Up"   -< ()
+>         reset  <- edge <<< button "Reset"     -< ()
 >         returnA -< (next,repeat,giveUp,reset) )|)
 >     -- User Input:
 >     guesses <- (| (setSize (600,90) . title "Guess the interval") (do
 >         g1 <- leftRight $
->                 mapA $ map (\s -> edgeE <<< sButton s) 
+>                 mapA $ map (\s -> edge <<< button s) 
 >                            ["uni","min2","Maj2","min3","Maj3","4th","aug4"] -< repeat ()
 >         g2 <- leftRight $
->                 mapA $ map (\s -> edgeE <<< sButton s)
+>                 mapA $ map (\s -> edge <<< button s)
 >                            ["5th","min6","Maj6","min7","Maj7","oct"] -< repeat ()
 >         returnA -< g1++g2) |)
 >     -- edge-detect pushbuttons:
@@ -157,10 +157,7 @@ Auxilliary Functions:
 
 > sDisplay              = setSize (50,25) display
 > shiSlider inc ran pre = setSize (300,25) $ hiSlider inc ran pre
-> sButton str           = setSize (75,25)  $ buttonE str
-
-> buttonE :: String -> UISF () (SEvent ())
-> buttonE s = button s >>> arr (\b -> if b then Just () else Nothing)
+> sButton str           = setSize (75,25)  $ button str
 
 > showScore     :: Int -> Int -> String
 > showScore c 0 = "0"

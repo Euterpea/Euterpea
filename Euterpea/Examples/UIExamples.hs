@@ -63,8 +63,8 @@ buttonEx = title "Buttons" $ proc _ -> do
     y <- edge <<< button "-" -< ()
     returnA -< (x, y)) -< ()
   rec v <- delay 0 -< (case (x,y) of
-            (True, False) -> v+1
-            (False, True) -> v-1
+            (Just _, Nothing) -> v+1
+            (Nothing, Just _) -> v-1
             _ -> v)
   display -< v
 
