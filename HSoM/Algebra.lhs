@@ -31,7 +31,7 @@ m2 = revM (revM m1)
 Then |m1 == m2| is |True|.
 
 Unfortunately, as we saw in the last chapter, if we reverse a parallel
-composition, things don't work out as well.  For example:
+composition, things do not work out as well.  For example:
 \begin{spec}
 revM (revM (c 4 en :=: d 4 qn))
 ==> (rest 0 :+: c 4 en :+: rest en) :=: d 4 qn
@@ -99,7 +99,10 @@ we should be able to substitute one for the other in any valid musical
 context.  But if duration is not taken into account, then all rests
 are equivalent (because their performances are just the empty list).
 This means that, for example, |m1 :+: rest 1 :+: m2| is equivalent to
-|m1 :+: rest 2 :+: m2|, which is surely not what we want.
+|m1 :+: rest 2 :+: m2|, which is surely not what we want.\footnote{A
+  more striking example of this point is John Cage's composition
+  \emph{4'33''}, which consists basically of four minutes and
+  thirty-three seconds of silence \cite{}.}
 
 Note that we could have defined |perf| as above, i.e.\ in terms of
 |perform| and |dur|, but as mentioned in Section \ref{sec:performance}
@@ -116,6 +119,21 @@ could instead prove both of the following:
 perform pm c m1 = perform pm c m2
 dur m1 = dur m2
 \end{spec}
+
+\subsection{Literal Player}
+
+The only problem with this strategy for defining musical equivalence
+is that the notion of a \emph{player} can create situations where
+certain properties that we would like to hold, in fact do not.  After
+all, a player may interpret a note or phrase in whatever way it (or he
+or she) may desire.  For example, it seems that this property should
+hold:
+\begin{spec}
+tempo 1 m === m
+\end{spec}
+However, a certain (rather perverse) player might interpret anything
+tagged with a |Tempo| modifier as an empty performance---in which case
+the above property will fail!  To solve this problem, we assume that...
 
 \section{Some Simple Axioms}
 
@@ -218,7 +236,7 @@ dur (tempo r (m1 :+: m2))
  
 An even simpler axiom is given by:
 \begin{axiom}{\em
-For any |m|, |tempo 1) m === m|.
+For any |m|, |tempo 1 m === m|.
 }
 \end{axiom}
 In other words, {\em unit tempo scaling is the identity function for
@@ -260,7 +278,7 @@ tempo r m1 :+: m2 === tempo r (m1 :+: tempo (1/r) m2)
 \begin{spec} 
 tempo r m1 :+: m2
 ==> { Axiom 3 }
-tempo r m1 :+: tempo 1) m2
+tempo r m1 :+: tempo 1 m2
 ==> { arithmetic }
 tempo r m1 :+: tempo (r*(1/r)) m2
 ==> { Axiom 1 } 
@@ -282,7 +300,7 @@ tempo r (m1 :+: tempo (1/r) m2)
 %% \label{equiv}
 %% \end{figure*}
 
-\section{The Axiom Set}
+\section{The Fundamental Axiom Set}
 
 There are many other useful axioms, but we do not have room to include
 all of their proofs here.  They are listed below, which include the axioms
@@ -294,9 +312,9 @@ exercises.
 additive}.  That is, for any |r1|, |r2|, |p1|, |p2|, and
 |m|:
 \begin{spec}
-tempo r1 (tempo r2 m) === tempo (r1*r2) m
+tempo r1 (tempo r2 m)  === tempo (r1*r2) m
 
-trans p1 (trans p2 m) === trans (p1+p2) m
+trans p1 (trans p2 m)  === trans (p1+p2) m
 \end{spec}
 }
 \end{axiom}
@@ -306,11 +324,11 @@ Function composition is {\em commutative} with respect to both tempo
 scaling and transposition.  That is, for any |r1|, |r2|, |p1|
 and |p2|:
 \begin{spec}
-tempo r1 . tempo r2 === tempo r2 . tempo r1
+tempo r1 . tempo r2  === tempo r2 . tempo r1
 
-trans p1 . trans p2 === trans p2 . trans p1
+trans p1 . trans p2  === trans p2 . trans p1
 
-tempo r1 . trans p1 === trans p1 . tempo r1
+tempo r1 . trans p1  === trans p1 . tempo r1
 \end{spec}
 }
 \end{axiom}
@@ -320,13 +338,13 @@ Tempo scaling and transposition are {\em distributive} over both
 sequential and parallel composition.  That is, for any |r|,
 |p|, |m1|, and |m2|:
 \begin{spec}
-tempo r (m1 :+: m2) === tempo r m1 :+: tempo r m2
+tempo r (m1 :+: m2)  === tempo r m1 :+: tempo r m2
 
-tempo r (m1 :=: m2) === tempo r m1 :=: tempo r m2
+tempo r (m1 :=: m2)  === tempo r m1 :=: tempo r m2
 
-trans p (m1 :+: m2) === trans p m1 :+: trans p m2
+trans p (m1 :+: m2)  === trans p m1 :+: trans p m2
 
-trans p (m1 :=: m2) === trans p m1 :=: trans p m2
+trans p (m1 :=: m2)  === trans p m1 :=: trans p m2
 \end{spec}
 }
 \end{axiom}
@@ -335,9 +353,9 @@ trans p (m1 :=: m2) === trans p m1 :=: trans p m2
 Sequential and parallel composition are {\em associative}.  That is,
 for any |m0|, |m1|, and |m2|:
 \begin{spec}
-m0 :+: (m1 :+: m2) === (m0 :+: m1) :+: m2
+m0 :+: (m1 :+: m2)  === (m0 :+: m1) :+: m2
 
-m0 :=: (m1 :=: m2) === (m0 :=: m1) :=: m2
+m0 :=: (m1 :=: m2)  === (m0 :=: m1) :=: m2
 \end{spec}
 }
 \end{axiom}
@@ -356,24 +374,25 @@ m0 :=: m1 === m1 :=: m0
 zero} for sequential and parallel composition.  That is, for any
 |r|, |p|, and |m|:
 \begin{spec}
-tempo r (rest 0) === rest 0
+tempo r (rest 0)  === rest 0
 
-trans p (rest 0) === rest 0
+trans p (rest 0)  === rest 0
 
-m :+: rest 0 === m === rest 0 :+: m
+m :+: rest 0      === m === rest 0 :+: m
 
-m :=: rest 0 === m === rest 0 :=: m 
+m :=: rest 0      === m === rest 0 :=: m 
 \end{spec}
 }
 \end{axiom}
 
 \begin{axiom}{\em
 A rest can be used to ``pad'' a parallel composition.  That is, for
-any |m1|, |m2|, such that |dur m1 > dur m2|, and any |d <= dur m1 -
-dur m2|:
+any |m1|, |m2|, such that |diff = dur m1 > dur m2 >= 0|, and any |d <=
+diff|:
 \begin{spec}
 m1 :=: m2 === m1 :=: (m2 :+: rest d)
 \end{spec}
+\label{ax:pad}
 }
 \end{axiom}
 
@@ -388,27 +407,117 @@ There is a duality between |(:+:)| and |(:=:)|, namely that, for any
 
 \vspace{.1in}\hrule
 
-\begin{exercise}\em 
-Prove Lemma \ref{lem:perf}.
-\end{exercise}
-
-\begin{exercise}\em 
-Establish the validity of each of the above axioms.
+\begin{exercise}{\em 
+Prove Lemma \ref{lem:perf}.}
 \end{exercise}
 
 \begin{exercise}{\em 
-Recall the function |revM| defined in Chapter \ref{ch:music}, and
-note that, in general, |revM (revM m)| is not equal to |m|.
-However, the following is true:
+Establish the validity of each of the above axioms.}
+\end{exercise}
+
+\begin{exercise}{\em
+Recall the polyphonic and contrapuntal melodies |mel1| and |mel2| from
+Chapter~\ref{ch:Intro}.  Prove that |mel1 === mel2|.}
+\end{exercise}
+
+\vspace{.1in}\hrule
+
+\section{An Algebraic Semantics}
+
+Discuss formal semantics.  Denotational, operational (relate to
+``proof by calculation''), and algebraic.
+
+Soundness and Completeness.
+
+\section{Other Musical Properties}
+
+Aside from the axioms discussed so far, there are many other
+properties of |Music| values and its various operators, just as we saw
+in Chapter~\ref{ch:induction} for lists.  For example, this property
+of |map| taken from Table~\ref{table:list-props1}:
 \begin{spec}
-revM (revM m) === m
+map (f . g)       = map f . map g
 \end{spec}
-Prove this fact by calculation.
-}
+suggests and analogous property for |mMap|:
+\begin{spec}
+map (f . g)       = map f . map g
+\end{spec}
+Not all of the properties in Tables~\ref{table:list-props1} and
+\ref{table:list-props2} have analogous musical renditions, and there
+are also others that are special only to |Music| values.
+Table~\ref{table:music-props} summarizes the most important of these
+properties, including the one above.  Note that some of the properties
+are expressed as strict equality---that is, the left-hand and
+right-hand sides are equivalent as Haskell values.  But others are
+expressed using musical equivalence---that is, using |(===)|.  We
+leave the proofs of all these properties as an exercise.
+
+\begin{table}
+\fbox{
+\begin{minipage}{4.75in}
+{\bf Properties of |mMap|:}
+
+\vspace{0.1in}
+\begin{spec}
+mMap (\x->x)       = \x->x
+mMap (f . g)       = mMap f . mMap g
+mMap f . dropM d   = dropM d . mMap f
+mMap f . takeM d   = takeM d . mMap f
+\end{spec}
+
+\vspace{0.1in}
+{\bf Properties of |takeM| and |dropM|:}
+
+\vspace{0.1in} For all non-negative |d1| and |d2|:
+\begin{spec}
+takeM d1 . takeM d2  = takeM (min d1 d2)
+dropM d1 . dropM d2  = dropM (d1 + d2)
+takeM d1 . dropM d2  = dropM d1 . takeM (d1 + d2)
+\end{spec}
+For all non-negative |d1| and |d2| such that |d2 >= d1|:
+\begin{spec}
+dropM d1 . takeM d2 = takeM (d2 - d1) . dropM d1
+\end{spec}
+
+\vspace{0.1in}
+{\bf Properties of |revM|:}
+
+\vspace{0.1in} For all finite-duration |m|:
+\begin{spec}
+revM (revM m)     === m
+revM (takeM d m)  === dropM (dur m - d) (revM m)
+revM (dropM d m)  === takeM (dur m - d) (revM m)
+takeM d (revM m)  === revM (dropM (dur m - d) m)
+dropM d (revM m)  === revM (takeM (dur m - d) m)
+\end{spec}
+
+\vspace{0.1in}
+{\bf Properties of |dur|:}
+
+\vspace{0.1in}
+\begin{spec}
+dur (revM m)     = dur m
+dur (takeM d m)  = min d (dur m)
+dur (dropM d m)  = max 0 (dur m - d)
+\end{spec}
+\end{minipage}}
+\caption{Useful Properties of Other Musical Functions}
+\label{table:music-props}
+\end{table}
+
+\vspace{.1in}\hrule
+
+\begin{exercise}{\em
+Prove that |timesM a m :+: timesM b m === timesM (a+b) m|.}
+\end{exercise}
+
+\begin{exercise}{\em
+Prove as many of the axioms from Table~\ref{table:music-props} as you
+can.}
 \end{exercise}
 
 \out{
-Proof:
+Proof that revM (revM m) === m:
 
 revM (revM (Prim p)) 
 ==> revM (Prim p)
@@ -464,19 +573,9 @@ revM (revM m1 :=: (rest (d1−d2) :+: revM m2))
 ==> m1 :=: (m2 :+: rest (d1−d2))
 === m1 :=: m2
 
-Note: The last step above requires a musical axiom along the lines of:
-
-  m1 :=: (m2 :+: rest d) = m1 :=: m2, if d <= dur m1 - dur m2
+Note: The last step relies on Axiom \ref{ax:pad}.
 
 The other branch of the conditional follows similarly.
 }
 
-\begin{exercise}{\em
-Prove that |timesM a m :+: timesM b m === timesM (a+b) m|.}
-\end{exercise}
-
 \vspace{.1in}\hrule
-
-\section{Soundness and Completeness}
-
-TBD

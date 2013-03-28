@@ -7,9 +7,6 @@ module Euterpea.Music.Note.Performance where
 
 import Euterpea.Music.Note.Music
 import Euterpea.Music.Note.MoreMusic
-
-instance Show (a -> b) where
-   showsPrec p f = showString "<<function>>"
  
 type Performance = [Event]
 
@@ -67,21 +64,23 @@ perf pm
 type Note1   = (Pitch, [NoteAttribute])
 type Music1  = Music Note1
 
-toMusic1 :: Music Pitch -> Music1
-toMusic1 = mMap (\p -> (p, []))
+toMusic1   :: Music Pitch -> Music1
+toMusic1   = mMap (\p -> (p, []))
 
-toMusic1' :: Music (Pitch, Volume) -> Music1
-toMusic1' = mMap (\(p, v) -> (p, [Volume v]))
+toMusic1'  :: Music (Pitch, Volume) -> Music1
+toMusic1'  = mMap (\(p, v) -> (p, [Volume v]))
 data Player a = MkPlayer {  pName         :: PlayerName, 
                             playNote      :: NoteFun a,
                             interpPhrase  :: PhraseFun a, 
                             notatePlayer  :: NotateFun a }
-     deriving Show
 
 type NoteFun a    =  Context a -> Dur -> a -> Performance
 type PhraseFun a  =  PMap a -> Context a -> [PhraseAttribute]
                      -> Music a -> (Performance, DurT)
 type NotateFun a  =  ()
+
+instance Show a => Show (Player a) where
+   show p = "Player " ++ pName p
 defPlayer  :: Player Note1
 defPlayer  = MkPlayer 
              {  pName         = "Default",
@@ -92,9 +91,9 @@ defPlayNote ::  (Context (Pitch,[a]) -> a -> Event-> Event)
                 -> NoteFun (Pitch, [a])
 defPlayNote nasHandler 
   c@(Context cTime cPlayer cInst cDur cPch cVol cKey) d (p,nas) =
-    let initEv = Event {  eTime    = cTime, eInst  = cInst,
+    let initEv = Event {  eTime    = cTime,     eInst  = cInst,
+                          eDur     = d * cDur,  eVol = cVol,
                           ePitch   = absPitch p + cPch,
-                          eDur     = d * cDur, eVol = cVol,
                           eParams  = [] }
     in [ foldr (nasHandler c) initEv nas ]
 
@@ -104,9 +103,9 @@ defNasHandler c (Params pms)   ev = ev {eParams = pms}
 defNasHandler _            _   ev = ev
 
 defInterpPhrase :: 
-   (PhraseAttribute -> Performance -> Performance) -> -- PhraseFun a
-   PMap a -> Context a -> [PhraseAttribute] -> Music a -> 
-   (Performance, DurT)
+   (PhraseAttribute -> Performance -> Performance) -> 
+   (  PMap a -> Context a -> [PhraseAttribute] ->  --PhraseFun
+      Music a -> (Performance, DurT) )
 defInterpPhrase pasHandler pm context pas m =
        let (pf,dur) = perf pm context m
        in (foldr pasHandler pf pas, dur)
@@ -120,7 +119,7 @@ defPasHandler (Art (Legato   x))  =
     map (\e -> e {eDur = x * eDur e})
 defPasHandler _                   = id
  
-defPMap            :: PMap Note1  -- = PlayerName -> Player Note1
+defPMap            :: PMap Note1
 defPMap "Fancy"    = fancyPlayer
 defPMap "Default"  = defPlayer
 defPMap n          = defPlayer { pName = n }
@@ -169,8 +168,8 @@ fancyInterpPhrase pm
            PPP  -> loud 40;       PP -> loud 50;   P    -> loud 60
            MP   -> loud 70;       SF -> loud 80;   MF   -> loud 90
            NF   -> loud 100;      FF -> loud 110;  FFF  -> loud 120
-    Dyn (Loudness x)     ->  fancyInterpPhrase pm c 
-                             {cVol = (round . fromRational) x} pas m
+    Dyn (Loudness x)     ->  fancyInterpPhrase pm
+                             c{cVol = (round . fromRational) x} pas m
     Dyn (Crescendo x)    ->  inflate   x ; Dyn (Diminuendo x)  -> inflate (-x)
     Tmp (Ritardando x)   ->  stretch   x ; Tmp (Accelerando x) -> stretch (-x)
     Art (Staccato x)     ->  (map (\e-> e {eDur = x * eDur e}) pf, dur)

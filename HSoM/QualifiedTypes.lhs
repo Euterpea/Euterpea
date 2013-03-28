@@ -721,6 +721,14 @@ the standard types are provided in the Standard Prelude.
 %% instance that simply generates the string |"<<function>>"|, but not
 %% a corresponding |Read| instance.
 
+\subsection{The Functor Class}
+\label{sec:functor-class}
+
+[Define |Functor| class, and show instances for lists, |Maybe|,
+  |Primitive|, |Music|, ...]
+
+TBD
+
 \section{Other Derived Instances}
 \label{sec:other-derived-instances}
 

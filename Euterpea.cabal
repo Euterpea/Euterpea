@@ -73,9 +73,9 @@ Library
         Control.SF.MSF,
         Euterpea.Examples.EuterpeaExamples
         Euterpea.Examples.Interlude,
-        Euterpea.Examples.IntervalTrainer,
         Euterpea.Examples.LSystems,
         Euterpea.Examples.MUIExamples,
+        Euterpea.Examples.MUI,
         Euterpea.Examples.MusicToSignal,
         Euterpea.Examples.NewResolutions,
         Euterpea.Examples.RandomMusic, 

@@ -25,7 +25,7 @@ import Euterpea
 In this chapter we will explore the notion of \emph{self-similar}
 music---i.e.\ musical structures that have patterns that repeat
 themselves recursively in interesting ways.  There are many approaches
-to generating self-similar structures, the most general being
+to generating self-similar structures, the most well-known being
 \emph{fractals}, which have been used to generate not just music, but
 also graphical images.  We will delay a general treatment of fractals,
 however, and will instead focus on more specialized notions of
@@ -42,12 +42,12 @@ following transformations: transpose the |i|th melody by an amount
 proportional to the pitch of the |i|th note in the original melody,
 and scale its tempo by a factor proportional to the duration of the
 |i|th note.  For example, Figure \ref{fig:self-similar} shows the
-result of applying this process once to a four-note melody.  Now
-imagine that this process is repeated infinitely often.  For a melody
-whose notes are all shorter than a whole note, it yields an infinitely
-dense melody of infinitesimally shorter notes.  To make the result
-playable, however, we will stop the process at some pre-determined
-level.
+result of applying this process once to a four-note melody (the first
+four notes form the original melody).  Now imagine that this process
+is repeated infinitely often.  For a melody whose notes are all
+shorter than a whole note, it yields an infinitely dense melody of
+infinitesimally shorter notes.  To make the result playable, however,
+we will stop the process at some pre-determined level.
 
 \begin{figure*}
 \centerline{
@@ -94,11 +94,11 @@ Note that |selfSim| itself is not recursive, but |mkCluster| is.  This
 code should be studied carefully.  In particualr, the recursion in
 |mkCluster| is different from what we have seen before, as it is not a
 direct invocation of |mkCluster|, but rather it is a high-order
-argument to map (which in turn invokes |mkCluster| an aribtrary number
-of times).
+argument to |map| (which in turn invokes |mkCluster| an aribtrary
+number of times).
 
-Next, we define a function to skim off the notes at the |n|th level,
-or |n|th ``fringe,'' of a cluster:
+Next, we define a function to skim off the notes at the $n^{th}$ level,
+or $n^{th}$ ``fringe,'' of a cluster:
 \begin{code}
 fringe                       :: Int -> Cluster -> [SNote]
 fringe 0 (Cluster note cls)  = [note]
@@ -363,16 +363,16 @@ Modify the self-similar code in the following ways:
 \begin{itemize}
 \item 
 Add a Volume component to |SNote| (in other words, define it as a triple
-instead of a pair), and redefine |addmult| so that it takes two of these
+instead of a pair), and redefine |addMult| so that it takes two of these
 triples and combines them in a suitable way.  Then modify the rest of
 the code so that the result is a |Music1| value.  With these
 modifications, compose something interesting that highlights the
 changes in volume.
 
 \item
-Change the |Pitch| field in |SNote| to be a list of |Pitch|, to be
-interpreted ultimately as a chord.  Figure out some way to combine
-them in |addmult|, and compose something interesting.
+Change the |AbsPitch| field in |SNote| to be a list of |AbsPitch|s, to
+be interpreted ultimately as a chord.  Figure out some way to combine
+them in |addMult|, and compose something interesting.
 \end{itemize}
 }
 \end{exercise}

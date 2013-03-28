@@ -19,14 +19,14 @@
 
 module Euterpea.Music.Signal.SpectrumAnalysis where
 
-import Euterpea hiding (Event)
+import Euterpea
 import Euterpea.IO.MUI
 import Euterpea.IO.MUI.SOE (Color(..))
 
 import Data.Complex
 import Data.Maybe (listToMaybe, catMaybes)
 
-import Control.SF.AuxFunctions (fftA, Event)
+import Control.SF.AuxFunctions (fftA, SEvent)
 \end{code}
 
 There are many situations where it is desirable to take an existing

@@ -60,8 +60,8 @@ that |p| is true for lists of length |n+1|---then the claim is that
 |p| is true for lists of \emph{any} (finite) length.
 
 Why is this so?  Well, from the first step above we know that |p| is
-true for length 0, so the second step tells us that it's also true for
-length 1.  But if it's true for length 1 then it must also be true for
+true for length 0, so the second step tells us that it is also true for
+length 1.  But if it is true for length 1 then it must also be true for
 length 2; similarly for lengths 3, 4, etc.\  So |p| is true for lists
 of any length!
 
@@ -74,7 +74,7 @@ in Chapter \ref{ch:streams}.)  \index{list!infinite}
 To summarize, to prove a property |p| by induction on the length of a
 list, we proceed in two steps: 
 \begin{enumerate} 
-\item Prove |p([])| (this is called the \emph{base step}).
+\item Prove |p([])| (this is called the \emph{base case}).
 \item Assume that |p(xs)| is true (this is called the \emph{induction
 hypothesis}, and prove that |p(x:xs)| is true (this is called the
 \emph{induction step}).
@@ -85,14 +85,14 @@ hypothesis}, and prove that |p(x:xs)| is true (this is called the
 
 Ok, enough talk, let's see this idea in action.  Recall in Section
 \ref{sec:poly-types} the following property about \indexwdhs{foldr}:
-
 \[(\forall|xs|)\ \ |foldr (:) [] xs  ===>  xs|\]
-
 We will prove this by induction on the length of |xs|.  Following
-the ideas above, we begin with the base step by proving the property
+the ideas above, we begin with the base case by proving the property
 for length 0; i.e.\ for |xs = []|:
 \begin{spec}
-foldr (:) [] []  ==>  []
+foldr (:) [] [] 
+==> { unfold foldr }
+[]
 \end{spec}
 This step is immediate from the definition of |foldr|.  Now for
 the induction step: we first \emph{assume} that the property is true
@@ -100,120 +100,136 @@ for all lists |xs| of length |n|, and then prove the property for
 list |x:xs|.  Again proceeding by calculation:
 \begin{spec}
 foldr (:) [] (x:xs) 
-==> x : foldr (:) [] xs
-==> x : xs
+==> { unfold foldr }
+x : foldr (:) [] xs
+==> { induction hypothesis }
+x : xs
 \end{spec}
 And we are done; the induction hypothesis is what justifies the second
 step.
 
 Now let's do something a bit harder.  Suppose we are interested in
 proving the following property:
-
 \[(\forall|xs,ys|)\ \ |length (xs ++ ys) = length xs + length ys|\]
-
 Our first problem is to decide which list to perform the induction
 over.  A little thought (in particular, a look at how the definitions
 of \indexwdhs{length} and |(++)| are structured) should convince you that
 |xs| is the right choice.  (If you do not see this, you are
 encouraged to try the proof by induction over the length of |ys|!)
-Again following the ideas above, we begin with the base step by
+Again following the ideas above, we begin with the base case by
 proving the property for length 0; i.e.\ for |xs = []|:
 \begin{spec}
 length ([] ++ ys) 
-==> length ys 
-==> 0 + length ys 
-==> length [] + length ys
+==> { unfold (++) }
+length ys 
+==> { fold (+) }
+0 + length ys 
+==> { fold length }
+length [] + length ys
 \end{spec}
 For the induction step, we first assume that the property is true for
 all lists |xs| of length |n|, and then prove the property for list
 |x:xs|.  Again proceeding by calculation:
 \begin{spec}
 length ((x:xs) ++ ys) 
-==> length (x : (xs ++ ys))
-==> 1 + length (xs ++ ys) 
-==> 1 + (length xs + length ys)
-==> (1 + length xs) + length ys
-==> length (x:xs) + length ys
+==> { unfold (++) }
+length (x : (xs ++ ys))
+==> { unfold length }
+1 + length (xs ++ ys) 
+==> { induction hypothesis }
+1 + (length xs + length ys)
+==> { associativity of (+) }
+(1 + length xs) + length ys
+==> { fold length }
+length (x:xs) + length ys
 \end{spec}
 And we are done.  The transition from the 3rd line to the 4th is where
-we used the induction hypothesis.
+the induction hypothesis is used.
 
 \section{Proving Function Equivalences}
 
-At this point it is a simple matter to return to Chapter \ref{ch:poly}
+At this point it is a simple matter to return to Chapter~\ref{ch:poly}
 and supply the proofs that functions defined using |map| and |fold|
 are equivalent to the recursively defined versions.  In particular,
-let's prove first that:
+recall these two definitions of |toAbsPitches|:
 \begin{spec}
-toAbsPitches = map absPitch
-\end{spec}
-where |toAbsPitch| is the original recursively defined function:
-\begin{spec}
-toAbsPitches []      = []
-toAbsPitches (p:ps)  = absPitch p : toAbsPitches ps
-\end{spec}
+toAbsPitches1 []      = []
+toAbsPitches1 (p:ps)  = absPitch p : toAbsPitches1 ps
 
-To prove this, we first use the extensionality principle (briefly
-discussed in Section \ref{sec:currying-simplification}), which says
-that two functions are equal if, when applied to the same value, they
-always yield the same result.  We can change the specification
-slightly to reflect this.  For any finite list |ps|, we want to prove:
+toAbsPitches2 = map absPitch
+\end{spec}
+We want to prove that |toAbsPitches1 = toAbsPitches2|.  To do so, we
+use the extensionality principle (briefly discussed in
+Section~\ref{sec:currying-simplification}), which says that two
+functions are equal if, when applied to the same value, they always
+yield the same result.  We can change the specification slightly to
+reflect this.  For any finite list |ps|, we want to prove:
 \begin{spec}
-toAbsPitches ps = map absPitch ps
+toAbsPitches1 ps = toAbsPitches2 ps
 \end{spec}
 
 We proceed by induction, starting with the base case |ps = []|:
 \begin{spec}
-toAbsPitches []
+toAbsPitches1 []
 ==> []
 ==> map absPitch []
+==> toAbsPitches2 []
 \end{spec}
-Next we assume that |toAbsPitches ps = map absPitch ps| holds, and try to
-prove that |toAbsPitches (p:ps) = map absPitch (p:ps)| (note the use of
-the induction hypothesis in the second step):
+Next we assume that |toAbsPitches1 ps = toAbsPitches2 ps| holds, and
+try to prove that |toAbsPitches1 (p:ps) = toAbsPitches2 (p:ps)|:
 \begin{spec}
-toAbsPitches (p:ps)
-==> absPitch p : toAbsPitches ps
+toAbsPitches1 (p:ps)
+==> absPitch p : toAbsPitches1 ps
+==> absPitch p : toAbsPitches2 ps
 ==> absPitch p : map absPitch ps
 ==> map absPitch (p:ps)
 \end{spec}
-The proof that |toPitches aps = map pitch aps| is very similar, and is
-left as an exercise.
+Note the use of the induction hypothesis in the second step.
 
-For a proof involving |foldr|, recall from Section \ref{sec:fold} this
+%% The proof that the two versions of |toPitches| given in
+%% Chapter~\ref{ch:poly} is very similar, and is left as an exercise.
+
+For a proof involving |foldr|, recall from Chapter~\ref{ch:poly} this
 recursive definition of |line|:
 \begin{spec}
-line []      = rest 0
-line (m:ms)  = m :+: line ms
+line1 []      = rest 0
+line1 (m:ms)  = m :+: line1 ms
 \end{spec}
 and this non-recursive version:
 \begin{spec}
-line = foldr (:+:) (rest 0)
+line2 = foldr (:+:) (rest 0)
 \end{spec}
-We can prove that these definitions are equivalent by induction.
+We can prove that these two functions are equivalent by induction.
 First the base case:
 \begin{spec}
-line []
+line1 []
 ==> rest 0
 ==> foldr (:+:) (rest 0) []
+==> line2 []
 \end{spec}
 Then the induction step:
 \begin{spec}
-line (m:ms)
-==> m :+: line ms
+line1 (m:ms)
+==> m :+: line1 ms
+==> m :+: line2 ms
 ==> m :+: foldr (:+:) (rest 0) ms
 ==> foldr (:+:) (rest 0) (m:ms)
+==> line2 (m:ms)
 \end{spec}
 
 The proofs of equivalence of the definitions of |toPitches|, |chord|,
-|maxPitch|, and |hList| from Section \ref{sec:fold} are similar, and
+|maxPitch|, and |hList| from Chapter~\ref{ch:poly} are similar, and
 left as an exercise.
 
+\vspace{.1in}\hrule
+
 \begin{exercise}{\em
-From Chapter \ref{ch:poly}, prove that the original recursive versions
+From Chapter~\ref{ch:poly}, prove that the original recursive versions
 of the following functions are equivalent to the versions using |map|
 or |fold|: |toPitches|, |chord|, |maxPitch|, and |hList|.}
 \end{exercise}
+
+\vspace{.1in}\hrule
 
 \subsection{[Advanced] Reverse}
 
@@ -230,10 +246,12 @@ reverse2 xs = foldl (flip (:)) [] xs
 \end{spec}
 We would like to show that these are the same; i.e.\ that 
 |reverse1 xs = reverse2 xs| for any finite list |xs|.  In
-carrying out this proof two new ideas will be demonstrated, the first
-being that induction can be used to prove the equivalence of two
-programs.  The second is the need for an \emph{auxiliary property}
+carrying out this proof one new idea will be demonstrated, namely
+ the need for an \emph{auxiliary property}
 which is proved independently of the main result.
+
+%% the first being that induction can be used to prove the equivalence of
+%% two programs.  The second is
 
 The base case is easy, as it often is:
 \begin{spec}
@@ -353,7 +371,7 @@ foldl (flip (:)) (flip (:) [] x) xs ++ [y]
 foldl (flip (:)) [x] xs ++ [y]
 ==> ???
 
-What now?  We are stuck.  In particular, we can't apply the induction
+What now?  We are stuck.  In particular, we cannot apply the induction
 hypothesis because foldl's third argument is |[x]| and not |[]|.
 }
 
@@ -380,6 +398,7 @@ i.e. these are really two different functions.)
 \fbox{
 \begin{minipage}{4.75in}
 {\bf Properties of |map|:}
+
 \begin{spec}
 map (\x->x)       = \x->x
 map (f . g)       = map f . map g
@@ -392,6 +411,7 @@ For all strict |f|:
 \begin{spec}
 f . head = head . map f
 \end{spec}
+\vspace{0.1in}
 
 {\bf Properties of the |fold| functions:}
 
@@ -431,22 +451,25 @@ foldr op e xs = foldl (flip op) e (reverse xs)
 xs ++ []          = [] ++ xs = xs
 \end{spec}
 
+\vspace{0.1in}
 {\bf Properties of |take| and |drop|:}
 
-\vspace{0.1in} For all finite non-negative |m| and |n|, and
-finite |xs|:
+\vspace{0.1in} 
 \begin{spec}
-take n xs ++ drop n xs  = xs
 take m . take n         = take (min m n)
 drop m . drop n         = drop (m + n)
 take m . drop n         = drop n . take (m + n)
 \end{spec}
-
-For all finite non-negative |m| and |n| such that $n \geq m$:
+For all non-negative |m| and |n| such that $n \geq m$:
 \begin{spec}
 drop m . take n = take (n - m) . drop m
 \end{spec}
+For all non-negative |m| and |n|, and finite |xs|:
+\begin{spec}
+take n xs ++ drop n xs  = xs
+\end{spec}
 
+\vspace{0.1in}
 {\bf Properties of |reverse|:}
 
 \vspace{0.1in} For all finite |xs|:
@@ -578,13 +601,11 @@ it to reason about |Music| values.
 For example, recall this property intuitively conjectured in
 Section~\ref{sec:music-fold}:
 \begin{spec}
-mFold (:+:) (:=:) Prim Modify m = m
+mFold Prim (:+:) (:=:) Modify m = m
 \end{spec}
 To prove this, we again use the extensionality principle, and then
 proceed by induction.  But what is the base case?  Recall that the
 |Music| data type is defined as:
-
-\newpage
 
 \begin{spec}
 data Music a  = 
@@ -598,31 +619,31 @@ is |Prim|, so that in fact is the only base case.
 
 So, starting with this base case:
 \begin{spec}
-mFold (:+:) (:=:) Prim Modify (Prim p)
+mFold Prim (:+:) (:=:) Modify (Prim p)
 ==> Prim p
 ==> id (Prim p)
 \end{spec}
 That was easy!  Next, we develop an induction step for each of the
 three non-base cases:
 \begin{spec}
-mFold (:+:) (:=:) Prim Modify (m1 :+: m2)
-==>  mFold (:+:) (:=:) Prim Modify m1 :+: 
-     mFold (:+:) (:=:) Prim Modify m2
+mFold Prim (:+:) (:=:) Modify (m1 :+: m2)
+==>  mFold Prim (:+:) (:=:) Modify m1 :+: 
+     mFold Prim (:+:) (:=:) Modify m2
 ==> m1 :+: m2
 ==> id (m1 :+: m2)
 \end{spec}
 
 \begin{spec}
-mFold (:+:) (:=:) Prim Modify (m1 :=: m2)
-==>  mFold (:+:) (:=:) Prim Modify m1 :=:
-     mFold (:+:) (:=:) Prim Modify m2
+mFold Prim (:+:) (:=:) Modify (m1 :=: m2)
+==>  mFold Prim (:+:) (:=:) Modify m1 :=:
+     mFold Prim (:+:) (:=:) Modify m2
 ==> m1 :=: m2
 ==> id (m1 :=: m2)
 \end{spec}
 
 \begin{spec}
-mFold (:+:) (:=:) Prim Modify (Modify c m)
-==> Modify c (mFold (:+:) (:=:) Prim Modify m)
+mFold Prim (:+:) (:=:) Modify (Modify c m)
+==> Modify c (mFold Prim (:+:) (:=:) Modify m)
 ==> Modify c m
 ==> id (Modify c m)
 \end{spec}
@@ -640,7 +661,6 @@ Again we proceed by induction, starting with the base case:
 dur (revM (Prim p))
 ==> dur (Prim p)
 \end{spec}
-
 Sequential composition is straightforward:
 \begin{spec}
 dur (revM (m1 :+: m2))
@@ -685,6 +705,7 @@ dur ((rest (d2-d1) :+: revM m1) :=: revM m2)
 ==> max (dur m2) (dur m2)
 ==> dur m2
 \end{spec}
+
 Now we can continue the proof from above:
 \begin{spec}
 ...
@@ -744,7 +765,7 @@ using the lemma:
 Prove the following facts involving |dur|:}
 \begin{spec}
 dur (timesM n m)  = n * dur m
-dur (cut d m)     = d, if d <= dur m
+dur (takeM d m)   = d, if d <= dur m
 \end{spec}
 %% dur (revM m)      = dur m,  if dur m /= bottom
 \end{exercise}
@@ -758,23 +779,13 @@ mMap f (mMap g m)  = mMap (f . g) m
 \end{exercise}
 
 \begin{exercise}{\em
-For that, for all |pmap|, |c|, and |m2|:
+Frove that, for all |pmap|, |c|, and |m|:
 \begin{spec}
-perf pmap c m2 = (perform pmap c m2, dur m2)
+perf pmap c m = (perform pmap c m, dur m)
 \end{spec}
 where |perform| is the function defined in Figure \ref{fig:perform}.
 }
 \end{exercise}
-
-\out{
-If we had takeM and dropM:
-
-revM (takeM d m) = dropM (dur m - d) (revM m)
-revM (dropM d m) = takeM (dur m - d) (revM m)
-
-takeM d (revM m) = revM (dropM (dur m - d) m)
-dropM d (revM m) = revM (takeM (dur m - d) m)
-}
 
 \vspace{.1in}\hrule
 \vspace{.1in}
@@ -792,13 +803,9 @@ revM (revM m) = m
 To see why this property cannot be proved without a notion of musical
 equivalence, note that:
 \begin{spec}
-revM (c 4 en :=: d 4 qn) 
-==> (rest en :+: c 4 en) :=: d 4 qn
-\end{spec}
-and therefore:
-\begin{spec}
 revM (revM (c 4 en :=: d 4 qn))
-==> (rest 0 :+: c 4 en :+: rest en) :=: d 4 qn
+===> revM ((rest en :+: c 4 en) :=: d 4 qn)
+===> (rest 0 :+: c 4 en :+: rest en) :=: d 4 qn
 \end{spec}
 Clearly the last line above is not equal, as a Haskell value, to |c 4
 en :=: d 4 qn|.  But somehow we need to show that these two values
@@ -831,9 +838,7 @@ last line in the definition above, which corresponds nicely to
 mathematical convention.}
 
 Now suppose that we want to prove that:
-
 \[(\forall x, n\geq0, m\geq0)\ \ |x^(n+m) = x^n * x^m|\]
-
 We proceed by induction on |n|, beginning with |n=0|:
 \begin{spec}
 x^(0+m) 
@@ -876,6 +881,7 @@ Note that the above definition will test for |n<0| on every
 recursive call, when actually the only call in which it could happen
 is the first.  Therefore a slightly more efficient version of this
 program would be:
+
 \begin{spec}
 (^)             :: Integer -> Integer -> Integer
 x^n  | n<0        = error "negative exponent"
@@ -886,9 +892,7 @@ x^n  | n<0        = error "negative exponent"
 Proving the property stated earlier for this version of the program is
 straightforward, with one minor distinction: what we really need to
 prove is that the property is true for |f|; that is:
-
 \[(\forall x, n\geq0, m\geq0)\ \ |f x (n+m) = f x n * f x m|\]
-
 from which the proof for the whole function follows trivially.
 
 \subsection{A More Efficient Exponentiation Function}
@@ -931,7 +935,7 @@ beginning with the base case |n=0|:
 \begin{spec}
 f x 0 ==> 1 ==> ff x 0
 \end{spec}
-so the base step holds trivially.  The induction step, however, is
+so the base case holds trivially.  The induction step, however, is
 considerably more complicated.  We must consider two cases: |n+1|
 is either even, or it is odd.  If it is odd, we can show that:
 \begin{spec}
@@ -955,7 +959,7 @@ unfolding the call to |ff|:
 x * ff x n
 ==> x * (x * ff x (n-1))
 \end{spec}
-but this doesn't seem to be getting us anywhere.  Furthermore,
+but this does not seem to be getting us anywhere.  Furthermore,
 \emph{folding} the call to |ff| (as we did in the odd case) would
 involve \emph{doubling} |n| and taking the square root of |x|,
 neither of which seems like a good idea!
@@ -977,9 +981,7 @@ But even allowing this, we seem to be stuck again!
 Instead of pushing this line of reasoning further, let's pursue a
 different tact based on the (valid) assumption that if |m| is even,
 then:
-
 \[ |m = m `quot` 2 + m `quot` 2| \]
-
 Let's use this fact together with the property that we proved in the
 last section:
 \begin{spec}
@@ -1030,18 +1032,14 @@ proving that |(^)| and |(^!)| are equivalent is that
 \emph{anything that we prove about one function will be true for the
   other}.  For example, the validity of the property that we proved
 earlier:
-
 \[ |x^(n+m) = x^n * x^m| \]
-
 immediately implies the validity of:
-
 \[ |x^!(n+m) = x^!n * x^!m| \]
-
 Although |(^!)| is more efficient than |(^)|, it is also more
 complicated, so it makes sense to try proving new properties for
 |(^)|, since the proofs will likely be easier.
 
-The moral of this story is that you shouldn't throw away old code that
+The moral of this story is that you should not throw away old code that
 is simpler but less efficient than a newer version.  That old code can
 serve at least two good purposes: First, if it is simpler, it is
 likely to be easier to understand, and thus serves a useful role in
@@ -1074,14 +1072,14 @@ fac1    :: Integer -> Integer
 fac1 0  = 1
 fac1 n  = n * fac1 (n-1)
 \end{spec}
-and this alternative definition:
+and this alternative definition that uses an ``accumulator:''
 \begin{spec}
 fac2    :: Integer -> Integer
 fac2 n  = fac' n 1
-  where  fac' 0 x  = x
-         fac' n x  = fac' (n-1) (n*x)
+  where  fac' 0 acc  = acc
+         fac' n acc  = fac' (n-1) (n*acc)
 \end{spec}
-Prove that |fac1 n = fac2 n| for all non-negative integers |n|.
+Prove that |fac1 = fac2|.
 \end{exercise}
 
 \vspace{.1in}\hrule

@@ -21,9 +21,6 @@ module Euterpea.Music.Note.Performance where
 
 import Euterpea.Music.Note.Music
 import Euterpea.Music.Note.MoreMusic
-
-instance Show (a -> b) where
-   showsPrec p f = showString "<<function>>"
 \end{code} 
 
 \syn{The first line above is a GHC \emph{pragma} that, in this case,
@@ -33,7 +30,7 @@ instance Show (a -> b) where
 
 So far, our presentation of musical values in Haskell has been mostly
 structural, i.e.\ \emph{syntactic}.  Although we have given an
-interpretation of the ``duration'' of |Music| values (as manifested in
+interpretation of the duration of |Music| values (as manifested in
 |dur|, |takeM|, |dropM|, and so on), we have not given any deeper
 musical interpretation.  What do these musical values actually
 \emph{mean}, i.e.\ what is their \emph{semantics}, or
@@ -45,7 +42,7 @@ very essence of musical performance.  However, in conventional music
 this process is usually informal, appealing to aesthetic judgments and
 values.  What we would like to do is make the process formal in
 Euterpea---but still flexible, so that more than one interpretation is
-possible, just as in music.
+possible, just as in the human performance of music.
 
 \section{Abstract Performance}
 \label{sec:performance}
@@ -82,7 +79,7 @@ type DurT      = Rational
     label} syntax, also called \emph{record} syntax, and is equivalent to:
 \begin{spec}
 data Event = Event  PTime InstrumentName 
-                    AbsPitch DurT Volume [Float]
+                    AbsPitch DurT Volume [Double]
      deriving (Eq,Ord,Show)
 \end{spec}
 except that the former also defines ``field labels'' |eTime|, |eInst|, 
@@ -117,12 +114,13 @@ Field labels do not change the basic nature of a data type; they are
 simply a convenient syntax for referring to the components of a data
 type by name rather than by position.}
 
-An event |Event {eTime = s, eInst = i, ePitch = p, eDur = d, eVol = v}|
-captures the fact that at start time |s|, instrument |i| sounds pitch
-|p| with volume |v| for a duration |d| (where now duration is measured
-in seconds, rather than beats).  (The |eParams| of an event is for
-special instruments that require extra parameters, and will not be
-discussed much further in this chapter.)
+An event |Event {eTime = s, eInst = i, ePitch = p, eDur = d, eVol =
+  v}| captures the fact that at start time |s|, instrument |i| sounds
+pitch |p| with volume |v| for a duration |d| (where now duration is
+measured in seconds, rather than beats).  (The |eParams| of an event
+is for instruments other than MIDI, in particular instruments that we
+might design on our using the techniques described in
+Chapter~\ref{ch:sigfuns}.
 
 An abstract performance is the lowest of our music representations not
 yet committed to MIDI or some other low-level computer music
@@ -137,7 +135,7 @@ to, a musical value, we must know the time to begin the performance,
 and the proper instrument, volume, starting pitch offset, and tempo.
 We can think of this as the ``context'' in which a musical value is
 interpreted.  This context can be captured formally in Haskell as a
-data type: respectively:
+data type:
 
 \pagebreak
 
@@ -180,14 +178,15 @@ notes per minute.
 \label{sec:player-map}
 
 In addition to the context, we also need to know what {\em player} to
-use; that is, we need a mapping from each |PlayerName| in a |Music|
-value to the actual player to be used.\footnote{We do not need a
-  mapping from |InstrumentName|s to instruments, since that is handled
-  in the translation from a performance into MIDI, which is discussed
-  in Chapter \ref{ch:midi}.}  The details of what a player is, and how
-it gives great flexibility to Euterpea, will be explained later in
-this chapter.  For now, we simply define a type synonym to capture the
-mapping of |PlayerName| to |Player|:
+use; that is, we need a mapping from each |PlayerName| (a string) in a
+|Music| value to the actual player to be used.\footnote{We do not need
+  a mapping from |InstrumentName|s to instruments, since that is
+  handled in the translation from a performance into MIDI, which is
+  discussed in Chapter \ref{ch:midi}.}  The details of what a player
+is, and how it gives great flexibility to Euterpea, will be explained
+later in this chapter (Section~\ref{sec:players}).  For now, we simply
+define a type synonym to capture the mapping of |PlayerName| to
+|Player|:
 \begin{code}
 
 type PMap a  = PlayerName -> Player a
@@ -452,7 +451,7 @@ attributes for each individual note:
 
 \begin{spec}
 data NoteAttribute = 
-        Volume  Int   -- MIDI convention: 0=min, 127=max
+        Volume  Int          -- MIDI convention: 0=min, 127=max
      |  Fingering Integer
      |  Dynamics String
      |  Params [Double]
@@ -463,15 +462,15 @@ Our goal then is to define a player for music values of type:
 type Note1   = (Pitch, [NoteAttribute])
 type Music1  = Music Note1
 \end{code}
-To facilitate the use of |Music1| values we define these auxiliary
-functions:
+To facilitate the use of |Music1| values, Euterpea defines the
+following simple coercion functions:
 \begin{code}
 
-toMusic1 :: Music Pitch -> Music1
-toMusic1 = mMap (\p -> (p, []))
+toMusic1   :: Music Pitch -> Music1
+toMusic1   = mMap (\p -> (p, []))
 
-toMusic1' :: Music (Pitch, Volume) -> Music1
-toMusic1' = mMap (\(p, v) -> (p, [Volume v]))
+toMusic1'  :: Music (Pitch, Volume) -> Music1
+toMusic1'  = mMap (\(p, v) -> (p, [Volume v]))
 \end{code}
 
 Finally, with a slight stretch of the imagination, we can even
@@ -494,15 +493,20 @@ data Player a = MkPlayer {  pName         :: PlayerName,
                             playNote      :: NoteFun a,
                             interpPhrase  :: PhraseFun a, 
                             notatePlayer  :: NotateFun a }
-     deriving Show
 
 type NoteFun a    =  Context a -> Dur -> a -> Performance
 type PhraseFun a  =  PMap a -> Context a -> [PhraseAttribute]
                      -> Music a -> (Performance, DurT)
 type NotateFun a  =  ()
+
+instance Show a => Show (Player a) where
+   show p = "Player " ++ pName p
 \end{code}
 Note that |NotateFun| is just the unit type; this is because notation
-is currently not implemented in Euterpea.
+is currently not implemented in Euterpea.  Also note the instance
+declaration for a |Player|---since its components are mostly
+functions, which are not default instances of |Show|, we define a
+simple way to return the |PlayerName|.
 
 \subsection{Example of Player Construction}
 
@@ -535,9 +539,9 @@ defPlayNote ::  (Context (Pitch,[a]) -> a -> Event-> Event)
                 -> NoteFun (Pitch, [a])
 defPlayNote nasHandler 
   c@(Context cTime cPlayer cInst cDur cPch cVol cKey) d (p,nas) =
-    let initEv = Event {  eTime    = cTime, eInst  = cInst,
+    let initEv = Event {  eTime    = cTime,     eInst  = cInst,
+                          eDur     = d * cDur,  eVol = cVol,
                           ePitch   = absPitch p + cPch,
-                          eDur     = d * cDur, eVol = cVol,
                           eParams  = [] }
     in [ foldr (nasHandler c) initEv nas ]
 
@@ -547,9 +551,9 @@ defNasHandler c (Params pms)   ev = ev {eParams = pms}
 defNasHandler _            _   ev = ev
 
 defInterpPhrase :: 
-   (PhraseAttribute -> Performance -> Performance) -> -- PhraseFun a
-   PMap a -> Context a -> [PhraseAttribute] -> Music a -> 
-   (Performance, DurT)
+   (PhraseAttribute -> Performance -> Performance) -> 
+   (  PMap a -> Context a -> [PhraseAttribute] ->  --PhraseFun
+      Music a -> (Performance, DurT) )
 defInterpPhrase pasHandler pm context pas m =
        let (pf,dur) = perf pm context m
        in (foldr pasHandler pf pas, dur)
@@ -635,16 +639,15 @@ myPasHandler  pa                  pf = defPasHandler pa pf
 \subsection{A Fancy Player}
 \label{sec:fancy-player}
 
-Figure \ref{fancy-Player} defines a relatively sophisticated player
-called |fancyPlayer| that knows all that |defPlayer| knows, and more.
-Note that |Slurred| is different from |Legato| in that it does not
-extend the duration of the {\em last} note(s).  The behavior of
-|Ritardando x| can be explained as follows.  We would like to
-``stretch'' the time of each event by a factor from $0$ to $x$,
-linearly interpolated based on how far along the musical phrase the
-event occurs.  I.e., given a start time $t_0$ for the first event in
-the phrase, total phrase duration $D$, and event time $t$, the new
-event time $t'$ is given by:
+Figure \ref{fancy-Player} defines a more sophisticated player called
+|fancyPlayer| that knows all that |defPlayer| knows, and more.  Note
+that |Slurred| is different from |Legato| in that it does not extend
+the duration of the {\em last} note(s).  The behavior of |Ritardando
+x| can be explained as follows.  We would like to ``stretch'' the time
+of each event by a factor from $0$ to $x$, linearly interpolated based
+on how far along the musical phrase the event occurs.  I.e., given a
+start time $t_0$ for the first event in the phrase, total phrase
+duration $D$, and event time $t$, the new event time $t'$ is given by:
 \[ t'   = (1 + \frac{t-t_0}{D}x)(t-t_0) + t_0 \]
 Further, if $d$ is the duration of the event, then the end of
 the event $t+d$ gets stretched to a new time $t_d'$ given by:
@@ -663,7 +666,7 @@ The |play| function in Euterpea ueses a default player map and a
 default context that are defined as follows:
 \begin{code}
 
-defPMap            :: PMap Note1  -- = PlayerName -> Player Note1
+defPMap            :: PMap Note1
 defPMap "Fancy"    = fancyPlayer
 defPMap "Default"  = defPlayer
 defPMap n          = defPlayer { pName = n }
@@ -677,9 +680,9 @@ defCon  = Context {  cTime    = 0,
                      cKey     = (C, Major),
                      cVol     = 127 }
 \end{code}
-Note that if anything other than a |"Fancy"| player is specified in
-the |Music| value, such as |player "Strange" m|, then the default
-player |defPlayer| is used.
+Note that if anything other than a |"Fancy"| or |"Default"| player is
+specified in the |Music| value, such as |player "Strange" m|, then the
+default player |defPlayer| is used, and given the name |"Strange"|.
 
 If instead we wish to use our own player, say |newPlayer| defined
 in Section \ref{sec:new-player}, then a new player map can be defined,
@@ -696,7 +699,8 @@ user's needs.
 We could, then, use these versions of player maps and contexts to
 invoke the |perform| function to generate an abstract |Performance|.
 Of course, we ultimately want to hear our music, not just see an
-abstract |Performance|.  Recall that |play|'s type signature is:
+abstract |Performance| displayed on our computer screen.  Recall
+that |play|'s type signature is:
 \begin{spec}
 play :: Performable a => Music a -> IO ()
 \end{spec}
@@ -727,16 +731,19 @@ interpolation.}
 
 \begin{exercise}{\em
 Choose some of the other phrase attributes and provide interpretations
-for them.}
-%% such as |Diminuendo|, |Slurred|, |Trill|, etc.  (The |trill|
-%% functions from section \ref{sec:trills} may be useful here.)
+for them.  
+
+(Hint: As in |fancyPlayer|, you may not be able to use the
+``|pasHandler|'' approach to implement some of the phrase attributes.
+For example, for a proper treatment of |Trill| (and similar ornaments)
+you will need to access the |cKey| field in the context.)}
 \end{exercise}
 
 \begin{exercise}{\em
 Define a player |myPlayer| that appropriately handles the
 |Pedal| articulation and both the |ArpeggioUp| and |ArpeggioDown|
 ornamentations.  You should define |myPlayer| as a derivative
-of |defPlayer|.}
+of |defPlayer| or |newPlayer|.}
 \end{exercise}
 
 \begin{exercise}{\em
@@ -749,8 +756,17 @@ instead as a quarter note followed by an eighth note, but with tempo
 is shortened, so that the first note is twice as long as the second,
 but they still take up the same amount of overall time.  
 
-Hint: To do this at the |Player| level, some assumptions need to be
-made, such as what is an eighth note, where is the downbeat, etc.}
+(Hint: There are several ways to solve this problem.  One surprisingly
+effective and straightforward solution is to implement |jazzMan| as a
+|NoteFun|, not a |PhraseFun|.  In jazz, if an eighth note falls on a
+quarter-note beat it is said to fall on the ``downbeat,'' and the
+eighth notes that are in between are said to fall on the ``upbeat.''
+For example, in the phrase |c 4 en :+: d 4 en :+: e 4 en :+: f 4 en|,
+the C and E fall on the downbeat, and the D and F fall on the upbeat.
+So to get a ``swing feel,'' the notes on the down beat need to be
+lengthened, and ones on the upbeat need to be delayed and shortened.
+Whether an event falls on a downbeat or upbeat can be determined from
+the |cTime| and |cDur| of the context.)}
 \end{exercise}
 
 \begin{exercise}{\em
@@ -762,11 +778,14 @@ diatonic transposition of |c 4 en :+: d 4 en :+: e 4 en| in C major by
 2 scale degrees should yield |e 4 en :+: f 4 en :+: g 4 en|, whereas
 in G major should yield |e 4 en :+: fs 4 en :+: g 4 en|.
 
-Hint: You will need to access the key from the context (using |cKey|),
-but the trickier part is how to treat the |cPch| field.  Once a
-|Performance| is generated, you can think of each abolute pitch as
-being relative to a zero offset.}
+(Hint: You will need to access the key from the context (using
+|cKey|).  Thus, as with |fancyPlayer|, you may not be able to use the
+``|pasHandler|'' approach to solve this problem.)}
 \end{exercise}
+
+%% but the trickier part is how to treat the |cPch| field.  Once a
+%% |Performance| is generated, you can think of each abolute pitch as
+%% being relative to a zero offset.}
 
 \vspace{.1in}\hrule
 \vspace{.1in}
@@ -811,8 +830,8 @@ fancyInterpPhrase pm
            PPP  -> loud 40;       PP -> loud 50;   P    -> loud 60
            MP   -> loud 70;       SF -> loud 80;   MF   -> loud 90
            NF   -> loud 100;      FF -> loud 110;  FFF  -> loud 120
-    Dyn (Loudness x)     ->  fancyInterpPhrase pm c 
-                             {cVol = (round . fromRational) x} pas m
+    Dyn (Loudness x)     ->  fancyInterpPhrase pm
+                             c{cVol = (round . fromRational) x} pas m
     Dyn (Crescendo x)    ->  inflate   x ; Dyn (Diminuendo x)  -> inflate (-x)
     Tmp (Ritardando x)   ->  stretch   x ; Tmp (Accelerando x) -> stretch (-x)
     Art (Staccato x)     ->  (map (\e-> e {eDur = x * eDur e}) pf, dur)

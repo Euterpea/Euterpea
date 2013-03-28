@@ -141,12 +141,14 @@
 %format tm5
 %format fac1
 %format fac2
+%format ui0
 %format ui1
 %format ui2
 %format ui3
 %format ui4
 %format ui5
 %format ui6
+%format muio
 %format mui1
 %format mui2
 %format mui3
@@ -185,4 +187,11 @@
 %format ld2
 %format ds1
 %format ds2
-
+%format toAbsPitches1
+%format toAbsPitches2
+%format line1
+%format line2
+%format reverse1
+%format reverse2
+%format op1
+%format op2
