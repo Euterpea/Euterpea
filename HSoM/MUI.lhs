@@ -20,7 +20,7 @@
 module Euterpea.Examples.MUI where
 import Euterpea
 import Control.Arrow
-import Codec.Midi
+import Codec.Midi (Message (NoteOn, NoteOff))
 import Data.Maybe (mapMaybe)
 
 \end{code}
