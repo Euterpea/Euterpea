@@ -32,7 +32,7 @@ module Euterpea.IO.MUI
   , midiOut             -- :: UISF (DeviceID, Event [MidiMessage]) ()
   , midiOutB            -- :: UISF (DeviceID, Event [(Time, MidiMessage)]) Bool
   , midiOutM            -- :: UISF ([(DeviceID, Bool)], Event [MisiMessage]) ()
-  , musicToMsgs         -- Bool -> [InstrumentName] -> Music1 -> [(Time, MidiMessage)]
+  , musicToMsgs         -- :: Bool -> [InstrumentName] -> Music1 -> [(Time, MidiMessage)]
   , selectInput, selectOutput    -- :: UISF () DeviceID
   , selectInputM, selectOutputM  -- :: UISF () [(DeviceID, Bool)]
   , canvas              -- :: Dimension -> UISF (Event Graphic) ()

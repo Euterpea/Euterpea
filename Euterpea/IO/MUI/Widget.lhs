@@ -10,31 +10,24 @@ The monadic UI concept is borrowed from Phooey by Conal Elliott.
 
 > module Euterpea.IO.MUI.Widget where
 
+> import Euterpea.IO.MUI.SOE hiding (Event)
 > import Euterpea.IO.MUI.UIMonad
 > import Euterpea.IO.MUI.UISF
-> import Euterpea.IO.MUI.SOE hiding (Event)
-> import System.IO.Unsafe (unsafePerformIO)
-> import Control.Monad (when)
 > import Euterpea.IO.MIDI.MidiIO
-> import Sound.PortMidi hiding (time)
+> import Control.SF.AuxFunctions (SEvent, timer, edge, delay)
+
+> import Euterpea.IO.MIDI.GeneralMidi (toGM)
+> import Euterpea.Music.Note.Performance (Music1, Event (..), perform, defPMap, defCon)
+> import Euterpea.Music.Note.Music (InstrumentName)
+> import Data.List (nub, findIndex, sortBy)
+
+> import Control.Arrow
+> import Control.Monad (when)
+> import System.IO.Unsafe (unsafePerformIO)
+> import Sound.PortMidi (DeviceInfo (..), DeviceID)
+> import Codec.Midi (Message(..))
 > import qualified Graphics.UI.GLFW as SK (SpecialKey (..))
 
-> import Control.SF.AuxFunctions
-
-> import Prelude hiding (init)
-> import Control.Arrow
-> import Control.CCA.Types
-
-> import Data.Map (Map)
-> import qualified Data.Map as Map
-> import Data.Char (isPrint, ord)
-> import Codec.Midi (Message(..))
-> import Euterpea.IO.MIDI.ToMidi
-> import Euterpea.IO.MIDI.GeneralMidi
-> import Euterpea.Music.Note.Performance hiding (Event)
-> import Euterpea.Music.Note.Music
-> import Data.List hiding (init)
-> import Data.Maybe (isJust)
 
 ============================================================
 ============== Shorthand and Helper Functions ==============
@@ -59,10 +52,10 @@ A helper function to make stateful Widgets easier to write.
 >         (s2 -> (b, s)) ->                         -- output projection
 >         UISF a b
 > mkWidget i layout draw buzz inj comp prj = proc a -> do
->   rec s  <- init i -< s'
+>   rec s  <- delay i -< s'
 >       (y, s') <- mkUISF aux -< inj a s
 >   returnA -< y
->   --loop $ second (init i) >>> arr (uncurry inj) >>> mkUISF aux
+>   --loop $ second (delay i) >>> arr (uncurry inj) >>> mkUISF aux
 >     where
 >       aux s1 (ctx,f,inp) = (layout, db, f, action, nullCD, (y, s'))
 >         where
@@ -140,7 +133,7 @@ strings.  It takes one static arguments:
     startingVal - The initial value in the textbox
 
 The textbox widget will often be used with ArrowLoop (the rec keyword).  
-However, it uses init internally, so there should be no fear of a blackhole.
+However, it uses delay internally, so there should be no fear of a blackhole.
 
 The textbox widget supports mouse clicks and typing as well as the 
 left, right, end, home, delete, and backspace special keys.
@@ -151,12 +144,12 @@ left, right, end, home, delete, and backspace special keys.
 >     inFocus <- isInFocus -< ()
 >     k <- getEvents -< ()
 >     ctx <- getCTX -< ()
->     rec (s', i) <- init (startingVal, 0) -< if inFocus then update s i ctx k else (s, i)
+>     rec (s', i) <- delay (startingVal, 0) -< if inFocus then update s i ctx k else (s, i)
 >     displayStr -< seq i s'
 >     t <- time -< ()
 >     b <- timer -< (t, 0.5)
->     rec willDraw <- init True -< willDraw'
->         let willDraw' = if isJust b then not willDraw else willDraw
+>     rec willDraw <- delay True -< willDraw'
+>         let willDraw' = maybe willDraw (const $ not willDraw) b --if isJust b then not willDraw else willDraw
 >     canvas' displayLayout drawCursor -< Just (willDraw && inFocus, i)
 >     returnA -< s'
 >   where
@@ -277,7 +270,7 @@ It has a static label as well as an initial state.
 
 > checkbox :: String -> Bool -> UISF () Bool
 > checkbox label state = proc _ -> do
->   rec s  <- init state -< s'
+>   rec s  <- delay state -< s'
 >       e  <- edge <<< toggle state d draw -< s
 >       let s' = maybe s (const $ not s) e
 >   returnA -< s'
@@ -329,7 +322,7 @@ choice.
 
 > radio :: [String] -> Int -> UISF () Int
 > radio labels i = proc _ -> do
->   rec s   <- init i -< s''
+>   rec s   <- delay i -< s''
 >       s'  <- aux 0 labels -< s
 >       let s'' = maybe s id s'
 >   returnA -< s''
@@ -424,7 +417,7 @@ but the first one performs better for some reason.  I'm not sure why ...
 
  realtimeGraph :: RealFrac a => Layout -> Time -> Color -> UISF (Time, [(a,Time)]) ()
  realtimeGraph layout hist color = proc (t, is) -> do
-   rec lst <- init [(0,0)] -< removeOld t (lst ++ is)
+   rec lst <- delay [(0,0)] -< removeOld t (lst ++ is)
    canvas' layout draw -< if null lst then Nothing else Just (lst, t)
    where removeOld _ [] = []
          removeOld t ((i,t0):is) = if t0+hist>=t then (i,t0):is else removeOld t is
@@ -481,7 +474,7 @@ selected entry.  Note that the index can be greater than the length
 of the list (simply indicating no choice selected).
 
 > listbox :: (Eq a, Show a) => UISF ([a], Int) Int
-> listbox = focusable $ init (-1) <<< mkWidget 
+> listbox = focusable $ delay (-1) <<< mkWidget 
 >   ([], -1) layout draw (const nullSound) pair
 >   process (\(lst,i) -> (i, (lst,i)))
 >   where
@@ -532,7 +525,7 @@ of MidiMessages and sends the MidiMessages to the device.
 >         action = justSoundAction $ do
 >           valid <- isValidInputDevice dev
 >           when valid $ pollMidi dev (cb dev)
->         cb d (t, m) = inject ctx (MidiEvent d m)
+>         cb d (_t, m) = inject ctx (MidiEvent d m)
  
 > midiOut :: UISF (DeviceID, SEvent [MidiMessage]) ()
 > midiOut = mkUISF aux 
@@ -606,8 +599,8 @@ if the buffer is full (meaning that items are still being played).
 > midiOutB :: UISF (DeviceID, SEvent [(Time, MidiMessage)]) (Bool)
 > midiOutB = proc (devID, msgs) -> do
 >   t <- time -< ()
->   rec tLast <- init 0.0 -< nextT
->       msgBuffer <- init [] -< msgBuffer''
+>   rec tLast <- delay 0.0 -< nextT
+>       msgBuffer <- delay [] -< msgBuffer''
 >       let (nextMsgs, msgBuffer', nextT) = getNextMsgs tLast t msgBuffer
 >           msgBuffer'' = case msgs of Just ms -> msgBuffer' ++ ms
 >                                      Nothing -> msgBuffer'
@@ -719,8 +712,8 @@ returns whether the toggle is being clicked.
 >        -> Layout                          -- The layout for the toggle
 >        -> (Rect -> Bool -> s -> Graphic)  -- The drawing routine
 >        -> UISF s Bool
-> toggle init layout draw = focusable $ 
->   mkWidget init layout draw (const nullSound) pair process id
+> toggle iState layout draw = focusable $ 
+>   mkWidget iState layout draw (const nullSound) pair process id
 >   where
 >     process ((s,s'), (ctx, evt)) = ((on,s), s /= s')
 >       where 
@@ -841,7 +834,7 @@ focusable = id
 
 > focusable :: UISF a b -> UISF a b
 > focusable widget = proc x -> do
->   rec hasFocus <- init False -< hasFocus'
+>   rec hasFocus <- delay False -< hasFocus'
 >       (y, hasFocus') <- compressUISF (h widget) -< (x, hasFocus)
 >   returnA -< y
 >  where
@@ -893,7 +886,7 @@ can be achieved with the following signal function.
 > getMousePosition :: UISF () Point
 > getMousePosition = proc _ -> do
 >   e <- getEvents -< ()
->   rec p' <- init (0,0) -< p
+>   rec p' <- delay (0,0) -< p
 >       let p = case e of
 >                   UIEvent (MouseMove pt) -> pt
 >                   _                      -> p'
