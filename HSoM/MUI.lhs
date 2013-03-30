@@ -20,14 +20,9 @@
 module Euterpea.Examples.MUI where
 import Euterpea
 import Control.Arrow
-import Codec.Midi (Message (NoteOn, NoteOff))
 import Data.Maybe (mapMaybe)
 
 \end{code}
-
-%% import Euterpea.IO.MUI
-%% import Euterpea.IO.MIDI.MidiIO
-%% import Control.SF.AuxFunctions (edge, accum, unique, mergeE)
 
 This module is not part of the standard Euterpea module hierarchy
 (i.e.\ those modules that get imported by the header command ``|import

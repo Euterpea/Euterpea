@@ -1,32 +1,41 @@
 > module Euterpea.IO.MIDI.MidiIO (
+>   getAllDevices, isValidInputDevice, isValidOutputDevice, -- Used only by Euterpea.IO.MUI.Widget
+>   terminateMidi, initializeMidi, -- Used only by Euterpea.IO.MUI.UISF
+>   outputMidi, deliverMidiEvent, -- Used only by Euterpea.IO.MUI.Widget (particularly by midiOut)
+>   pollMidi, -- Used only by Euterpea.IO.MUI.Widget (particularly by midiIn)
 >   defaultOutput, defaultInput,
->   playMidi, recordMidi, playTrackRealTime,
->   midiOutRealTime, midiInRealTime, 
->   outputMidi, pollMidi, getOutDev, 
->   makePriorityChannel, tryOutputMidi,
->   terminateMidi,
->   MidiMessage(..),
->   getAllDeviceInfo,
->   printAllDeviceInfo,
->   isValidInputDevice, isValidOutputDevice,
->   getDeviceId,
->   Time,
->   getTimeNow) where
+>   playMidi, 
+>   MidiMessage (ANote, Std), 
+>   DeviceInfo(..), DeviceID, Message(..), Time
+> ) where
 
-> import Codec.Midi
-> import Sound.PortMidi
-> import Data.Bits
+> import Codec.Midi (Time, Channel, Key, Velocity, 
+>                    Message (..), Midi (..), Track, 
+>                    toRealTime, toAbsTime, toSingleTrack, isTrackEnd)
+> import Sound.PortMidi (DeviceInfo (..), getDeviceInfo, 
+>                        DeviceID, countDevices, time, 
+>                        getDefaultOutputDeviceID, getDefaultInputDeviceID, 
+>                        openInput, openOutput, readEvents, 
+>                        close, writeShort, getErrorText, terminate, initialize, 
+>                        PMError (NoError, BufferOverflow), PMStream, 
+>                        PMEvent (PMEvent), PMMsg (PMMsg))
+> import Control.Exception (finally)
 > import Control.Concurrent
-> import Control.Exception
-> import System.IO
 > import Control.Concurrent.STM.TChan
 > import Control.Monad.STM (atomically)
-
-> import Control.Monad
 > import Data.IORef
-> import Data.List
-> import System.IO.Unsafe
+
+> import Data.Bits (shiftR, shiftL, (.|.), (.&.))
+> import Data.List (findIndex)
 > import qualified Data.Heap as Heap
+
+> import System.IO (hPutStrLn, stderr)
+> import System.IO.Unsafe (unsafePerformIO)
+
+
+----------------------------
+ | Midi Type declarations | 
+----------------------------
 
 > type MidiEvent = (Time, MidiMessage)
 
@@ -35,34 +44,80 @@
 >                  | Std Message
 >   deriving Show
 
-> getAllDeviceInfo = do
+
+----------
+ | Time | 
+----------
+
+Is this the time we want?  This comes from PortMidi, but there's also the 
+function Euterpea.IO.MUI.SOE.timeGetTime which uses time data from GLFW.
+
+> getTimeNow :: IO Time 
+> getTimeNow = do
+>   t <- time
+>   return (fromIntegral t / 1000)
+
+
+----------------------
+ | Device Functions | 
+----------------------
+
+getAllDevices returns a list of all of the DeviceInfos found.
+It calls Port.Midi.getDeviceInfo over all device numbers
+
+> getAllDevices :: IO [(DeviceID, DeviceInfo)]
+> getAllDevices = do
 >   n <- countDevices
->   mapM getDeviceInfo [0..n-1]
+>   deviceInfos <- mapM getDeviceInfo [0..n-1]
+>   return $ zip [0..n-1] deviceInfos
 
-> printAllDeviceInfo = do
->   devs <- getAllDeviceInfo
->   mapM_ print devs
 
-> getDeviceId isInput n = do
->   devs <- getAllDeviceInfo
->   return $ findIndex (\d -> name d == n && input d == isInput) devs
-
-> isValidDevice pred i = do
->   n <- countDevices   
->   info <- getAllDeviceInfo
->   return $ 
->     i >= 0 && i < n && pred (info !! i)
+isValidInputDevice and isValideOutputDevice check whether the given 
+devices are respectively valid for input or output.
 
 > isValidInputDevice, isValidOutputDevice :: DeviceID -> IO Bool
 > isValidInputDevice = isValidDevice input
 > isValidOutputDevice = isValidDevice output
+> isValidDevice :: (DeviceInfo -> Bool) -> DeviceID -> IO Bool
+> isValidDevice pred i = do
+>   n <- countDevices   
+>   info <- getAllDevices
+>   return $ 
+>     i >= 0 && i < n && pred (snd $ info !! i)
 
-> outDevMap = unsafePerformIO $ 
->   newIORef ([] :: [(DeviceID, 
->                     (PrioChannel Time Message, 
->                      (Time,Message) -> IO (), -- output function
->                      IO () -- stop function
->                   ))])
+
+---------------------
+ | Default devices | 
+---------------------
+
+Rather than export the deviceIDs directly, these two functions allow 
+the caller to use the DeviceID without directly controlling it.
+
+They take a function (such as playMidi) and an auxiary argument and 
+apply them together with the default device.  If no default device 
+exists, an error is thrown.
+
+> defaultOutput :: (DeviceID -> a -> IO b) -> a -> IO b
+> defaultOutput f a = do
+>   i <- getDefaultOutputDeviceID
+>   case i of
+>     Nothing -> error "No MIDI output device found"
+>     Just i  -> f i a
+> 
+> defaultInput :: (DeviceID -> a -> IO b) -> a -> IO b
+> defaultInput f a = do
+>   i <- getDefaultInputDeviceID
+>   case i of
+>     Nothing -> error "No MIDI input device found"
+>     Just i  -> f i a
+
+
+-----------------------
+ | Priority Channels | 
+-----------------------
+
+The priority channel data type and a constructor for it will be used 
+by devices.  We define them here.
 
 > data PrioChannel a b = PrioChannel
 >     { get           :: IO (Heap.MinPrioHeap a b),
@@ -70,14 +125,7 @@
 >       pop           :: IO (a,b),
 >       peek          :: IO (Maybe (a,b)) }
 
-> terminateMidi = do
->   inits <- readIORef outDevMap
->   mapM_ (\(_, (_,out,stop)) -> stop)  inits
->   terminate
->   modifyIORef outDevMap (const [])
->   writeIORef outPort []
->   writeIORef inPort []
-
+> makePriorityChannel :: IO (PrioChannel Time Message)
 > makePriorityChannel = do
 >   heapRef <- newIORef (Heap.empty :: Heap.MinPrioHeap Time Message)
 >   let get = readIORef heapRef
@@ -96,6 +144,76 @@
 >   return $ PrioChannel get push pop peek
 
 
+------------------------
+ | Global Device Data | 
+------------------------
+
+We keep a mapping from DeviceID to the priority channel for keeping
+track of future MIDI messages, an output function to produce sound, 
+and a stop function.  This mapping is stored in the global ref 
+outDevMap, and it is accessed by getOutDev (which looks up info 
+and adds associations if necessary) and terminateMidi (which calls 
+the stop function on all elements and clears the mapping).
+
+outDevMap is the global mapping.
+
+> outDevMap :: IORef [(DeviceID, 
+>                      (PrioChannel Time Message, -- priority channel
+>                       (Time, Message) -> IO (), -- sound output function
+>                       IO ()))]                  -- stop/terminate function
+> outDevMap = unsafePerformIO $ newIORef []
+
+
+outPort and inPort are global memory refs that contain a mapping of 
+DeviceID to Port Midi Streams.  They are modified with addPort (which 
+adds a new mapping to the list) and lookupPort (which, given a DeviceID, 
+returns the Port Midi Stream associated with it).
+
+> outPort, inPort :: IORef [(DeviceID, PMStream)]
+> outPort = unsafePerformIO (newIORef [])
+> inPort  = unsafePerformIO (newIORef [])
+
+> lookupPort :: IORef [(DeviceID, PMStream)] -> DeviceID -> IO (Maybe PMStream)
+> lookupPort p i = readIORef p >>= (return . lookup i)
+
+> addPort :: IORef [(DeviceID, PMStream)] -> (DeviceID, PMStream) -> IO ()
+> addPort p is = modifyIORef p (is:)
+
+
+--------------------------------------------------
+ | Global Device Initialization and Termination | 
+--------------------------------------------------
+
+initializeMidi just initializes PortMidi
+
+> initializeMidi :: IO ()
+> initializeMidi = do
+>   e <- initialize
+>   if e == NoError 
+>       then return () 
+>       else reportError "initializeMidi" e
+
+terminateMidi calls the stop function on all elements of outDevMap 
+and clears the mapping entirely.  It also clears outPort and inPort.
+
+> terminateMidi :: IO ()
+> terminateMidi = do
+>   inits <- readIORef outDevMap
+>   mapM_ (\(_, (_,_out,stop)) -> stop) inits
+>   terminate
+>   modifyIORef outDevMap (const [])
+>   writeIORef outPort []
+>   writeIORef inPort []
+
+
+-------------------
+ | Device Lookup | 
+-------------------
+
+getOutDev looks up info in outDevMap and adds associations if necessary.  
+It is accessed as a helper function for outputMidi and deliverMidiEvent.
+
+> getOutDev :: DeviceID -> IO (PrioChannel Time Message, (Time, Message) -> IO (), IO ())
 > getOutDev devId = do
 >   inits <- readIORef outDevMap
 >   case lookup devId inits of
@@ -109,25 +227,64 @@
 >                   Nothing -> return (pChan, const (return ()), return ()) -- Nothing case added
 
 
+----------------
+ | Midi Input | 
+----------------
 
-> tryOutputMidi :: DeviceID -> IO ()
-> tryOutputMidi devId = do
->   (pChan,out,stop) <- getOutDev devId
->   let loop = do
->         r <- peek pChan
->         case r of
->           Nothing     -> return ()
->           Just (t,m)  -> do
->             now <- getTimeNow
->             if t <= now 
->               then out (now, m) >> pop pChan >> loop
->               else return ()
->   loop
->   return ()
+pollMidi take an input device and a callback function and polls the device 
+for midi events.  Any events are sent, along with the current time, to 
+the callback function.
+DWC NOTE: Why is the time even used?  All messages get the same time?
+          Also, should the callback function perhaps take [Message]?
 
-> outputMidi :: DeviceID -> MidiEvent -> IO ()
-> outputMidi devId (t,m) = do
->   (pChan,out,stop) <- getOutDev devId
+> pollMidi :: DeviceID -> ((Time, Message) -> IO ()) -> IO ()
+> pollMidi devId callback = do
+>   s <- lookupPort inPort devId 
+>   case s of
+>     Nothing -> do
+>       r <- openInput devId 
+>       case r of
+>         Right e -> reportError "pollMIDI" e
+>         Left s -> addPort inPort (devId, s) >> input s
+>     Just s -> input s 
+>   where
+>     input :: PMStream -> IO ()
+>     input s = do
+>       e <- readEvents s
+>       case e of
+>         Right e -> if e == NoError 
+>           then return () 
+>           else reportError "pollMIDI" e
+>         Left l -> do
+>           t <- getTimeNow
+>           sendEvts t l
+>       where 
+>         sendEvts _now [] = return () 
+>         sendEvts now  ((PMEvent m t):l) =
+>           case msgToMidi m of
+>             Just m' -> callback (now, m') >> sendEvts now l
+>             Nothing -> sendEvts now l
+
+
+---------------------------------------------
+ | Midi Output for inidividual Midi events | 
+---------------------------------------------
+
+The following two functions are for sending and playing individual 
+Midi events to devices.  Typically, usage will be to call outputMidi 
+to play anything that's ready to play and then send in the latest 
+messages with deliverMidiEvent.  Of course, if no new messages are 
+ready to be delivered, that step can be omitted.  Either way, 
+outputMidi should be called many times per second to assure that 
+all Midi messages are played approximately when scheduled.
+
+deliverMidiEvent sends the given MidiEvent to the given device.  If 
+the event is scheduled to happen ``now'', then it is immediately 
+played.  Otherwise, it is queued for later.
+
+> deliverMidiEvent :: DeviceID -> MidiEvent -> IO ()
+> deliverMidiEvent devId (t,m) = do
+>   (pChan, out, _stop) <- getOutDev devId
 >   now <- getTimeNow
 >   let deliver t m = do
 >       if t == 0
@@ -141,48 +298,35 @@
 >         deliver (t+d) (NoteOff c k v)
 
 
+outputMidi plays all midi events that are waiting in this device's 
+priority queue whose time to play has come.
 
-> pollMidi :: DeviceID -> ((Time,Message) -> IO ()) -> IO ()
-> pollMidi devId callback = do
->   s <- lookupPort inPort devId 
->   case s of
->     Nothing -> do
->       r <- openInput devId 
->       case r of
->         Right e -> reportError "pollMIDI" e >> return ()
->         Left s -> addPort inPort devId s >> input s
->     Just s -> input s 
->   where
->     input s = do
->       e <- readEvents s
->       case e of
->         Right e -> if e == NoError 
->           then return () 
->           else reportError "pollMIDI" e >> return ()
->         Left l -> do
->           t <- getTimeNow
->           sendEvts t l
->       where 
->         sendEvts now [] = return () 
->         sendEvts now (e@(PMEvent m t):l) =
->           case msgToMidi m of
->             Just m' -> callback (now, m') >> sendEvts now l
->             Nothing -> sendEvts now l
+> outputMidi :: DeviceID -> IO ()
+> outputMidi devId = do
+>   (pChan, out, _stop) <- getOutDev devId
+>   let loop = do
+>         r <- peek pChan
+>         case r of
+>           Nothing     -> return ()
+>           Just (t,m)  -> do
+>             now <- getTimeNow
+>             if t <= now 
+>               then out (now, m) >> pop pChan >> loop
+>               else return ()
+>   loop
+>   return ()
 
-> defaultOutput :: (DeviceID -> a -> IO b) -> a -> IO b
-> defaultOutput f a = do
->   i <- getDefaultOutputDeviceID
->   case i of
->     Nothing -> error "No MIDI output device found"
->     Just i  -> f i a
-> 
-> defaultInput :: (DeviceID -> a -> IO b) -> a -> IO b
-> defaultInput f a = do
->   i <- getDefaultInputDeviceID
->   case i of
->     Nothing -> error "No MIDI input device found"
->     Just i  -> f i a
->  
+
+-------------------------------------------
+ | Midi Output for a complete Midi track | 
+-------------------------------------------
+
+When an entire Midi track is ready to be played, the playMidi function 
+may be more appropriate than deliverMidiEvent and outputMidi.
+
+playMidi will queue up the entire Midi track given to it and then close 
+the output device.
+
 > playMidi :: DeviceID -> Midi -> IO ()
 > playMidi device midi@(Midi _ division _) = do
 >   let track = toRealTime division (toAbsTime (head (tracks (toSingleTrack midi))))
@@ -200,56 +344,44 @@
 >         then return ()
 >         else playTrack t0 t out s
 
-> playTrackRealTime device track = do
->   out <- midiOutRealTime device
->   case out of
->     Nothing -> return ()
->     Just (out, stop) -> finally (playTrack out track) stop
->   where
->     playTrack out [] = do
->       t <- getTimeNow
->       out (t, TrackEnd)
->     playTrack out (e@(_, m) : s) = do
->       t <- getTimeNow
->       out (t, m) 
->       if isTrackEnd m 
->         then return ()
->         else playTrack out s
 
->   
-> getTimeNow :: IO Time 
-> getTimeNow = do
->   t <- time
->   return (fromIntegral t / 1000)
+---------------------
+ | midiOutRealTime | 
+---------------------
 
-> {-
->     ticksPerBeat = case division of
->       TicksPerBeat n -> n
->       TicksPerSecond mode nticks -> (256 - mode - 128) * nticks `div` 2 
-> -}
+The following two functions are used to open a device for Midi output.  
+They should only be called when the device hasn't yet been opened, and 
+they both return a ``play'' function and a ``stop'' function.
 
-> outPort = unsafePerformIO (newIORef [])
-> inPort = unsafePerformIO (newIORef [])
-> lookupPort p i = do
->       l <- readIORef p  
->       return $ lookup i l
-> addPort p i s = do
->       l <- readIORef p
->       writeIORef p ((i,s):l)
->
+Currently, midiOutRealTime' is used for Midi output for inidividual 
+Midi events, and midiOutRealTime is used for Midi output for a complete 
+Midi track.
+
+DWC Notes:
+I'm not entirely sure how they both work yet.  midiOutRealTime' 
+actually looks pretty straightforward in that it just creates the process 
+and stop functions and adds this device to the outPort device list.  The 
+process function will look up the device in the outPort device list, and 
+if it finds it, it writes the message to it.  The stop function removes 
+the device from the outPort list and closes it.
+
+On the other hand, midiOutRealTime spawns a new thread and does some 
+concurrent stuff.  Really, it looks similar, but I don't know when to 
+use one and when to use the other.
+
 > midiOutRealTime' :: DeviceID -> IO (Maybe ((Time, Message) -> IO (), IO ()))
 > midiOutRealTime' i = do
 >   s <- openOutput i 1  
 >   case s of
->     Right e -> reportError "outputMidi" e >> return Nothing
+>     Right e -> reportError "Unable to open output device in midiOutRealTime'" e >> return Nothing
 >     Left s -> do
->       addPort outPort i s
+>       addPort outPort (i, s)
 >       return $ Just (process i, finalize i)
 >   where
 >     process i (t, msg) = do
 >       s <- lookupPort outPort i
 >       case s of
->         Nothing -> error ("outputMidi: port " ++ show i ++ " is not opened for output")
+>         Nothing -> error ("midiOutRealTime': port " ++ show i ++ " is not open for output")
 >         Just s -> do
 >           if isTrackEnd msg 
 >               then return ()
@@ -260,11 +392,14 @@
 >               e <- writeShort s (PMEvent m (round (t * 1e3)))
 >               case e of
 >                 NoError -> return () 
->                 _ -> reportError "outputMidi" e >> return ()
+>                 _ -> reportError "midiOutRealTime'" e
 >     finalize i = do
 >       s <- lookupPort outPort i
->       maybe (return undefined) close s
->       return ()
+>       e <- maybe (return NoError) close s
+>       case e of
+>         NoError -> return () 
+>         _ -> reportError "midiOutRealTime'" e
+
 
 > midiOutRealTime :: DeviceID -> IO (Maybe ((Time, Message) -> IO (), IO ()))
 > midiOutRealTime i = do
@@ -325,9 +460,95 @@
 >                 BufferOverflow -> putStrLn "overflow" >> threadDelay 10000 >> writeMsg t m
 >                 _ -> reportError "outputMidi" e >> return True 
 
+
+---------------------
+ | MIDI Conversion | 
+---------------------
+
+A conversion function from Codec.Midi Messages to PortMidi PMMsgs.
+
+> midiEvent :: Message -> Maybe PMMsg
+> midiEvent (NoteOff c p v)         = Just $ PMMsg (128 .|. (fromIntegral c .&. 0xF)) (fromIntegral p) (fromIntegral v)
+> midiEvent (NoteOn c p v)          = Just $ PMMsg (144 .|. (fromIntegral c .&. 0xF)) (fromIntegral p) (fromIntegral v)
+> midiEvent (KeyPressure c p pr)    = Just $ PMMsg (160 .|. (fromIntegral c .&. 0xF)) (fromIntegral p) (fromIntegral pr)
+> midiEvent (ControlChange c cn cv) = Just $ PMMsg (176 .|. (fromIntegral c .&. 0xF)) (fromIntegral cn) (fromIntegral cv)
+> midiEvent (ProgramChange c pn)    = Just $ PMMsg (192 .|. (fromIntegral c .&. 0xF)) (fromIntegral pn) 0
+> midiEvent (ChannelPressure c pr)  = Just $ PMMsg (208 .|. (fromIntegral c .&. 0xF)) (fromIntegral pr) 0
+> midiEvent (PitchWheel c pb)       = Just $ PMMsg (224 .|. (fromIntegral c .&. 0xF)) (fromIntegral lo) (fromIntegral hi)
+>  where (hi,lo) = (pb `shiftR` 8, pb .&. 0xFF)
+> midiEvent _ = Nothing 
+
+
+A conversion function from PortMidi PMMsgs to Codec.Midi Messages.
+
+> msgToMidi :: PMMsg -> Maybe Message
+> msgToMidi (PMMsg m d1 d2) = 
+>   let k = (m .&. 0xF0) `shiftR` 4
+>       c = fromIntegral (m .&. 0x0F)
+>   in case k of
+>     0x8 -> Just $ NoteOff c (fromIntegral d1) (fromIntegral d2)
+>     0x9 -> Just $ NoteOn  c (fromIntegral d1) (fromIntegral d2)
+>     0xA -> Just $ KeyPressure c (fromIntegral d1) (fromIntegral d2)
+>     0xB -> Just $ ControlChange c (fromIntegral d1) (fromIntegral d2)
+>     0xC -> Just $ ProgramChange c (fromIntegral d1)
+>     0xD -> Just $ ChannelPressure c (fromIntegral d1)
+>     0xE -> Just $ PitchWheel c (fromIntegral (d1 + d2 `shiftL` 8))
+>     0xF -> Nothing -- SysEx event not handled
+>     _   -> Nothing
+
+
+---------------------
+ | Error Reporting | 
+---------------------
+
+> reportError :: String -> PMError -> IO ()
 > reportError prompt e = do
 >   err <- getErrorText e 
 >   hPutStrLn stderr $ prompt ++ ": " ++  err
+
+
+
+
+
+----------------------
+ | Unused Functions | 
+----------------------
+
+> -- Prints all DeviceInfo found by getAllDevices.
+> printAllDeviceInfo :: IO ()
+> printAllDeviceInfo = do
+>   devs <- getAllDevices
+>   mapM_ (print . snd) devs
+
+> -- Given whether the device is an input device and the device name, 
+> -- returns the DeviceID.
+> getDeviceId :: Bool -> String -> IO (Maybe DeviceID)
+> getDeviceId isInput n = do
+>   devs <- getAllDevices
+>   return $ findIndex (\(_,d) -> name d == n && input d == isInput) devs
+
+> playTrackRealTime :: DeviceID -> [(t, Message)] -> IO ()
+> playTrackRealTime device track = do
+>   out <- midiOutRealTime device
+>   case out of
+>     Nothing -> return ()
+>     Just (out, stop) -> finally (playTrack out track) stop
+>   where
+>     playTrack out [] = do
+>       t <- getTimeNow
+>       out (t, TrackEnd)
+>     playTrack out (e@(_, m) : s) = do
+>       t <- getTimeNow
+>       out (t, m) 
+>       if isTrackEnd m 
+>         then return ()
+>         else playTrack out s
+
+> {-
+>     ticksPerBeat = case division of
+>       TicksPerBeat n -> n
+>       TicksPerSecond mode nticks -> (256 - mode - 128) * nticks `div` 2 
+> -}
 
 > {-
 > runTrack tpb = runTrack' 0 0 120                 -- 120 beat/s is the default tempo
@@ -349,16 +570,6 @@
 >           Just m  -> writeShort s (PMEvent m (t0 + round (t * 1.0E3)))
 >           Nothing -> return NoError 
 > -}
-	 
-> midiEvent (NoteOff c p v)         = Just $ PMMsg (128 .|. (fromIntegral c .&. 0xF)) (fromIntegral p) (fromIntegral v)
-> midiEvent (NoteOn c p v)          = Just $ PMMsg (144 .|. (fromIntegral c .&. 0xF)) (fromIntegral p) (fromIntegral v)
-> midiEvent (KeyPressure c p pr)    = Just $ PMMsg (160 .|. (fromIntegral c .&. 0xF)) (fromIntegral p) (fromIntegral pr)
-> midiEvent (ControlChange c cn cv) = Just $ PMMsg (176 .|. (fromIntegral c .&. 0xF)) (fromIntegral cn) (fromIntegral cv)
-> midiEvent (ProgramChange c pn)    = Just $ PMMsg (192 .|. (fromIntegral c .&. 0xF)) (fromIntegral pn) 0
-> midiEvent (ChannelPressure c pr)  = Just $ PMMsg (208 .|. (fromIntegral c .&. 0xF)) (fromIntegral pr) 0
-> midiEvent (PitchWheel c pb)       = Just $ PMMsg (224 .|. (fromIntegral c .&. 0xF)) (fromIntegral lo) (fromIntegral hi)
->  where (hi,lo) = (pb `shiftR` 8, pb .&. 0xFF)
-> midiEvent _ = Nothing 
 
 > recordMidi :: DeviceID -> (Track Time -> IO ()) -> IO ()
 > recordMidi device f = do
@@ -413,18 +624,3 @@
 >               if done then close s >> return () else sendEvts (Just t0) now l
 >             Nothing -> sendEvts (Just t0) now l
 
-> msgToMidi (PMMsg m d1 d2) = 
->   let k = (m .&. 0xF0) `shiftR` 4
->       c = fromIntegral (m .&. 0x0F)
->   in case k of
->     0x8 -> Just $ NoteOff c (fromIntegral d1) (fromIntegral d2)
->     0x9 -> Just $ NoteOn  c (fromIntegral d1) (fromIntegral d2)
->     0xA -> Just $ KeyPressure c (fromIntegral d1) (fromIntegral d2)
->     0xB -> Just $ ControlChange c (fromIntegral d1) (fromIntegral d2)
->     0xC -> Just $ ProgramChange c (fromIntegral d1)
->     0xD -> Just $ ChannelPressure c (fromIntegral d1)
->     0xE -> Just $ PitchWheel c (fromIntegral (d1 + d2 `shiftL` 8))
->     0xF -> Nothing -- SysEx event not handled
->     _   -> Nothing
- 
----

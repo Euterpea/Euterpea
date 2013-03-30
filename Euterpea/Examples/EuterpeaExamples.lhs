@@ -5,8 +5,6 @@
 > import Euterpea.Examples.SelfSimilar
 > import Euterpea.Examples.SSF
 
-> import Codec.Midi
-
 Simple examples of Euterpea in action.  Note that this module also
 imports modules Interlude and SelfSimilar.
 

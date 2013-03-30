@@ -6,7 +6,6 @@ module Euterpea.IO.Audio
     module Euterpea.IO.Audio.Render
   ) where
 
--- import Euterpea
 import Euterpea.IO.Audio.BasicSigFuns
 import Euterpea.IO.Audio.Basics
 import Euterpea.IO.Audio.Types

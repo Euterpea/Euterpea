@@ -6,11 +6,7 @@ by Conal Elliot.
 > module Euterpea.IO.MUI.UIMonad where
 
 > import Euterpea.IO.MUI.SOE
-> import qualified Euterpea.IO.MUI.SOE as SOE
-> import Euterpea.IO.MIDI.MidiIO
-
-> import qualified Codec.Midi as Midi
-> import Sound.PortMidi hiding (time)
+> import Euterpea.IO.MIDI.MidiIO (Message, DeviceID, Time)
 
 > import Control.Monad.Fix
 > import Control.Concurrent.MonadIO
@@ -205,9 +201,9 @@ Input is a union of user events and Midi events, and in addition,
 a timer event is needed to drive time based computations.
 
 > data Input 
->   = UIEvent SOE.Event 
+>   = UIEvent Event 
 >   | Timer Time 
->   | MidiEvent DeviceID Midi.Message
+>   | MidiEvent DeviceID Message
 >   | NoEvent
 >   deriving Show
 

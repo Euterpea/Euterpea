@@ -14,8 +14,9 @@ The monadic UI concept is borrowed from Phooey by Conal Elliott.
 > import Euterpea.IO.MUI.UIMonad
 > import Euterpea.IO.MUI.UISF
 > import Euterpea.IO.MIDI.MidiIO
-> import Control.SF.AuxFunctions (SEvent, timer, edge, delay)
+> import Control.SF.AuxFunctions (SEvent, timer, edge, delay, mergeE)
 
+> -- These four lines are just for musicToMsgs
 > import Euterpea.IO.MIDI.GeneralMidi (toGM)
 > import Euterpea.Music.Note.Performance (Music1, Event (..), perform, defPMap, defCon)
 > import Euterpea.Music.Note.Music (InstrumentName)
@@ -24,8 +25,6 @@ The monadic UI concept is borrowed from Phooey by Conal Elliott.
 > import Control.Arrow
 > import Control.Monad (when)
 > import System.IO.Unsafe (unsafePerformIO)
-> import Sound.PortMidi (DeviceInfo (..), DeviceID)
-> import Codec.Midi (Message(..))
 > import qualified Graphics.UI.GLFW as SK (SpecialKey (..))
 
 
@@ -535,9 +534,9 @@ of MidiMessages and sends the MidiMessages to the device.
 >         action = justSoundAction $ do
 >           valid <- isValidOutputDevice dev 
 >           when valid $ case mmsg of
->                 Just msgs -> tryOutputMidi dev >>
->                              mapM_ (\m -> outputMidi dev (0, m)) msgs
->                 Nothing   -> tryOutputMidi dev
+>                 Just msgs -> outputMidi dev >>
+>                              mapM_ (\m -> deliverMidiEvent dev (0, m)) msgs
+>                 Nothing   -> outputMidi dev
 
  
 The midiInM widget takes input from multiple devices and combines 
@@ -547,7 +546,7 @@ it into a single stream.
 > midiInM = proc ds -> do
 >   midiInGroup (map fst devs) -< ds
 >       where devs = filter (\(i,d) -> input d && name d /= "Microsoft MIDI Mapper") $ 
->                      zip [0..] $ unsafePerformIO getAllDeviceInfo
+>                      unsafePerformIO getAllDevices
 
 > midiInGroup :: [DeviceID] -> UISF ([(DeviceID, Bool)]) (SEvent [MidiMessage])
 > midiInGroup [] = proc bs -> do
@@ -556,12 +555,7 @@ it into a single stream.
 >     m <- midiIn -< i
 >     let m' = if elem (i, True) bs then m else Nothing
 >     ms <- midiInGroup is -< bs
->     returnA -< merge m' ms where
->     merge :: Maybe [a] -> Maybe [a] -> Maybe [a]
->     merge Nothing (Just x) = Just x
->     merge (Just x) Nothing = Just x
->     merge (Just x) (Just y) = Just (x++y)
->     merge Nothing Nothing = Nothing
+>     returnA -< mergeE (++) m' ms
 
 
 A midiOutM widget sends output to multiple MIDI devices by sequencing
@@ -573,7 +567,7 @@ that from a checkGroup.
 > midiOutM = proc (ds, ms) -> do
 >   midiOutGroup (map fst devs) -< (ds, ms)
 >       where devs = filter (\(i,d) -> output d && name d /= "Microsoft MIDI Mapper") $ 
->                      zip [0..] $ unsafePerformIO getAllDeviceInfo 
+>                      unsafePerformIO getAllDevices 
 
 > midiOutGroup :: [Int] -> UISF ([(DeviceID, Bool)], SEvent [MidiMessage]) ()
 > midiOutGroup [] = proc _ -> do
@@ -666,11 +660,11 @@ that just the radio button index as the radio widget would return.
 
 > selectDev :: String -> (DeviceInfo -> Bool) -> UISF () DeviceID
 > selectDev t f = title t $ proc _ -> do
->   r <- radio (map name $ snd $ unzip devs) defaultChoice -< ()
+>   r <- radio (map (name . snd) devs) defaultChoice -< ()
 >   let devId = if r == -1 then r else fst (devs !! r)
 >   returnA -< devId
 >       where devs = filter (\(i,d) -> f d && name d /= "Microsoft MIDI Mapper") $ 
->                      zip [0..] $ unsafePerformIO getAllDeviceInfo
+>                      unsafePerformIO getAllDevices
 >             defaultChoice = if null devs then (-1) else 0
 
 
@@ -684,13 +678,12 @@ These widgets should be used with midiInM and midiOutM respectively.
 
 > selectDevM :: String -> (DeviceInfo -> Bool) -> UISF () [(DeviceID, Bool)]
 > selectDevM t f = 
->   let devNames = snd $ unzip devs  -- names
->       devIDs = map fst devs -- ids
+>   let (devIDs, devNames) = unzip devs
 >   in  title t $ proc _ -> do
 >       cs <- checkGroup (map name $ devNames) -< ()
 >       returnA -< zip devIDs cs
 >         where devs = filter (\(i,d) -> f d && name d /= "Microsoft MIDI Mapper") $ 
->                        zip [0..] $ unsafePerformIO getAllDeviceInfo
+>                        unsafePerformIO getAllDevices
 
 
 

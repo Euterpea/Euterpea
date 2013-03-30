@@ -4,11 +4,13 @@
 
 module Euterpea.IO.MIDI.GeneralMidi where
 
-import Euterpea.Music.Note.Music
+import Euterpea.Music.Note.Music (InstrumentName(..))
 
+fromGM :: Int -> InstrumentName
 fromGM i | i >= 0 && i <= 127 = toEnum i
 fromGM i = error $ "fromGMNo: " ++ show i ++ 
                    " is not a valid General Midi Number"
+toGM :: InstrumentName -> Int
 toGM Percussion = 0
 toGM (Custom name) = 0
 toGM i = fromEnum i
