@@ -1127,3 +1127,53 @@ decay dur r m =
        Std (NoteOn c k v)  -> f c k v dur
        _                   -> Nothing
 \end{code}
+
+\vspace{.1in}\hrule
+
+\begin{exercise}{\em
+Define a MUI that has a text box in which the user can type a pitch
+using the normal syntax |(C,4)|, |(D,5|), etc., and a pushbutton
+labeled ``Play'' that, when pushed, will play the pitch appearing in
+the textbox.
+
+Hint: use the Haskell function |reads :: Read a => String ->
+[(a,String)]| to parse the input.}
+\end{exercise}
+
+\begin{exercise}{\em
+Modify the previous example so that it has \emph{two} textboxes, and
+plays both notes simultaneously when the pushbutton is pressed.}
+\end{exercise}
+
+\begin{exercise}{\em
+Modify the previous example so that, in place of the pushbutton, the
+pitches are played at a rate specified by a horizontal slider.}
+\end{exercise}
+
+\begin{exercise}{\em
+Define a MUI for a pseudo-keyboard that has radio buttons to choose
+one of the 12 pitches in the conventional chromatic scale.  Every time
+a new pitch is selected, that note is played.}
+\end{exercise}
+
+\begin{exercise}{\em
+Modify the previous example so that an integral slider is used to
+specify the octave in which the pitch is played.}
+\end{exercise}
+
+\begin{exercise}{\em
+Leon Gruenbaum describes a ``Samchillian Tip Tip Tip Cheeepeeeee,'' a
+MIDI keyboard based on intervals rather than fixed pitches.  Your job
+is to define a ``Cheepie Samchillian'' as a MUI that has the following
+features:
+\begin{itemize}
+\item
+A three-element radio button to choose between three scales:
+chromatic, major, and whole-tone.
+\item
+Nine pushbuttons, corresponding to intervals (within the selected
+scale) of 0, +1, +2, +3, +4, -1, -2, -3, and -4.
+\end{itemize} }
+\end{exercise}
+
+\vspace{.1in}\hrule
