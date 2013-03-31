@@ -20,6 +20,8 @@ module Control.SF.AuxFunctions (
 import Prelude hiding (init)
 import Control.Arrow
 import Control.CCA.Types
+import Data.Sequence (Seq, empty, (<|), (|>), viewl, ViewL(..))
+import qualified Data.Sequence as Seq
 
 import Codec.Midi (Time) -- for reexporting
 
@@ -41,7 +43,6 @@ import Control.SF.MSF
 
 import Control.Concurrent.MonadIO
 import Data.IORef.MonadIO
-import qualified Data.Sequence as S
 import Data.Foldable (toList)
 import Control.DeepSeq
 
@@ -129,10 +130,10 @@ delay = init
 --   stream by the delay amount.
 fdelay :: ArrowInit a => Double -> a (Time, SEvent b) (SEvent b)
 fdelay d = proc (t, e) -> do
-    rec q <- init [] -< maybe q' (\e' -> q' ++ [(t+d,e')]) e
-        let (ret, q') = case q of
-                [] -> (Nothing, q)
-                (t0,e0):qs -> if t >= t0 then (Just e0, qs) else (Nothing, q)
+    rec q <- init empty -< maybe q' (\e' -> q' |> (t+d,e')) e
+        let (ret, q') = case viewl q of
+                EmptyL -> (Nothing, q)
+                (t0,e0) :< qs -> if t >= t0 then (Just e0, qs) else (Nothing, q)
     returnA -< ret
 
 -- | vdelay is a delay function that delays for a variable amount of time.
@@ -140,10 +141,10 @@ fdelay d = proc (t, e) -> do
 --   stream and delays the event stream by the delay amount.
 vdelay :: ArrowInit a => a (Time, Double, SEvent b) (SEvent b)
 vdelay = proc (t, d, e) -> do
-    rec q <- init [] -< maybe q' (\e' -> q' ++ [(t,e')]) e
-        let (ret, q') = case q of
-                [] -> (Nothing, q)
-                (t0,e0):qs -> if t-t0 >= d then (Just e0, qs) else (Nothing, q)
+    rec q <- init empty -< maybe q' (\e' -> q' |> (t,e')) e
+        let (ret, q') = case viewl q of
+                EmptyL -> (Nothing, q)
+                (t0,e0) :< qs -> if t-d >= t0 then (Just e0, qs) else (Nothing, q)
     returnA -< ret
 
 
@@ -256,30 +257,30 @@ toRealTimeMSF clockrate buffer threadHandler sf = MSF initFun
     initFun :: (a, Double) -> m ([(b, Double)], MSF m (a, Double) [(b, Double)])
     initFun (a, t) = do
         inp <- newIORef a
-        out <- newIORef S.empty
+        out <- newIORef empty
         timevar <- newEmptyMVar
         tid <- liftIO $ forkIO $ worker inp out timevar 1 1 sf
         threadHandler tid
         sfFun inp out timevar (a, t)
     -- sfFun communicates with the worker thread, sending it the input values 
     -- and collecting from it the output values.
-    sfFun :: IORef a -> IORef (S.Seq (b, Double)) -> MVar Double 
+    sfFun :: IORef a -> IORef (Seq (b, Double)) -> MVar Double 
           -> (a, Double) -> m ([(b, Double)], MSF m (a, Double) [(b, Double)])
     sfFun inp out timevar (a, t) = do
         writeIORef inp a        -- send the worker the new input
         tryPutMVar timevar t    -- update the time for the worker
-        b <- atomicModifyIORef out $ S.spanl (\(_,t0) -> t >= t0) --collect ready results
+        b <- atomicModifyIORef out $ Seq.spanl (\(_,t0) -> t >= t0) --collect ready results
         return (toList b, MSF (sfFun inp out timevar))
     -- worker processes the inner, "simulated" signal function.
-    worker :: IORef a -> IORef (S.Seq (b, Double)) -> MVar Double 
+    worker :: IORef a -> IORef (Seq (b, Double)) -> MVar Double 
            -> Double -> Integer -> SF a b -> IO ()
     worker inp out timevar t count (SF sf) = do
         a <- readIORef inp      -- get the latest input
         let (b, sf') = sf a     -- do the calculation
-        s <- deepseq b $ atomicModifyIORef out (\s -> (s S.|> (b, fromIntegral count/clockrate), s))
-        t' <- if S.length s > 0 && snd (seqLastElem s) >= t+buffer then takeMVar timevar else return t
+        s <- deepseq b $ atomicModifyIORef out (\s -> (s |> (b, fromIntegral count/clockrate), s))
+        t' <- if Seq.length s > 0 && snd (seqLastElem s) >= t+buffer then takeMVar timevar else return t
         worker inp out timevar t' (count+1) sf'
-    seqLastElem s = S.index s (S.length s - 1)
+    seqLastElem s = Seq.index s (Seq.length s - 1)
 
 
 

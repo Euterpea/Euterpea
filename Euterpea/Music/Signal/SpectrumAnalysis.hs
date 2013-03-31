@@ -6,13 +6,11 @@
 module Euterpea.Music.Signal.SpectrumAnalysis where
 
 import Euterpea
-import Euterpea.IO.MUI
-import Euterpea.IO.MUI.SOE (Color(..))
+import Control.SF.AuxFunctions (fftA)
 
-import Data.Complex
+import Data.Complex (Complex ((:+)), polar)
 import Data.Maybe (listToMaybe, catMaybes)
 
-import Control.SF.AuxFunctions (fftA, SEvent)
 dft :: RealFloat a => [Complex a] -> [Complex a]
 dft xs = 
   let  lenI = length xs

@@ -12,25 +12,20 @@ by Conal Elliot.
 > import Prelude hiding (init, exp)
 #endif
 > import Control.Arrow
-> import Control.Monad.Fix
 > import Control.CCA.Types
 
-
 > import Euterpea.IO.MUI.SOE 
-> import Control.Monad (when, unless)
-> import qualified Graphics.UI.GLFW as GLFW (sleep, SpecialKey (..))
-
-> import Sound.PortMidi hiding (time)
-> import Euterpea.IO.MIDI.MidiIO
+> import Euterpea.IO.MUI.UIMonad
 
 > import Control.SF.SF
 > import Control.SF.MSF
-> import Control.SF.AuxFunctions (toMSF, toRealTimeMSF)
-> import Euterpea.IO.MUI.UIMonad
-
-> import Euterpea.IO.Audio.Types (Clock, rate)
+> import Control.SF.AuxFunctions (Time, toMSF, toRealTimeMSF)
 > import Control.CCA.ArrowP (ArrowP(..))
+> import Euterpea.IO.Audio.Types (Clock, rate)
+> import Euterpea.IO.MIDI.MidiIO (initializeMidi, terminateMidi)
 
+> import Control.Monad (when, unless)
+> import qualified Graphics.UI.GLFW as GLFW (sleep, SpecialKey (..))
 > import Control.Concurrent.MonadIO
 > import Control.DeepSeq
 
@@ -198,7 +193,7 @@ Some default parameters we start with.
 
 > runUIEx :: Dimension -> String -> UISF () () -> IO ()
 > runUIEx windowSize title sf = runGraphics $ do
->   initialize
+>   initializeMidi
 >   w <- openWindowEx title (Just (0,0)) (Just windowSize) drawBufferedGraphic
 >   (events, addEv) <- makeStream
 >   pollEvents <- windowUser w addEv
