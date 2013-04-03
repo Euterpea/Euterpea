@@ -94,6 +94,7 @@ Library
         Euterpea.IO.MIDI.FromMidi,
         Euterpea.IO.MIDI.GeneralMidi,
         Euterpea.IO.MIDI.ToMidi,
+        Euterpea.IO.MIDI,
         Euterpea.IO.MUI.SOE,
         Euterpea.IO.MUI.UIMonad,
         Euterpea.IO.MUI.UISF,

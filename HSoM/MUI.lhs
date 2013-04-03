@@ -1127,7 +1127,7 @@ decay dur r m =
 
 \begin{exercise}{\em
 Define a MUI that has a text box in which the user can type a pitch
-using the normal syntax |(C,4)|, |(D,5|), etc., and a pushbutton
+using the normal syntax |(C,4)|, |(D,5)|, etc., and a pushbutton
 labeled ``Play'' that, when pushed, will play the pitch appearing in
 the textbox.
 
