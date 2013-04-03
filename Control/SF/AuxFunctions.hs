@@ -22,6 +22,7 @@ import Control.Arrow
 import Control.CCA.Types
 import Data.Sequence (Seq, empty, (<|), (|>), viewl, ViewL(..))
 import qualified Data.Sequence as Seq
+import Data.Maybe (listToMaybe)
 
 import Codec.Midi (Time) -- for reexporting
 
@@ -170,13 +171,13 @@ timer = proc (now, i) -> do
 
 
 -- | genEvents is a timer that instead of returning unit events 
---   returns the next element of the input list.  The input list is 
---   assumed to be infinite in length.
+--   returns the next element of the input list.  When the input 
+--   list is empty, the output stream becomes all Nothing.
 genEvents :: ArrowInit a => [b] -> a (Time, Double) (SEvent b)
 genEvents lst = proc inp -> do
     e <- timer -< inp
-    rec l <- init lst -< maybe l (const $ tail l) e
-    returnA -< fmap (const $ head l) e
+    rec l <- init lst -< maybe l (const $ drop 1 l) e
+    returnA -< maybe Nothing (const $ listToMaybe l) e
 
 
 --------------------------------------
