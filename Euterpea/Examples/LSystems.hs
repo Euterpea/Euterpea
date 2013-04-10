@@ -3,9 +3,9 @@
 
 module Euterpea.Examples.LSystems where
 
-import Data.List
-import System.Random 
 import Euterpea
+import Data.List hiding (transpose)
+import System.Random 
  
 data DetGrammar a = DetGrammar  a           -- start symbol
                                 [(a,[a])]   -- productions
@@ -14,18 +14,10 @@ detGenerate :: Eq a => DetGrammar a -> [[a]]
 detGenerate (DetGrammar st ps) = iterate (concatMap f) [st]
             where f a = maybe [a] id (lookup a ps)
 redAlgae = DetGrammar 'a'
-               [  ('a',"b|c"),
-                  ('b',"b"),
-                  ('c',"b|d"),
-                  ('d',"e\\d"),
-                  ('e',"f"),
-                  ('f',"g"),
-                  ('g',"h(a)"),
-                  ('h',"h"),
-                  ('|',"|"),
-                  ('(',"("),
-                  (')',")"),
-                  ('/',"\\"),
+               [  ('a',"b|c"),  ('b',"b"),  ('c',"b|d"),
+                  ('d',"e\\d"), ('e',"f"),  ('f',"g"),
+                  ('g',"h(a)"), ('h',"h"),  ('|',"|"),
+                  ('(',"("),    (')',")"),  ('/',"\\"),
                   ('\\',"/")
                ]
 t n g = sequence_ (map putStrLn (take n (detGenerate g)))
@@ -39,9 +31,9 @@ data Rules a  =  Uni  [Rule a]
 data Rule a = Rule { lhs :: a, rhs :: a }
      deriving (Eq, Ord, Show)
 
-type Prob = Float
+type Prob = Double
 type ReplFun a  = [[(Rule a, Prob)]] -> (a, [Rand]) -> (a, [Rand])
-type Rand       = Float
+type Rand       = Double
 gen :: Ord a => ReplFun a -> Grammar a -> Int -> [a]
 gen f (Grammar s rules) seed = 
     let  Sto newRules  = toStoRules rules
@@ -72,7 +64,7 @@ sameLHS (r1,f1) (r2,f2) = lhs r1 == lhs r2
 generate ::  Eq a =>  
              ReplFun a -> [(Rule a, Prob)] -> (a,[Rand]) -> [a] 
 generate f rules xs = 
-  let  newRules      = map probDist (groupBy sameLHS rules)
+  let  newRules      =  map probDist (groupBy sameLHS rules)
        probDist rrs  =  let (rs,ps) = unzip rrs
                         in zip rs (tail (scanl (+) 0 ps))
   in map fst (iterate (f newRules) xs)
@@ -112,8 +104,8 @@ data LFun = Inc | Dec | Same
      deriving (Eq, Ord, Show)
 
 ir :: IR LFun Pitch
-ir = [ (Inc, Euterpea.transpose 1),
-       (Dec, Euterpea.transpose (-1)),
+ir = [ (Inc, transpose 1),
+       (Dec, transpose (-1)),
        (Same, id)]
 
 inc, dec, same :: LSys LFun

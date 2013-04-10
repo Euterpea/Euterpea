@@ -11,15 +11,15 @@
 \end{code}
 }
 
-\chapter{Musical L-Systems}
+\chapter{Musical L-Systems and Generative Grammars}
 \label{ch:lsystems}
 
 \begin{code}
 module Euterpea.Examples.LSystems where
 
-import Data.List
-import System.Random 
 import Euterpea
+import Data.List hiding (transpose)
+import System.Random 
 \end{code} 
 
 \section{Generative Grammars}
@@ -37,9 +37,9 @@ A generative grammar is a four-tuple $(N,T,n,P)$, where:
 \item $T$ is the set of \emph{terminal symbols}.
 \item $n$ is the \emph{initial symbol}.
 \item $P$ is a set of \emph{production rules}, where each production
-  rule is a pair $(X,Y)$, often written $X \rightarrow Y$, where $X$
-  and $Y$ are words over the alphabet $N \cup T$, and $X$ contains
-  at least one non-terminal.
+  rule is a pair $(X,Y)$, often written $X \rightarrow Y$.  $X$ and
+  $Y$ are sentences (or \emph{sentential forms}) formed over the
+  alphabet $N \cup T$, and $X$ contains at least one non-terminal.
 \end{itemize}
 
 A \emph{Lindenmayer system}, or \emph{L-system}, is an example of a
@@ -71,11 +71,11 @@ corresponding to each non-terminal symbol in the alphabet, whereas a
 non-deterministic grammar may have more than one, and thus we will
 need some way to choose between them.
 
-\section{A Simple Implementation}
+\subsection{A Simple Implementation}
 
-A very simple context-free, deterministic grammar can be designed as
-follows.  We represent the set of productions as a list of
-symbol/list-of-symbol pairs:
+A framework for simple, context-free, deterministic grammars can be
+designed in Haskell as follows.  We represent the set of productions
+as a list of symbol/list-of-symbol pairs:
 \begin{code}
 
 data DetGrammar a = DetGrammar  a           -- start symbol
@@ -119,8 +119,8 @@ lookup 'd' [('a',0),('b',1),('c',2)]  ==> Nothing
 Note that we expand each symbol ``in parallel'' at each step, using
 |concatMap|.  The repetition of this process at each step is achieved
 using |iterate|.  Note also that a list of productions is essentially
-an \emph{association list}, and thus the library function |lookup|
-works quite well in finding the production rule that we seek.
+an \emph{association list}, and thus the |Data.List| library function
+|lookup| works quite well in finding the production rule that we seek.
 Finally, note once again how the use of higher-order functions makes
 this definition concise yet efficient.
 
@@ -128,31 +128,54 @@ As an example of the use of this simple program, a Lindenmayer grammer
 for red algae (taken from \cite{}) is given by:
 \begin{code}
 redAlgae = DetGrammar 'a'
-               [  ('a',"b|c"),
-                  ('b',"b"),
-                  ('c',"b|d"),
-                  ('d',"e\\d"),
-                  ('e',"f"),
-                  ('f',"g"),
-                  ('g',"h(a)"),
-                  ('h',"h"),
-                  ('|',"|"),
-                  ('(',"("),
-                  (')',")"),
-                  ('/',"\\"),
+               [  ('a',"b|c"),  ('b',"b"),  ('c',"b|d"),
+                  ('d',"e\\d"), ('e',"f"),  ('f',"g"),
+                  ('g',"h(a)"), ('h',"h"),  ('|',"|"),
+                  ('(',"("),    (')',")"),  ('/',"\\"),
                   ('\\',"/")
                ]
 \end{code}
+%% a -> bc
+%% c -> bd
+%% d -> e\d
+%% e -> f
+%% f -> g
+%% g -> h(a)
+%% \ -> /
+%% / -> \
+
+\syn{Recall that |'\\'| is how the backslash character is written in
+  Haskell, because a single backslash is the ``escape'' character for
+  writing special characters such as newline (|'\n'|), tab (|'\t'|),
+  and so on.  Since the backslash is used in this way, it also is a
+  special character, and must be escaped using itself, i.e.\ |'\\'|. }
 
 Then |detGenerate redAlgae| gives us the result that we want---or, to
 make it look nicer, we could do:
 \begin{code}
 t n g = sequence_ (map putStrLn (take n (detGenerate g)))
 \end{code}
-For example, the 10th element of |t 10 redAlgae| is:
+For example, |t 10 redAlgae| yields:
 \begin{spec}
-"b|b|h(b|b|e\d)\h(b|b|d)/h(b|c)\h(a)/g\f/e\d"
+a
+b|c
+b|b|d
+b|b|e\d
+b|b|f/e\d
+b|b|g\f/e\d
+b|b|h(a)/g\f/e\d
+b|b|h(b|c)\h(a)/g\f/e\d
+b|b|h(b|b|d)/h(b|c)\h(a)/g\f/e\d
+b|b|h(b|b|e\d)\h(b|b|d)/h(b|c)\h(a)/g\f/e\d
 \end{spec}
+
+\todo{Include both a musical and graphical rendering of the red
+  algae.}
+
+%% For example, the 10th element of |t 10 redAlgae| is:
+%% \begin{spec}
+%% "b|b|h(b|b|e\d)\h(b|b|d)/h(b|c)\h(a)/g\f/e\d"
+%% \end{spec}
 
 \vspace{.1in}\hrule
 
@@ -165,16 +188,18 @@ For example, the 10th element of |t 10 redAlgae| is:
 
 \vspace{.1in}\hrule
 
-\section{Grammars in Haskell}
+\subsection{A More General Implementation}
 
 The design given in the last section only captures deterministic
-context-free grammars.  We would also like to consider
-non-deterministic grammars, where a user can specify the probability
-that a particular rule is selected, as well as possibly non-context
-free (i.e.\ context sensitive) grammars.  Thus we will represent a
-generative grammar a bit more abstractly, as a data structure that has
-a starting sentence in an (implicit, polymorphic) alphabet, and a list
-of production rules:
+context-free grammars, and the generator considers only parallel
+productions that are charactersitic of L-Systems.
+
+We would also like to consider non-deterministic grammars, where a
+user can specify the probability that a particular rule is selected,
+as well as possibly non-context free (i.e.\ context sensitive)
+grammars.  Thus we will represent a generative grammar a bit more
+abstractly, as a data structure that has a starting sentence in an
+(implicit, polymorphic) alphabet, and a list of production rules:
 \begin{code}
 data Grammar a = Grammar  a          -- start sentence
                           (Rules a)  -- production rules
@@ -194,7 +219,7 @@ data Rules a  =  Uni  [Rule a]
 data Rule a = Rule { lhs :: a, rhs :: a }
      deriving (Eq, Ord, Show)
 
-type Prob = Float
+type Prob = Double
 \end{code}
 
 One of the key sub-problems that we will have to solve is how to
@@ -203,7 +228,7 @@ to expand a non-terminal.  We define the following type to capture
 this process:
 \begin{code}
 type ReplFun a  = [[(Rule a, Prob)]] -> (a, [Rand]) -> (a, [Rand])
-type Rand       = Float
+type Rand       = Double
 \end{code}
 The idea here is that a function |f :: ReplFun a| is such that |f rules
 (s,rands)| will return a new sentence |s'| in which each symbol in |s|
@@ -231,7 +256,8 @@ gen f (Grammar s rules) seed =
 |toStoRules| converts a list of uniformly distributed rules to an
 equivalent list of stochastic rules.  Each set of uniform rules with
 the same LHS is converted to a set of stochastic rules in which the
-probability of each rule is one over the number of uniform rules.
+probability of each rule is one divided by the number of uniform
+rules.
 \begin{code}
 toStoRules :: (Ord a, Eq a) => Rules a -> Rules a  
 toStoRules (Sto rs)  = Sto rs
@@ -243,6 +269,11 @@ insertProb :: [a] -> [(a, Prob)]
 insertProb rules =  let prb = 1.0 / fromIntegral (length rules)
 	       	    in zip rules (repeat prb)
 \end{code}
+
+\syn{|groupBy :: (a->a->Bool) -> [a] -> [[a]]| is a |Data.List|
+  library function that behaves as follows: |groupBy eqfn xs| returns
+  a list of lists such that all elements in each sublist are ``equal''
+  in the sense defined by |eqfn|.}
 
 |checkProbs| takes a list of production rules and checks whether, for
 every rule with the same LHS, the probabilities sum to one (plus or
@@ -261,29 +292,36 @@ sameLHS :: Eq a => (Rule a, Prob) -> (Rule a, Prob) -> Bool
 sameLHS (r1,f1) (r2,f2) = lhs r1 == lhs r2
 \end{code}
 
-|generate| takes a list of rules, a replacement function, a starting
+|generate| takes a replacement function, a list of rules, a starting
 sentence, and a source of random numbers.  It returns an infinite list
 of sentences.
 \begin{code}
 generate ::  Eq a =>  
              ReplFun a -> [(Rule a, Prob)] -> (a,[Rand]) -> [a] 
 generate f rules xs = 
-  let  newRules      = map probDist (groupBy sameLHS rules)
+  let  newRules      =  map probDist (groupBy sameLHS rules)
        probDist rrs  =  let (rs,ps) = unzip rrs
                         in zip rs (tail (scanl (+) 0 ps))
   in map fst (iterate (f newRules) xs)
 \end{code}
 
-\section{An L-System Grammar for Music}
+A key aspect of the |generate| algorithm above is to compute the
+\emph{probability density} of each successive rule, which is
+basically the sum of its probability plus the probabilities of all
+rules that precede it.
 
-The above is all for a generic grammar.  For a musical L-system we
-will define a specific grammar, whose sentences are defined as
-follows.  A musical L-system sentence is either:
+\section{An L-System Grammar for Music}
+\label{sec:musical-lsystem}
+
+The previous section gave a generative framework for a generic
+grammar.  For a musical L-system we will define a specific grammar,
+whose sentences are defined as follows.  A musical L-system sentence
+is either:
 \begin{itemize}
-\item A non-terminal symbol |(N a)|.
+\item A non-terminal symbol |N a|.
 \item A sequential composition |s1 :+ s2|.
 \item A functional composition |s1 :. s2|. 
-\item The symbol |Id|, which will eventually interpeted as the
+\item The symbol |Id|, which will eventually be interpeted as the
   identity function.
 \end{itemize}
 We capture this in the |LSys| data type:
@@ -294,13 +332,17 @@ data LSys a  =  N a
              |  Id 
      deriving (Eq, Ord, Show) 
 \end{code}
+The idea here is that sentences generated from this grammar are
+relative to a starting note, and thus the above constructions will be
+interpreted as functions that take that starting note as an argument.
+This will all become clear shortly, but first we need to define a
+replacement function for this grammar.  
 
-We also need to define a replacement function for this grammar.  We
-treat |(:+)| and |(:.)| as binary branches, and recursively traverse
-each of their arguments.  We treat |Id| as a constant that never gets
-replaced.  Most importantly, each non-terminal of the form |N x| could
-each be the left-hand side of a rule, so we call the function
-|getNewRHS| to generate the replacement term for it.
+We will treat |(:+)| and |(:.)| as binary branches, and recursively
+traverse each of their arguments.  We will treat |Id| as a constant that
+never gets replaced.  Most importantly, each non-terminal of the form
+|N x| could each be the left-hand side of a rule, so we call the
+function |getNewRHS| to generate the replacement term for it.
 \begin{code}
 replFun :: Eq a => ReplFun (LSys a)
 replFun rules (s, rands) =
@@ -315,12 +357,10 @@ replFun rules (s, rands) =
     N x     ->  (getNewRHS rules (N x) (head rands), tail rands)
 \end{code}
 
-Note the use of |filter| to select only the rules whose left-hand side
-matches the non-terminal.  A key aspect of the algorithm is to
-generate the \emph{probability density} of the successive rules, which
-is basically the sum of its probability plus the probabilities of all
-rules that precede it.  This modified rule-set is then given to
-|getNewRHS| as an argument.  |getNewRHS| is defined as:
+%% Note the use of |filter| to select only the rules whose left-hand
+%% side matches the non-terminal.
+
+|getNewRHS| is defined as:
 \begin{code}
 getNewRHS :: Eq a => [[(Rule a, Prob)]] -> a -> Rand -> a
 getNewRHS rrs ls rand = 
@@ -331,13 +371,17 @@ getNewRHS rrs ls rand =
         Nothing  -> error "No rule match"
 \end{code}
 
-\section{Examples}
+\syn{|find :: (a->Bool) -> [a] -> Maybe a| is another |Data.List|
+  function that returns the first element of a list that satisfies a
+  predicate, or |Nothing| if there is no such element.}
+
+\subsection{Examples}
 
 The final step is to interpret the resulting sentence (i.e.\ a value
-of type |LSys a|) as music.  The intent of the |LSys| design is that a
-value is interpreted as a \emph{function} that is applied to a single
-note (or, more generally, a single |Music| value).  The specific
-constructors are interpreted as follows:
+of type |LSys a|) as music.  As mentioned earlier, the intent of the
+|LSys| design is that a value is interpreted as a \emph{function} that
+is applied to a single note (or, more generally, a single |Music|
+value).  The specific constructors are interpreted as follows:
 \begin{code}
 type IR a b = [(a, Music b -> Music b)]  -- ``interpetation rules'' 
 
@@ -356,8 +400,8 @@ data LFun = Inc | Dec | Same
      deriving (Eq, Ord, Show)
 
 ir :: IR LFun Pitch
-ir = [ (Inc, Euterpea.transpose 1),
-       (Dec, Euterpea.transpose (-1)),
+ir = [ (Inc, transpose 1),
+       (Dec, transpose (-1)),
        (Same, id)]
 
 inc, dec, same :: LSys LFun
