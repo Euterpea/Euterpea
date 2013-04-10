@@ -1,12 +1,13 @@
 {-# LANGUAGE Arrows, ScopedTypeVariables #-}
 
 module Control.SF.AuxFunctions (
-    SEvent, Time, 
+    SEvent, Time, DeltaT, 
     edge, 
     accum, unique, 
     hold, now, 
     mergeE, 
     delay, vdelay, fdelay, 
+    vdelayC, fdelayC, 
     timer, genEvents, 
     
     (=>>), (->>), (.|.),
@@ -20,8 +21,10 @@ module Control.SF.AuxFunctions (
 import Prelude hiding (init)
 import Control.Arrow
 import Control.CCA.Types
-import Data.Sequence (Seq, empty, (<|), (|>), viewl, ViewL(..))
+import Data.Sequence (Seq, empty, (<|), (|>), (><), 
+                      viewl, ViewL(..), viewr, ViewR(..))
 import qualified Data.Sequence as Seq
+import Data.Maybe (listToMaybe)
 
 import Codec.Midi (Time) -- for reexporting
 
@@ -57,6 +60,9 @@ type SEvent = Maybe
 -- Time is reexported from Codec.Midi
 -- type Time = Double 
 
+-- | DeltaT is a type synonym referring to a change in Time.
+type DeltaT = Double
+
 
 --------------------------------------
 -- Useful SF Utilities (Mediators)
@@ -75,7 +81,8 @@ edge = proc b -> do
 --   to get the next value, and so on.
 accum :: ArrowInit a => b -> a (SEvent (b -> b)) b
 accum x = proc f -> do
-    rec b <- init x -< maybe b ($b) f
+    rec let b = maybe b' ($b') f
+        b' <- init x -< b
     returnA -< b
 
 unique :: Eq e => ArrowInit a => a e (SEvent e)
@@ -121,32 +128,95 @@ quantize n k = proc d -> do
 delay :: ArrowInit a => b -> a b b
 delay = init
 
--- NOTE: The following two functions may be better off with implementations
---  that use Data.Sequence
-
 -- | fdelay is a delay function that delays for a fixed amount of time, 
 --   given as the static argument.  It returns a signal function that 
 --   takes the current time and an event stream and delays the event 
 --   stream by the delay amount.
-fdelay :: ArrowInit a => Double -> a (Time, SEvent b) (SEvent b)
+--   fdelay guarantees that the order of events in is the same as the 
+--   order of events out and that no event will be skipped.  However, 
+--   if events are too densely packed in the signal (compared to the 
+--   clock rate of the underlying arrow), then some events may be 
+--   over delayed.
+fdelay :: ArrowInit a => DeltaT -> a (Time, SEvent b) (SEvent b)
 fdelay d = proc (t, e) -> do
-    rec q <- init empty -< maybe q' (\e' -> q' |> (t+d,e')) e
-        let (ret, q') = case viewl q of
+    rec let q = maybe q'' (\e' -> q'' |> (t+d,e')) e
+            (ret, q') = case viewl q of
                 EmptyL -> (Nothing, q)
                 (t0,e0) :< qs -> if t >= t0 then (Just e0, qs) else (Nothing, q)
+        q'' <- init empty -< q'
     returnA -< ret
 
 -- | vdelay is a delay function that delays for a variable amount of time.
 --   It takes the current time, an amount of time to delay, and an event 
 --   stream and delays the event stream by the delay amount.
-vdelay :: ArrowInit a => a (Time, Double, SEvent b) (SEvent b)
+--   vdelay, like fdelay, guarantees that the order of events in is the 
+--   same as the order of events out and that no event will be skipped.  
+--   If the events are too dense or the delay argument drops too quickly, 
+--   some events may be over delayed.
+vdelay :: ArrowInit a => a (Time, DeltaT, SEvent b) (SEvent b)
 vdelay = proc (t, d, e) -> do
-    rec q <- init empty -< maybe q' (\e' -> q' |> (t,e')) e
-        let (ret, q') = case viewl q of
+    rec let q = maybe q'' (\e' -> q'' |> (t,e')) e
+            (ret, q') = case viewl q of
                 EmptyL -> (Nothing, q)
                 (t0,e0) :< qs -> if t-d >= t0 then (Just e0, qs) else (Nothing, q)
+        q'' <- init empty -< q'
     returnA -< ret
 
+-- | fdelayC is a continuous version of fdelay.  It takes an initial value 
+--   to emit for the first dt seconds.  After that, the delay will always 
+--   be accurate, but some data may be ommitted entirely.  As such, it is 
+--   not advisable to use fdelayC for event streams where every event must 
+--   be processed (that's what fdelay is for).
+fdelayC :: ArrowInit a => b -> DeltaT -> a (Time, b) b
+fdelayC i dt = proc (t, v) -> do
+    rec let q = q'' |> (t+dt, v) -- this list has pairs of (emission time, value)
+            (ready, rest) = Seq.spanl ((<= t) . fst) q
+            (ret, q') = case viewr ready of
+                EmptyR -> (i, rest)
+                _ :> (t', v') -> (v', (t',v') <| rest)
+        q'' <- init empty -< q'
+    returnA -< ret
+
+-- | vdelayC is a continuous version of vdelay.  It will always emit the 
+--   value that was produced dt seconds earlier (erring on the side of an 
+--   older value if necessary).  Be warned that this version of delay can 
+--   both omit some data entirely and emit the same data multiple times.  
+--   As such, it is usually inappropriate for events (use vdelay).
+--   vdelayC takes a "maxDT" argument that stands for the maximum delay 
+--   time that it can handle.  This is to prevent a space leak.
+--   
+--   Implementation note: Rather than keep a single buffer, we keep two 
+--   sequences that act to produce a sort of lens for a buffer.  qlow has 
+--   all the values that are older than what we currently need, and qhigh 
+--   has all of the newer ones.  Obviously, as time moves forward and the 
+--   delay amount variably changes, values are moved back and forth between 
+--   these two sequences as necessary.
+--   This should provide a slight performance boost.
+vdelayC :: ArrowInit a => DeltaT -> b -> a (Time, DeltaT, b) b
+vdelayC maxDT i = proc (t, dt, v) -> do
+    rec let (qlow, qhigh) = (dropMostWhileL ((< t-maxDT) . fst) qlow'',
+                             qhigh'' |> (t, v)) -- this is two lists with pairs of (initial time, value)
+            -- We construct four subsequences:, a, b, c, and d.  They are ordered by time and we 
+            -- have an invariant that a >< b >< c >< d is the entire buffer ordered by time.
+            (b,a) = Seq.spanr ((> t-dt)  . fst) qlow
+            (c,d) = Seq.spanl ((<= t-dt) . fst) qhigh
+            -- After the spans, the value we are looking for will be in either c or a.
+            (ret, qlow', qhigh') = case viewr c of
+                _ :> (t', v') -> (v', qlow >< c, d)
+                EmptyR -> case viewr a of
+                    _ :> (t', v') -> (v', a, b >< qhigh)
+                    EmptyR -> (i, a, b >< qhigh)
+        (qlow'', qhigh'') <- init (empty,empty) -< (qlow', qhigh')
+    returnA -< ret
+  where
+    -- This function acts like a wrapper for Seq.dropWhileL that will never 
+    -- leave the input queue empty (unless it started that way).  At worst, 
+    -- it will leave the queue with its rightmost (latest in time) element.
+    dropMostWhileL f q = if Seq.null q then empty else case viewl dq of
+            EmptyL -> Seq.singleton $ Seq.index q (Seq.length q - 1)
+            _ -> dq
+        where
+            dq = Seq.dropWhileL f q
 
 -- | timer is a variable duration timer.
 --   This timer takes the current time as well as the (variable) time between 
@@ -155,28 +225,28 @@ vdelay = proc (t, d, e) -> do
 --   fast enough compared to the timer frequency, this should give accurate and 
 --   predictable output and stay synchronized with any other timer and with 
 --   time itself.
-timer :: ArrowInit a => a (Time, Double) (SEvent ())
-timer = proc (now, i) -> do
+timer :: ArrowInit a => a (Time, DeltaT) (SEvent ())
+timer = proc (now, dt) -> do
     rec last <- init 0 -< t'
-        let ret = now >= last + i
-            t'  = latestEventTime last i now
+        let ret = now >= last + dt
+            t'  = latestEventTime last dt now
     returnA -< if ret then Just () else Nothing
   where
-    latestEventTime last i now | i <= 0 = now
-    latestEventTime last i now = 
-        if now > last + i
-        then latestEventTime (last+i) i now
+    latestEventTime last dt now | dt <= 0 = now
+    latestEventTime last dt now = 
+        if now > last + dt
+        then latestEventTime (last+dt) dt now
         else last
 
 
 -- | genEvents is a timer that instead of returning unit events 
---   returns the next element of the input list.  The input list is 
---   assumed to be infinite in length.
-genEvents :: ArrowInit a => [b] -> a (Time, Double) (SEvent b)
+--   returns the next element of the input list.  When the input 
+--   list is empty, the output stream becomes all Nothing.
+genEvents :: ArrowInit a => [b] -> a (Time, DeltaT) (SEvent b)
 genEvents lst = proc inp -> do
     e <- timer -< inp
-    rec l <- init lst -< maybe l (const $ tail l) e
-    returnA -< fmap (const $ head l) e
+    rec l <- init lst -< maybe l (const $ drop 1 l) e
+    returnA -< maybe Nothing (const $ listToMaybe l) e
 
 
 --------------------------------------
@@ -248,7 +318,7 @@ toMSF (SF sf) = MSF h
 --   at the end of the list to see if the inner, "simulated" signal 
 --   function is performing as fast as it should.
 toRealTimeMSF :: forall m a b . (Monad m, MonadIO m, MonadFix m, NFData b) => 
-                 Double -> Double -> (ThreadId -> m ()) -> SF a b 
+                 Double -> DeltaT -> (ThreadId -> m ()) -> SF a b 
               -> MSF m (a, Double) [(b, Double)]
 toRealTimeMSF clockrate buffer threadHandler sf = MSF initFun
   where
@@ -273,7 +343,7 @@ toRealTimeMSF clockrate buffer threadHandler sf = MSF initFun
         return (toList b, MSF (sfFun inp out timevar))
     -- worker processes the inner, "simulated" signal function.
     worker :: IORef a -> IORef (Seq (b, Double)) -> MVar Double 
-           -> Double -> Integer -> SF a b -> IO ()
+           -> DeltaT -> Integer -> SF a b -> IO ()
     worker inp out timevar t count (SF sf) = do
         a <- readIORef inp      -- get the latest input
         let (b, sf') = sf a     -- do the calculation
