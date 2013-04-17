@@ -12,7 +12,7 @@
 >   SEvent, edge, accum, 
 >   unique, hold, now, mergeE, 
 >   delay, vdelay, fdelay, 
->   timer, genEvents, Time, 
+>   timer, genEvents, Time, DeltaT,
 >   -- This next line is from Codec.Midi
 >   exportFile, importFile
 >   ) where

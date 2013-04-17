@@ -14,7 +14,7 @@ The monadic UI concept is borrowed from Phooey by Conal Elliott.
 > import Euterpea.IO.MUI.UIMonad
 > import Euterpea.IO.MUI.UISF
 > import Euterpea.IO.MIDI.MidiIO
-> import Control.SF.AuxFunctions (SEvent, timer, edge, delay, mergeE)
+> import Control.SF.AuxFunctions (SEvent, DeltaT, timer, edge, delay, mergeE, eventBuffer, BufferControl(..))
 
 > -- These four lines are just for musicToMsgs
 > import Euterpea.IO.MIDI.GeneralMidi (toGM)
@@ -590,23 +590,20 @@ events are handed to midiOut at the same timestep. Finally, the
 widget returns a flat that is True if the buffer is empty and False
 if the buffer is full (meaning that items are still being played).
 
-> midiOutB :: UISF (DeviceID, SEvent [(Time, MidiMessage)]) (Bool)
+> midiOutB :: UISF (DeviceID, SEvent [(DeltaT, MidiMessage)]) (Bool)
 > midiOutB = proc (devID, msgs) -> do
 >   t <- time -< ()
->   rec tLast <- delay 0.0 -< nextT
->       msgBuffer <- delay [] -< msgBuffer''
->       let (nextMsgs, msgBuffer', nextT) = getNextMsgs tLast t msgBuffer
->           msgBuffer'' = case msgs of Just ms -> msgBuffer' ++ ms
->                                      Nothing -> msgBuffer'
->   midiOut -< (devID, nextMsgs) 
->   returnA -< null msgBuffer where 
->       getNextMsgs :: Time -> Time -> [(Time, a)] -> (Maybe [a], [(Time, a)], Time)
->       getNextMsgs tLast t ms = 
->           let (x:xs) = head ms : (takeWhile ((<=0).fst) $ tail ms)
->               nextMs = map snd (x:xs)
->               tNext = fst x
->           in  if null ms || t - tLast < fst x then (Nothing, ms, tLast)
->               else (Just nextMs, drop (length (x:xs)) ms, t)
+>   (out, b) <- eventBuffer -< (fmap AddData msgs, t)
+>   midiOut -< (devID, out)
+>   returnA -< b
+
+
+> midiOutB' :: UISF (DeviceID, SEvent (BufferControl MidiMessage)) (Bool)
+> midiOutB' = proc (devID, bc) -> do
+>   t <- time -< ()
+>   (out, b) <- eventBuffer -< (bc, t)
+>   midiOut -< (devID, out)
+>   returnA -< b
 
 
 The musicToMsgs function bridges the gap between a Music1 value and
@@ -680,7 +677,7 @@ These widgets should be used with midiInM and midiOutM respectively.
 > selectDevM t f = 
 >   let (devIDs, devNames) = unzip devs
 >   in  title t $ proc _ -> do
->       cs <- checkGroup (map name $ devNames) -< ()
+>       cs <- checkGroup (map name devNames) -< ()
 >       returnA -< zip devIDs cs
 >         where devs = filter (\(i,d) -> f d && name d /= "Microsoft MIDI Mapper") $ 
 >                        unsafePerformIO getAllDevices
