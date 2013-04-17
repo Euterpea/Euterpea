@@ -97,6 +97,13 @@
 > sink   f = MSF h where h x = f x >> return ((), MSF h)
 > pipe   f = MSF h where h x = f x >>= return . (\x -> (x, MSF h))
 
+> sourceE :: Monad m => m c ->         MSF m (Maybe ()) (Maybe c)
+> sinkE   :: Monad m => (b -> m ()) -> MSF m (Maybe b)  (Maybe ())
+> pipeE   :: Monad m => (b -> m c) ->  MSF m (Maybe b)  (Maybe c)
+> sourceE f = MSF h where h = maybe (return (Nothing, MSF h)) (\_ -> f   >>= return . (\c -> (Just c, MSF h)))
+> sinkE   f = MSF h where h = maybe (return (Nothing, MSF h)) (\b -> f b >>  return (Just (), MSF h))
+> pipeE   f = MSF h where h = maybe (return (Nothing, MSF h)) (\b -> f b >>= return . (\c -> (Just c, MSF h)))
+
 > listSource :: Monad m => [c] -> MSF m () c
 > listSource cs = MSF (h cs) where h (c:cs) _ = return (c, MSF (h cs))
 

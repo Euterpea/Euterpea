@@ -11,6 +11,13 @@ module Euterpea.IO.MUI
   , runUI               -- :: String -> UISF () () -> IO ()
   , runUIEx             -- :: Dimension -> String -> UISF () () -> IO ()
   , time                -- :: UISF () Time
+    -- UISF builders (DWC Note: I don't feel comfortable with how generic these are)
+  , uisfSource          -- :: IO c ->         UISF () c
+  , uisfSink            -- :: (b -> IO ()) -> UISF b  ()
+  , uisfPipe            -- :: (b -> IO c) ->  UISF b  c
+  , uisfSourceE         -- :: IO c ->         UISF (SEvent ()) (SEvent c)
+  , uisfSinkE           -- :: (b -> IO ()) -> UISF (SEvent b)  (SEvent ())
+  , uisfPipeE           -- :: (b -> IO c) ->  UISF (SEvent b)  (SEvent c)
     -- Widgets
   , label               -- :: String -> UISF a a
   , displayStr          -- :: UISF String ()

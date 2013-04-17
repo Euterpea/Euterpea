@@ -19,7 +19,7 @@ by Conal Elliot.
 
 > import Control.SF.SF
 > import Control.SF.MSF
-> import Control.SF.AuxFunctions (Time, toMSF, toRealTimeMSF)
+> import Control.SF.AuxFunctions (Time, toMSF, toRealTimeMSF, SEvent)
 > import Control.CCA.ArrowP (ArrowP(..))
 > import Euterpea.IO.Audio.Types (Clock, rate)
 > import Euterpea.IO.MIDI.MidiIO (initializeMidi, terminateMidi)
@@ -85,6 +85,26 @@ The types pretty much say it all for how they work.
 >     sf' a = do
 >       (c, nextSF) <- f (sf a)
 >       return (c, transformUISF f nextSF)
+
+source, sink, and pipe functions
+DWC Note: I don't feel comfortable with how generic these are.
+Also, the event ones should almost always be preferred to the continuous ones.
+
+> uisfSource :: IO c ->         UISF () c
+> uisfSink   :: (b -> IO ()) -> UISF b  ()
+> uisfPipe   :: (b -> IO c) ->  UISF b  c
+> uisfSource = source . liftIO
+> uisfSink   = sink . (liftIO .)
+> uisfPipe   = pipe . (liftIO .)
+
+> uisfSourceE :: IO c ->         UISF (SEvent ()) (SEvent c)
+> uisfSinkE   :: (b -> IO ()) -> UISF (SEvent b)  (SEvent ())
+> uisfPipeE   :: (b -> IO c) ->  UISF (SEvent b)  (SEvent c)
+> uisfSourceE = sourceE . liftIO
+> uisfSinkE   = sinkE . (liftIO .)
+> uisfPipeE   = pipeE . (liftIO .)
+
+
 
 UISF Lifting
 ============
