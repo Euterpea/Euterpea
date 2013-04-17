@@ -81,8 +81,7 @@ edge = proc b -> do
 --   to get the next value, and so on.
 accum :: ArrowInit a => b -> a (SEvent (b -> b)) b
 accum x = proc f -> do
-    rec let b = maybe b' ($b') f
-        b' <- init x -< b
+    rec b <- init x -< maybe b ($b) f
     returnA -< b
 
 unique :: Eq e => ArrowInit a => a e (SEvent e)
