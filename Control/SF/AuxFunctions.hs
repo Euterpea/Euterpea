@@ -138,11 +138,10 @@ delay = init
 --   over delayed.
 fdelay :: ArrowInit a => DeltaT -> a (Time, SEvent b) (SEvent b)
 fdelay d = proc (t, e) -> do
-    rec let q = maybe q'' (\e' -> q'' |> (t+d,e')) e
-            (ret, q') = case viewl q of
+    rec q <- init empty -< maybe q' (\e' -> q' |> (t+d,e')) e
+        let (ret, q') = case viewl q of
                 EmptyL -> (Nothing, q)
                 (t0,e0) :< qs -> if t >= t0 then (Just e0, qs) else (Nothing, q)
-        q'' <- init empty -< q'
     returnA -< ret
 
 -- | vdelay is a delay function that delays for a variable amount of time.
@@ -154,11 +153,10 @@ fdelay d = proc (t, e) -> do
 --   some events may be over delayed.
 vdelay :: ArrowInit a => a (Time, DeltaT, SEvent b) (SEvent b)
 vdelay = proc (t, d, e) -> do
-    rec let q = maybe q'' (\e' -> q'' |> (t,e')) e
-            (ret, q') = case viewl q of
+    rec q <- init empty -< maybe q' (\e' -> q' |> (t,e')) e
+        let (ret, q') = case viewl q of 
                 EmptyL -> (Nothing, q)
                 (t0,e0) :< qs -> if t-d >= t0 then (Just e0, qs) else (Nothing, q)
-        q'' <- init empty -< q'
     returnA -< ret
 
 -- | fdelayC is a continuous version of fdelay.  It takes an initial value 
@@ -168,12 +166,11 @@ vdelay = proc (t, d, e) -> do
 --   be processed (that's what fdelay is for).
 fdelayC :: ArrowInit a => b -> DeltaT -> a (Time, b) b
 fdelayC i dt = proc (t, v) -> do
-    rec let q = q'' |> (t+dt, v) -- this list has pairs of (emission time, value)
-            (ready, rest) = Seq.spanl ((<= t) . fst) q
+    rec q <- init empty -< q' |> (t+dt, v) -- this list has pairs of (emission time, value)
+        let (ready, rest) = Seq.spanl ((<= t) . fst) q
             (ret, q') = case viewr ready of
                 EmptyR -> (i, rest)
                 _ :> (t', v') -> (v', (t',v') <| rest)
-        q'' <- init empty -< q'
     returnA -< ret
 
 -- | vdelayC is a continuous version of vdelay.  It will always emit the 
@@ -193,11 +190,12 @@ fdelayC i dt = proc (t, v) -> do
 --   This should provide a slight performance boost.
 vdelayC :: ArrowInit a => DeltaT -> b -> a (Time, DeltaT, b) b
 vdelayC maxDT i = proc (t, dt, v) -> do
-    rec let (qlow, qhigh) = (dropMostWhileL ((< t-maxDT) . fst) qlow'',
-                             qhigh'' |> (t, v)) -- this is two lists with pairs of (initial time, value)
+    rec (qlow, qhigh) <- init (empty,empty) -< 
+                (dropMostWhileL ((< t-maxDT) . fst) qlow', qhigh' |> (t, v))
+                    -- this is two lists with pairs of (initial time, value)
             -- We construct four subsequences:, a, b, c, and d.  They are ordered by time and we 
             -- have an invariant that a >< b >< c >< d is the entire buffer ordered by time.
-            (b,a) = Seq.spanr ((> t-dt)  . fst) qlow
+        let (b,a) = Seq.spanr ((> t-dt)  . fst) qlow
             (c,d) = Seq.spanl ((<= t-dt) . fst) qhigh
             -- After the spans, the value we are looking for will be in either c or a.
             (ret, qlow', qhigh') = case viewr c of
@@ -205,7 +203,6 @@ vdelayC maxDT i = proc (t, dt, v) -> do
                 EmptyR -> case viewr a of
                     _ :> (t', v') -> (v', a, b >< qhigh)
                     EmptyR -> (i, a, b >< qhigh)
-        (qlow'', qhigh'') <- init (empty,empty) -< (qlow', qhigh')
     returnA -< ret
   where
     -- This function acts like a wrapper for Seq.dropWhileL that will never 
