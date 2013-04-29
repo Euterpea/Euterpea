@@ -88,21 +88,21 @@ The types pretty much say it all for how they work.
 
 source, sink, and pipe functions
 DWC Note: I don't feel comfortable with how generic these are.
-Also, the event ones should almost always be preferred to the continuous ones.
+Also, the continuous ones can't work.
 
-> uisfSource :: IO c ->         UISF () c
-> uisfSink   :: (b -> IO ()) -> UISF b  ()
-> uisfPipe   :: (b -> IO c) ->  UISF b  c
-> uisfSource = source . liftIO
-> uisfSink   = sink . (liftIO .)
-> uisfPipe   = pipe . (liftIO .)
+uisfSource :: IO c ->         UISF () c
+uisfSink   :: (b -> IO ()) -> UISF b  ()
+uisfPipe   :: (b -> IO c) ->  UISF b  c
+uisfSource = source . liftIO
+uisfSink   = sink . (liftIO .)
+uisfPipe   = pipe . (liftIO .)
 
 > uisfSourceE :: IO c ->         UISF (SEvent ()) (SEvent c)
 > uisfSinkE   :: (b -> IO ()) -> UISF (SEvent b)  (SEvent ())
 > uisfPipeE   :: (b -> IO c) ->  UISF (SEvent b)  (SEvent c)
-> uisfSourceE = sourceE . liftIO
-> uisfSinkE   = sinkE . (liftIO .)
-> uisfPipeE   = pipeE . (liftIO .)
+> uisfSourceE = (init Nothing >>>) . sourceE . liftIO
+> uisfSinkE   = (init Nothing >>>) . sinkE . (liftIO .)
+> uisfPipeE   = (init Nothing >>>) . pipeE . (liftIO .)
 
 
 
