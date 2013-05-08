@@ -221,7 +221,7 @@ Some default parameters we start with.
 >   pollEvents
 >   let uiStream = streamMSF sf (repeat ())
 >       render drawit' (inp:inps) lastFocus uistream tids = do
->         wSize <- getWindowSize w
+>         wSize <- getMainWindowSize
 >         let ctx = defaultCTX wSize addEv
 >         (_, dirty, foc, (graphic, sound), tids', (_, uistream')) <- (unUI $ stream uistream) (ctx, lastFocus, inp)
 >         -- always output sound
@@ -246,7 +246,7 @@ Some default parameters we start with.
 >   GLFW.sleep 0.5
 >   terminateMidi
 >   mapM_ killThread tids
->   closeWindow w
+>   --closeWindow w --unnecessary
 
 > windowUser w addEv = timeGetTime >>= return . addEvents
 >   where
@@ -263,7 +263,7 @@ Some default parameters we start with.
 >       Just e  -> case e of
 > -- There's a bug somewhere with GLFW that makes pressing ESC freeze up 
 > -- GHCi, so I've removed this.
-> --        SKey GLFW.ESC True -> return True
+> --        SKey GLFW.ESC True -> closeWindow w >> return True
 > --        Key '\00'  True -> return True
 >         Closed          -> return True
 >         _               -> addEv (UIEvent e) >> loop

@@ -4,7 +4,7 @@ module Euterpea.IO.MUI.SOE (
   Size,
   Window,
   openWindow,
-  getWindowSize,
+  getMainWindowSize,
   clearWindow,
   drawInWindow,
   drawInWindowNow,
@@ -39,16 +39,17 @@ module Euterpea.IO.MUI.SOE (
   polyBezier,
   Angle,
   arc,
-  Region,
-  createRectangle,
-  createEllipse,
-  createPolygon,
-  andRegion,
-  orRegion,
-  xorRegion,
-  diffRegion,
-  drawRegion,
---  getKey,  -- See note at definition for why these are left out
+  scissorGraphic,
+--  Region,     --Regions are an unused feature
+--  createRectangle,
+--  createEllipse,
+--  createPolygon,
+--  andRegion,
+--  orRegion,
+--  xorRegion,
+--  diffRegion,
+--  drawRegion,
+--  getKey,     -- See note at definition for why these are left out
 --  getLBP,
 --  getRBP,
   Event (..),
@@ -160,8 +161,8 @@ openWindowEx title position size (RedrawMode useDoubleBuffer) = do
     eventsChan = eventsChan
   }
 
-getWindowSize :: Window -> IO Size
-getWindowSize win = do
+getMainWindowSize :: IO Size
+getMainWindowSize = do
   (GL.Size x y) <- GL.get GLFW.windowSize
   return (fromIntegral x, fromIntegral y)
 
@@ -352,9 +353,22 @@ arc pt1 pt2 start extent = Graphic $ GL.preservingMatrix $ do
   GL.renderPrimitive GL.LineStrip (circle r1 r2 
     (-(start + extent) * pi / 180) (-start * pi / 180) (6 / (r1 + r2)))
 
+
+scissorGraphic :: (Point, Size) -> Graphic -> Graphic
+scissorGraphic ((x,y), (w,h)) (Graphic g) = Graphic $ do
+    (_,windowY) <- getMainWindowSize
+    let [x', y', w', h'] = map fromIntegral [x, windowY-y-h, w, h]
+    oldScissor <- GL.get GL.scissor
+    GL.scissor $= Just (GL.Position x' y', GL.Size w' h')
+    g
+    GL.scissor $= oldScissor
+
+
 -------------------
 -- Region Functions
 -------------------
+
+{- Unused
 
 createRectangle :: Point -> Point -> Region
 createRectangle pt1 pt2 =
@@ -467,6 +481,7 @@ combineRegion operator a b =
     XOR -> disjuction (conjuction (negTerm a) b) (conjuction a (negTerm b))
     DIFF -> conjuction a (negTerm b)
 
+-}
 ---------------------------
 -- Event Handling Functions
 ---------------------------
@@ -505,28 +520,45 @@ getWindowEvent sleepTime win = do
   maybe (getWindowEvent sleepTime win) return event
 
 maybeGetWindowEvent :: Double -> Window -> IO (Maybe Event)
-maybeGetWindowEvent sleepTime win = do
+maybeGetWindowEvent sleepTime win = let winChan = eventsChan win in do
   updateWindowIfDirty win
-  noEvents <- isEmptyChan (eventsChan win)
+  noEvents <- isEmptyChan winChan
   if noEvents 
     then GLFW.sleep sleepTime >> GLFW.pollEvents >> return Nothing
     else do
-      event <- readChan (eventsChan win)
+      event <- readChan winChan
       case event of
         Refresh -> do
           (Graphic io, _) <- readMVar (graphicVar win)
           io
           GLFW.swapBuffers
           maybeGetWindowEvent sleepTime win
-        Resize size@(GL.Size w h) -> do
+        Resize _ -> do
+          (Resize size@(GL.Size w h)) <- getLastResizeEvent winChan event
           GL.viewport $= (GL.Position 0 0, size)
           GL.matrixMode $= GL.Projection
           GL.loadIdentity
           GL.ortho2D 0 (realToFrac w) (realToFrac h) 0
-	  -- force a refresh, needed for OS X
-	  writeChan (eventsChan win) Refresh
+          -- force a refresh, needed for OS X
+          writeChan winChan Refresh
           maybeGetWindowEvent sleepTime win
         e -> return (Just e)
+
+-- | When a window is resized, all of the resize events queue up until the 
+--   mouse button is released.  This causes some delay as each individual 
+--   resize event is handled and then the window is redrawn.  This function 
+--   clears all resize and refresh events until the last resize one.
+--   Note that because this function is used, a Refresh event should follow 
+--   the resizing.
+getLastResizeEvent :: Chan Event -> Event -> IO Event
+getLastResizeEvent ch prev = do
+    noEvents <- isEmptyChan ch
+    if noEvents then return prev else do
+      e <- readChan ch
+      case e of
+        Resize _ -> getLastResizeEvent ch e
+        Refresh  -> getLastResizeEvent ch prev
+        _ -> unGetChan ch e >> return prev
 
 
 -- | getKeyEx, getKey, getButton, getLBP, and getRBP are defined here but 

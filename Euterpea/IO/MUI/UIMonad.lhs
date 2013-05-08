@@ -223,6 +223,9 @@ next screen refresh.
 
 > mergeAction (g, s) (g', s') = (overGraphic g' g, s >> s')
 
+> scissorAction :: CTX -> Action -> Action
+> scissorAction ctx (g, s) = (scissorGraphic (bounds ctx) g, s)
+
 
 The Focus and DirtyBit types are for system state.
 
@@ -254,13 +257,6 @@ The dirty bit is a bit to indicate if the widget needs to be redrawn.
 ===================== Monadic Instances ====================
 ============================================================
 
-We use Monad compositions to compose two UIs in sequence.
-
-Alternatively we could use Arrows or Applicative Functors to do the
-same, so the choice of Monad here is somewhat arbitary.
-
-> cross f g x = (f x, g x)
-
 > instance Monad UI where
 >   return i = UI (\(_,foc,_) -> return (nullLayout, False, foc, nullAction, nullCD, i))
 
@@ -269,7 +265,8 @@ same, so the choice of Monad here is somewhat arbitary.
 > --            (ctx2, _)         = divideCTX ctx' l2 l2
 >         (l1, db1, foc1, a1, cd1, v1) <- m (ctx1, foc, inp)
 >         (l2, db2, foc2, a2, cd2, v2) <- unUI (f v1) (ctx2, foc1, inp)
->         let action            = mergeAction a1 a2
+>         let action            = (if l1 == nullLayout || l2 == nullLayout then id 
+>                                  else scissorAction ctx) $ mergeAction a1 a2
 >             layout            = mergeLayout (flow ctx) l1 l2 
 >             cd                = mergeCD cd1 cd2
 >             dirtybit          = ((||) $! db1) $! db2
