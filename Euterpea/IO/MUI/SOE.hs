@@ -63,11 +63,13 @@ module Euterpea.IO.MUI.SOE (
 
 import Data.Ix (Ix)
 import Data.Word (Word32)
-import Control.Concurrent
 import qualified Graphics.UI.GLFW as GLFW
 import qualified Graphics.Rendering.OpenGL as GL
 import Graphics.Rendering.OpenGL (($=), GLfloat)
-import System.IO.Unsafe
+import System.IO.Unsafe (unsafePerformIO)
+import Control.Concurrent.STM.TChan
+import Control.Monad.STM (atomically)
+import Control.Concurrent.MVar
 
 
 -------------------
@@ -82,7 +84,7 @@ type Size = (Int, Int)
 
 data Window = Window {
   graphicVar :: MVar (Graphic, Bool), -- boolean to remember if it's dirty
-  eventsChan :: Chan Event
+  eventsChan :: TChan Event
 }
 
 -- Graphic is just a wrapper for OpenGL IO
@@ -110,7 +112,7 @@ openWindowEx title position size (RedrawMode useDoubleBuffer) = do
   let siz = maybe (GL.Size 400 300) fromSize size
   initialize
   graphicVar <- newMVar (emptyGraphic, False)
-  eventsChan <- newChan
+  eventsChan <- atomically newTChan
   GLFW.openWindow siz [GLFW.DisplayStencilBits 8, GLFW.DisplayAlphaBits 8] GLFW.Window
   GLFW.windowTitle $= title
   modifyMVar_ opened (\_ -> return True)
@@ -125,14 +127,14 @@ openWindowEx title position size (RedrawMode useDoubleBuffer) = do
   -- let updateWindow = readMVar graphicVar >>= (\(Graphic g) -> g >> GLFW.swapBuffers)
   -- GLFW.windowRefreshCallback $= updateWindow
 
-  let motionCallback (GL.Position x y) =
-        writeChan eventsChan MouseMove { pt = (fromIntegral x, fromIntegral y) }
+  let motionCallback (GL.Position x y) = atomically $ 
+        writeTChan eventsChan MouseMove { pt = (fromIntegral x, fromIntegral y) }
   GLFW.mousePosCallback $= motionCallback
      
-  let charCallback char state =  
-        writeChan eventsChan (Key { char = char, isDown = (state == GLFW.Press) })
+  let charCallback char state =  atomically $ 
+        writeTChan eventsChan (Key { char = char, isDown = (state == GLFW.Press) })
   let keyCallBack key state = case key of
-        GLFW.SpecialKey sk -> writeChan eventsChan (SKey { skey = sk, isDown = (state == GLFW.Press) })
+        GLFW.SpecialKey sk -> atomically $ writeTChan eventsChan (SKey { skey = sk, isDown = (state == GLFW.Press) })
 --      GLFW.SpecialKey GLFW.ESC -> charCallback '\033' state
 --      GLFW.SpecialKey GLFW.BACKSPACE -> charCallback '\08' state
 --      GLFW.SpecialKey GLFW.DEL   -> charCallback '\0177' state
@@ -147,13 +149,13 @@ openWindowEx title position size (RedrawMode useDoubleBuffer) = do
 
   GLFW.mouseButtonCallback $= (\but state -> do
     GL.Position x y <- GL.get GLFW.mousePos
-    writeChan eventsChan (Button {
+    atomically $ writeTChan eventsChan (Button {
         pt = (fromIntegral x, fromIntegral y),
         isLeft = (but == GLFW.ButtonLeft),
         isDown = (state == GLFW.Press) }))
 
-  GLFW.windowSizeCallback $= writeChan eventsChan . Resize
-  GLFW.windowRefreshCallback $= writeChan eventsChan Refresh
+  GLFW.windowSizeCallback $= atomically . writeTChan eventsChan . Resize
+  GLFW.windowRefreshCallback $= atomically (writeTChan eventsChan Refresh)
   GLFW.windowCloseCallback $= (closeWindow_ eventsChan >> return True)
 
   return Window {
@@ -207,7 +209,7 @@ closeWindow :: Window -> IO ()
 closeWindow win = closeWindow_ (eventsChan win)
 
 closeWindow_ chan = do
-  writeChan chan Closed
+  atomically $ writeTChan chan Closed
   modifyMVar_ opened (\_ -> return False)
   GLFW.closeWindow
   GLFW.pollEvents
@@ -522,27 +524,24 @@ getWindowEvent sleepTime win = do
 maybeGetWindowEvent :: Double -> Window -> IO (Maybe Event)
 maybeGetWindowEvent sleepTime win = let winChan = eventsChan win in do
   updateWindowIfDirty win
-  noEvents <- isEmptyChan winChan
-  if noEvents 
-    then GLFW.sleep sleepTime >> GLFW.pollEvents >> return Nothing
-    else do
-      event <- readChan winChan
-      case event of
-        Refresh -> do
-          (Graphic io, _) <- readMVar (graphicVar win)
-          io
-          GLFW.swapBuffers
-          maybeGetWindowEvent sleepTime win
-        Resize _ -> do
-          (Resize size@(GL.Size w h)) <- getLastResizeEvent winChan event
-          GL.viewport $= (GL.Position 0 0, size)
-          GL.matrixMode $= GL.Projection
-          GL.loadIdentity
-          GL.ortho2D 0 (realToFrac w) (realToFrac h) 0
-          -- force a refresh, needed for OS X
-          writeChan winChan Refresh
-          maybeGetWindowEvent sleepTime win
-        e -> return (Just e)
+  mevent <- atomically $ tryReadTChan winChan
+  case mevent of
+    Nothing -> GLFW.sleep sleepTime >> GLFW.pollEvents >> return Nothing
+    Just Refresh -> do
+      (Graphic io, _) <- readMVar (graphicVar win)
+      io
+      GLFW.swapBuffers
+      maybeGetWindowEvent sleepTime win
+    Just (e@(Resize _)) -> do
+      (Resize size@(GL.Size w h)) <- getLastResizeEvent winChan e
+      GL.viewport $= (GL.Position 0 0, size)
+      GL.matrixMode $= GL.Projection
+      GL.loadIdentity
+      GL.ortho2D 0 (realToFrac w) (realToFrac h) 0
+      -- force a refresh, needed for OS X
+      atomically $ writeTChan winChan Refresh
+      maybeGetWindowEvent sleepTime win
+    Just e -> return (Just e)
 
 -- | When a window is resized, all of the resize events queue up until the 
 --   mouse button is released.  This causes some delay as each individual 
@@ -550,15 +549,14 @@ maybeGetWindowEvent sleepTime win = let winChan = eventsChan win in do
 --   clears all resize and refresh events until the last resize one.
 --   Note that because this function is used, a Refresh event should follow 
 --   the resizing.
-getLastResizeEvent :: Chan Event -> Event -> IO Event
+getLastResizeEvent :: TChan Event -> Event -> IO Event
 getLastResizeEvent ch prev = do
-    noEvents <- isEmptyChan ch
-    if noEvents then return prev else do
-      e <- readChan ch
-      case e of
-        Resize _ -> getLastResizeEvent ch e
-        Refresh  -> getLastResizeEvent ch prev
-        _ -> unGetChan ch e >> return prev
+    mevent <- atomically $ tryReadTChan ch
+    case mevent of
+      Nothing -> return prev
+      Just (e@(Resize _)) -> getLastResizeEvent ch e
+      Just Refresh        -> getLastResizeEvent ch prev
+      Just e -> atomically (unGetTChan ch e) >> return prev
 
 
 -- | getKeyEx, getKey, getButton, getLBP, and getRBP are defined here but 
