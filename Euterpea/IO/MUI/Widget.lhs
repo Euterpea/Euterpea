@@ -529,12 +529,12 @@ of MidiMessages and sends the MidiMessages to the device.
 >     aux dev (ctx,foc,inp) = (nullLayout, False, foc, action, nullCD, v)
 >       where 
 >         v = case inp of
->               MidiEvent d m | d == dev -> Just [Std m]
+>               MidiEvent d ms | d == dev -> Just $ map Std ms
 >               _ -> Nothing
 >         action = justSoundAction $ do
 >           valid <- isValidInputDevice dev
 >           when valid $ pollMidi dev (cb dev)
->         cb d (_t, m) = inject ctx (MidiEvent d m)
+>         cb d (_t, ms) = inject ctx (MidiEvent d ms)
  
 > midiOut :: UISF (DeviceID, SEvent [MidiMessage]) ()
 > midiOut = mkUISF aux 
@@ -552,20 +552,23 @@ of MidiMessages and sends the MidiMessages to the device.
 The midiInM widget takes input from multiple devices and combines 
 it into a single stream. 
 
-> midiInM :: UISF ([(DeviceID, Bool)]) (SEvent [MidiMessage])
-> midiInM = proc ds -> do
->   midiInGroup (map fst devs) -< ds
->       where devs = filter (\(i,d) -> input d && name d /= "Microsoft MIDI Mapper") $ 
->                      unsafePerformIO getAllDevices
+DWC Notes:
+Although the streaming input [(DeviceID, Bool)] seems nice as it fits with 
+a checkGroup, it seems cleaner to have simply [DeviceID].  The programmer 
+can easily apply (map fst . filter snd) to make the conversion.
+That said, perhaps checkGroup should just return the list of true values ...
 
-> midiInGroup :: [DeviceID] -> UISF ([(DeviceID, Bool)]) (SEvent [MidiMessage])
-> midiInGroup [] = proc bs -> do
->     returnA -< Nothing
-> midiInGroup (i:is) = proc bs -> do 
->     m <- midiIn -< i
->     let m' = if elem (i, True) bs then m else Nothing
->     ms <- midiInGroup is -< bs
->     returnA -< mergeE (++) m' ms
+> midiInM' :: UISF [DeviceID] (SEvent [MidiMessage])
+> midiInM' = proc bs -> do
+>   case bs of
+>       [] -> returnA -< Nothing
+>       d:ds -> do
+>           m  <- midiIn   -< d
+>           ms <- midiInM' -< ds
+>           returnA -< mergeE (++) m ms
+>
+> midiInM :: UISF ([(DeviceID, Bool)]) (SEvent [MidiMessage])
+> midiInM = arr (map fst . filter snd) >>> midiInM'
 
 
 A midiOutM widget sends output to multiple MIDI devices by sequencing
@@ -573,19 +576,21 @@ the events through a single midiOut. The same messages are sent to
 each device. The midiOutM is designed to be hooked up to a stream like
 that from a checkGroup.
 
+DWC Notes:
+Is it common to want to send the same messages to many output devices?
+Perhaps it is, but this still seems odd.  Also, I apply the same type 
+changes here.
+
+> midiOutM' :: UISF ([DeviceID], SEvent [MidiMessage]) ()
+> midiOutM' = proc (bs, e) -> do
+>   case bs of
+>       [] -> returnA -< ()
+>       d:ds -> do
+>           midiOut   -< (d,  e)
+>           midiOutM' -< (ds, e)
+
 > midiOutM :: UISF ([(DeviceID, Bool)], SEvent [MidiMessage]) ()
-> midiOutM = proc (ds, ms) -> do
->   midiOutGroup (map fst devs) -< (ds, ms)
->       where devs = filter (\(i,d) -> output d && name d /= "Microsoft MIDI Mapper") $ 
->                      unsafePerformIO getAllDevices 
-
-> midiOutGroup :: [Int] -> UISF ([(DeviceID, Bool)], SEvent [MidiMessage]) ()
-> midiOutGroup [] = proc _ -> do
->     returnA -< ()
-> midiOutGroup (i:is) = proc (bs, ms) -> do 
->     midiOut -< (i, if elem (i, True) bs then ms else Nothing)
->     midiOutGroup is -< (bs, ms)
-
+> midiOutM = first (arr (map fst . filter snd)) >>> midiOutM'
 
 A midiOutB widget wraps the regular midiOut widget with a buffer. 
 This allows for a timed series of messages to be prepared and sent

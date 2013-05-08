@@ -18,7 +18,7 @@
 >                        openInput, openOutput, readEvents, 
 >                        close, writeShort, getErrorText, terminate, initialize, 
 >                        PMError (NoError, BufferOverflow), PMStream, 
->                        PMEvent (PMEvent), PMMsg (PMMsg))
+>                        PMEvent (..), PMMsg (PMMsg))
 > import Control.Exception (finally)
 > import Control.Concurrent
 > import Control.Concurrent.STM.TChan
@@ -27,6 +27,7 @@
 
 > import Data.Bits (shiftR, shiftL, (.|.), (.&.))
 > import Data.List (findIndex)
+> import Data.Maybe (mapMaybe)
 > import qualified Data.Heap as Heap
 
 > import System.IO (hPutStrLn, stderr)
@@ -237,7 +238,7 @@ the callback function.
 DWC NOTE: Why is the time even used?  All messages get the same time?
           Also, should the callback function perhaps take [Message]?
 
-> pollMidi :: DeviceID -> ((Time, Message) -> IO ()) -> IO ()
+> pollMidi :: DeviceID -> ((Time, [Message]) -> IO ()) -> IO ()
 > pollMidi devId callback = do
 >   s <- lookupPort inPort devId 
 >   case s of
@@ -256,14 +257,10 @@ DWC NOTE: Why is the time even used?  All messages get the same time?
 >           then return () 
 >           else reportError "pollMIDI" e
 >         Left l -> do
->           t <- getTimeNow
->           sendEvts t l
->       where 
->         sendEvts _now [] = return () 
->         sendEvts now  ((PMEvent m t):l) =
->           case msgToMidi m of
->             Just m' -> callback (now, m') >> sendEvts now l
->             Nothing -> sendEvts now l
+>           now <- getTimeNow
+>           case mapMaybe (msgToMidi . message) l of
+>             [] -> return ()
+>             ms -> callback (now, ms)
 
 
 ---------------------------------------------
@@ -560,7 +557,7 @@ A conversion function from PortMidi PMMsgs to Codec.Midi Messages.
 >       let t' = t + 1000 * fromIntegral (t1 - t0) `div` (tpb * bps)
 >       in (t', m) : runTrack' t' t1 bps l
 >     runTrack' _ _ _ [] = [] 
-
+>
 > playTrack s ch t0 = playTrack' 0
 >   where
 >     playTrack' t [] = putStrLn "done" >> putMVar ch Nothing >> return (round (t * 1.0E3))
