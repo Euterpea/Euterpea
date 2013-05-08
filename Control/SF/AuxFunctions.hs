@@ -9,7 +9,7 @@ module Control.SF.AuxFunctions (
     delay, vdelay, fdelay, 
     vdelayC, fdelayC, 
     timer, genEvents, 
-    BufferControl (..), eventBuffer, 
+    BufferEvent (..), BufferControl, eventBuffer, 
     
     (=>>), (->>), (.|.),
     snapshot, snapshot_,
@@ -249,60 +249,63 @@ genEvents lst = proc inp -> do
 -- Event buffer
 --------------------------------------
 
-data BufferControl b = Play | Pause | Clear | {-SkipAhead DeltaT | -} AddData [(DeltaT, b)]
--- buffer takes a control signal as well as an input stream of data and 
--- returns values appropriate to the control signal:
+data BufferEvent b = 
+      Clear -- Erase the buffer
+    | SkipAhead DeltaT  -- Skip ahead a certain amount of time in the buffer
+    | AddData      [(DeltaT, b)]    -- Merge data into the buffer
+    | AddDataToEnd [(DeltaT, b)]    -- Add data to the end of the buffer
+type Tempo = Double
+type BufferControl b = (SEvent (BufferEvent b), Bool, Tempo)
+--  BufferControl has a Buffer event, a bool saying whether to Play (true) or 
+--  Pause (false), and a tempo multiplier.
 
 -- | eventBuffer allows for a timed series of events to be prepared and 
---   emitted.  The streaming input is an event stream containing lists 
---   of timestamped values.  Just as MIDI files have events timed based 
+--   emitted.  The streaming input is a BufferControl, described above.  
+--   Just as MIDI files have events timed based 
 --   on ticks since the last event, the events here are timed based on 
 --   seconds since the last event.  If an event is to occur 0.0 seconds 
 --   after the last event, then it is assumed to be played at the same 
---   time as that other event, and all simultaneous events are emitted 
+--   time as the last event, and all simultaneous events are emitted 
 --   at the same timestep. In addition to any events emitted, a 
 --   streaming Bool is emitted that is True if the buffer is empty and 
 --   False if the buffer is full (meaning that events will still come).
---   Note that any AddData event will queue the data to immediately start, 
---   even if that means overlapping with current data.
---   Play and Pause are control signals for output.
---   Clear will clear the buffer of future events.
---   SkipAhead t will skip forward t seconds.
-eventBuffer :: ArrowInit a => a (SEvent (BufferControl b), Time) (SEvent [b], Bool)
-eventBuffer = proc (bc, t) -> do
-    rec tprev  <- delay 0  -< t
-        tLast  <- delay 0  -< nextT
-        buffer <- delay [] -< buffer''
-        state' <- delay Play -< state
-        let (buffer', state, tLast') = maybe (buffer, state', tLast) (update buffer state' tLast) bc
-            (nextMsgs, buffer'', nextT) = case state of
-                Play  -> getNextEvent tLast' t buffer'
-                Pause -> (Nothing, buffer', tLast' + (t - tprev))
-    returnA -< (nextMsgs, null buffer'')
+eventBuffer :: ArrowInit a => a (BufferControl b, Time) (SEvent [b], Bool)
+eventBuffer = proc ((bc, doPlay, tempo), t) -> do
+    rec tprev  <- delay 0    -< t   --used to calculate dt, the change in time
+        buffer <- delay []   -< buffer''' --the buffer
+        let dt = tempo * (t-tprev) --dt will never be negative
+            buffer' = if doPlay then subTime buffer dt else buffer
+            buffer'' = maybe buffer' (update buffer') bc  --update the buffer based on the control
+            (nextMsgs, buffer''') = if doPlay then getNextEvent buffer'' --get any events that are ready
+                                    else (Nothing, buffer'')
+    returnA -< (nextMsgs, null buffer''')
   where 
-    getNextEvent :: Time -> Time -> [(DeltaT, b)] -> (SEvent [b], [(DeltaT, b)], Time)
-    getNextEvent tLast t buffer = 
-        let (e,(es,rest)) = (head buffer, span ((<=0).fst) $ tail buffer)
-            nextEs = map snd (e:es)
-            tNext = fst e
-        in  if null buffer then (Nothing, [], 0)
-            else if t - tLast < tNext
-                 then (Nothing, buffer, tLast)
-                 else (Just nextEs, rest, t)
-    update b _ t Play = (b, Play, t)
-    update b _ t Pause = (b, Pause, t)
-    update _ s t Clear = ([], s, t)
---    update b s t (SkipAhead 0) = (b, s, t)
---    update [] s t (SkipAhead _) = ([], s, 0)
---    update ((bt,b):bs) s t (SkipAhead dt) = if bt < t + dt then 
-    update b s t (AddData []) = (b, s, t)
-    update [] s t (AddData b) = (b, s, t)
-    update b s t (AddData b') = (merge b b', s, t)
+    subTime :: [(DeltaT, b)] -> DeltaT -> [(DeltaT, b)]
+    subTime [] _ = []
+    subTime ((bt,b):bs) dt = if bt < dt then (0,b):subTime bs (dt-bt) else (bt-dt,b):bs
+    getNextEvent :: [(DeltaT, b)] -> (SEvent [b], [(DeltaT, b)])
+    getNextEvent buffer = 
+        let (es,rest) = span ((<=0).fst) buffer
+            nextEs = map snd es
+        in  if null buffer then (Nothing, [])
+            else (Just nextEs, rest)
+    update :: [(DeltaT, b)] -> BufferEvent b -> [(DeltaT, b)]
+    update _ Clear = []
+    update b (SkipAhead dt) = skipAhead b dt
+    update b (AddData b') = merge b b'
+    update b (AddDataToEnd b') = b ++ b'
+    merge :: [(DeltaT, b)] -> [(DeltaT, b)] -> [(DeltaT, b)]
     merge b [] = b
     merge [] b = b
     merge ((bt1,b1):bs1) ((bt2,b2):bs2) = if bt1 < bt2
         then (bt1,b1):merge bs1 ((bt2-bt1,b2):bs2)
         else (bt2,b2):merge ((bt1-bt2,b1):bs1) bs2
+    skipAhead :: [(DeltaT, b)] -> DeltaT -> [(DeltaT, b)]
+    skipAhead [] _ = []
+    skipAhead b dt | dt <= 0 = b
+    skipAhead ((bt,b):bs) dt = if bt < dt 
+        then skipAhead bs (dt-bt)
+        else (bt-dt,b):bs
 
 
 --------------------------------------

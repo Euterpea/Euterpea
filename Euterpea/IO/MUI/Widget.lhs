@@ -14,7 +14,8 @@ The monadic UI concept is borrowed from Phooey by Conal Elliott.
 > import Euterpea.IO.MUI.UIMonad
 > import Euterpea.IO.MUI.UISF
 > import Euterpea.IO.MIDI.MidiIO
-> import Control.SF.AuxFunctions (SEvent, DeltaT, timer, edge, delay, mergeE, eventBuffer, BufferControl(..))
+> import Control.SF.AuxFunctions (SEvent, DeltaT, timer, edge, delay, mergeE, 
+>                                 eventBuffer, BufferControl, BufferEvent(..))
 
 > -- These four lines are just for musicToMsgs
 > import Euterpea.IO.MIDI.GeneralMidi (toGM)
@@ -62,6 +63,8 @@ A helper function to make stateful Widgets easier to write.
 >           (y, s') = prj s2
 >           action = (draw bbx (snd f == HasFocus) `cross` buzz) s'
 >           bbx = bounds ctx --computeBBX ctx layout
+>           cross f g x = (f x, g x)
+
 
 A few useful shorthands for creating widgets with mkWidget
 
@@ -147,9 +150,15 @@ left, right, end, home, delete, and backspace special keys.
 >     displayStr -< seq i s'
 >     t <- time -< ()
 >     b <- timer -< (t, 0.5)
+>     b' <- edge -< not inFocus --For use in drawing the cursor
+>     iPrev <- delay 0 -< i     --Also for use in drawing the cursor
 >     rec willDraw <- delay True -< willDraw'
 >         let willDraw' = maybe willDraw (const $ not willDraw) b --if isJust b then not willDraw else willDraw
->     canvas' displayLayout drawCursor -< Just (willDraw && inFocus, i)
+>     canvas' displayLayout drawCursor -< case (inFocus, b, b', i == iPrev) of
+>               (True,  Just _, _, _) -> Just (willDraw, i)
+>               (True,  _, _, False)  -> Just (willDraw, i)
+>               (False, _, Just _, _) -> Just (False, i)
+>               _ -> Nothing
 >     returnA -< s'
 >   where
 >     minh = 16 + padding * 2
@@ -492,8 +501,9 @@ of the list (simply indicating no choice selected).
 >                      withColor Blue (block ((x,y),(w,lineheight)))
 >                 else withColor Black (text (x + padding, y + padding) (take n (show v)))) //
 >             genTextGraphic ((x,y+lineheight),(w,h-lineheight)) (i - 1) vs
+>     process :: Eq a => ((([a], Int),([a], Int)), (CTX, Input)) -> (([a], Int), Bool)
 >     process (((lst,i), olds), (ctx, inp)) = 
->       ((lst,i'), olds == (lst,i'))
+>       ((lst,i'), olds /= (lst, i'))
 >         where
 >         i' = case inp of
 >           UIEvent (Button pt True True) -> pt2index pt
@@ -590,15 +600,15 @@ events are handed to midiOut at the same timestep. Finally, the
 widget returns a flat that is True if the buffer is empty and False
 if the buffer is full (meaning that items are still being played).
 
-> midiOutB :: UISF (DeviceID, SEvent [(DeltaT, MidiMessage)]) (Bool)
+> midiOutB :: UISF (DeviceID, SEvent [(DeltaT, MidiMessage)]) Bool
 > midiOutB = proc (devID, msgs) -> do
 >   t <- time -< ()
->   (out, b) <- eventBuffer -< (fmap AddData msgs, t)
+>   (out, b) <- eventBuffer -< ((fmap AddDataToEnd msgs, True, 1), t)
 >   midiOut -< (devID, out)
 >   returnA -< b
 
 
-> midiOutB' :: UISF (DeviceID, SEvent (BufferControl MidiMessage)) (Bool)
+> midiOutB' :: UISF (DeviceID, BufferControl MidiMessage) Bool
 > midiOutB' = proc (devID, bc) -> do
 >   t <- time -< ()
 >   (out, b) <- eventBuffer -< (bc, t)
@@ -621,7 +631,7 @@ since the last event. The arguments are as follows:
 
 - The Music1 value to convert to timestamped MIDI messages.
 
-> musicToMsgs :: Bool -> [InstrumentName] -> Music1 -> [(Time, MidiMessage)]
+> musicToMsgs :: Bool -> [InstrumentName] -> Music1 -> [(DeltaT, MidiMessage)]
 > musicToMsgs inf is m = 
 >     let p = perform defPMap defCon m -- obtain the performance
 >         instrs = if null is && not inf then nub $ map eInst p else is
