@@ -203,7 +203,7 @@ a timer event is needed to drive time based computations.
 > data Input 
 >   = UIEvent Event 
 >   | Timer Time 
->   | MidiEvent DeviceID Message
+>   | MidiEvent DeviceID [Message]
 >   | NoEvent
 >   deriving Show
 
