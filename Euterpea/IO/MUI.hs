@@ -10,7 +10,7 @@ module Euterpea.IO.MUI
   , pad                 -- :: (Int, Int, Int, Int) -> UISF a b -> UISF a b
   , runUI               -- :: String -> UISF () () -> IO ()
   , runUIEx             -- :: Dimension -> String -> UISF () () -> IO ()
-  , time                -- :: UISF () Time
+  , getTime             -- :: UISF () Time
     -- UISF builders (DWC Note: I don't feel comfortable with how generic these are)
   , uisfSourceE         -- :: IO c ->         UISF (SEvent ()) (SEvent c)
   , uisfSinkE           -- :: (b -> IO ()) -> UISF (SEvent b)  (SEvent ())

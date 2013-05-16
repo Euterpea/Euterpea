@@ -2,6 +2,7 @@
 
 module Control.SF.AuxFunctions (
     SEvent, Time, DeltaT, 
+    ArrowTime, time, 
     edge, 
     accum, unique, 
     hold, now, 
@@ -63,6 +64,9 @@ type SEvent = Maybe
 -- | DeltaT is a type synonym referring to a change in Time.
 type DeltaT = Double
 
+-- | Instances of this class have arrowized access to the time
+class ArrowTime a where
+    time :: a () Time
 
 --------------------------------------
 -- Useful SF Utilities (Mediators)
@@ -136,8 +140,9 @@ delay = init
 --   if events are too densely packed in the signal (compared to the 
 --   clock rate of the underlying arrow), then some events may be 
 --   over delayed.
-fdelay :: ArrowInit a => DeltaT -> a (Time, SEvent b) (SEvent b)
-fdelay d = proc (t, e) -> do
+fdelay :: (ArrowTime a, ArrowInit a) => DeltaT -> a (SEvent b) (SEvent b)
+fdelay d = proc e -> do
+    t <- time -< ()
     rec q <- init empty -< maybe q' (\e' -> q' |> (t+d,e')) e
         let (ret, q') = case viewl q of
                 EmptyL -> (Nothing, q)
@@ -151,8 +156,9 @@ fdelay d = proc (t, e) -> do
 --   same as the order of events out and that no event will be skipped.  
 --   If the events are too dense or the delay argument drops too quickly, 
 --   some events may be over delayed.
-vdelay :: ArrowInit a => a (Time, DeltaT, SEvent b) (SEvent b)
-vdelay = proc (t, d, e) -> do
+vdelay :: (ArrowTime a, ArrowInit a) => a (DeltaT, SEvent b) (SEvent b)
+vdelay = proc (d, e) -> do
+    t <- time -< ()
     rec q <- init empty -< maybe q' (\e' -> q' |> (t,e')) e
         let (ret, q') = case viewl q of 
                 EmptyL -> (Nothing, q)
@@ -164,8 +170,9 @@ vdelay = proc (t, d, e) -> do
 --   be accurate, but some data may be ommitted entirely.  As such, it is 
 --   not advisable to use fdelayC for event streams where every event must 
 --   be processed (that's what fdelay is for).
-fdelayC :: ArrowInit a => b -> DeltaT -> a (Time, b) b
-fdelayC i dt = proc (t, v) -> do
+fdelayC :: (ArrowTime a, ArrowInit a) => b -> DeltaT -> a b b
+fdelayC i dt = proc v -> do
+    t <- time -< ()
     rec q <- init empty -< q' |> (t+dt, v) -- this list has pairs of (emission time, value)
         let (ready, rest) = Seq.spanl ((<= t) . fst) q
             (ret, q') = case viewr ready of
@@ -188,8 +195,9 @@ fdelayC i dt = proc (t, v) -> do
 --   delay amount variably changes, values are moved back and forth between 
 --   these two sequences as necessary.
 --   This should provide a slight performance boost.
-vdelayC :: ArrowInit a => DeltaT -> b -> a (Time, DeltaT, b) b
-vdelayC maxDT i = proc (t, dt, v) -> do
+vdelayC :: (ArrowTime a, ArrowInit a) => DeltaT -> b -> a (DeltaT, b) b
+vdelayC maxDT i = proc (dt, v) -> do
+    t <- time -< ()
     rec (qlow, qhigh) <- init (empty,empty) -< 
                 (dropMostWhileL ((< t-maxDT) . fst) qlow', qhigh' |> (t, v))
                     -- this is two lists with pairs of (initial time, value)
@@ -221,8 +229,9 @@ vdelayC maxDT i = proc (t, dt, v) -> do
 --   fast enough compared to the timer frequency, this should give accurate and 
 --   predictable output and stay synchronized with any other timer and with 
 --   time itself.
-timer :: ArrowInit a => a (Time, DeltaT) (SEvent ())
-timer = proc (now, dt) -> do
+timer :: (ArrowTime a, ArrowInit a) => a DeltaT (SEvent ())
+timer = proc dt -> do
+    now <- time -< ()
     rec last <- init 0 -< t'
         let ret = now >= last + dt
             t'  = latestEventTime last dt now
@@ -238,9 +247,9 @@ timer = proc (now, dt) -> do
 -- | genEvents is a timer that instead of returning unit events 
 --   returns the next element of the input list.  When the input 
 --   list is empty, the output stream becomes all Nothing.
-genEvents :: ArrowInit a => [b] -> a (Time, DeltaT) (SEvent b)
-genEvents lst = proc inp -> do
-    e <- timer -< inp
+genEvents :: (ArrowTime a, ArrowInit a) => [b] -> a DeltaT (SEvent b)
+genEvents lst = proc dt -> do
+    e <- timer -< dt
     rec l <- init lst -< maybe l (const $ drop 1 l) e
     returnA -< maybe Nothing (const $ listToMaybe l) e
 
@@ -269,8 +278,9 @@ type BufferControl b = (SEvent (BufferEvent b), Bool, Tempo)
 --   at the same timestep. In addition to any events emitted, a 
 --   streaming Bool is emitted that is True if the buffer is empty and 
 --   False if the buffer is full (meaning that events will still come).
-eventBuffer :: ArrowInit a => a (BufferControl b, Time) (SEvent [b], Bool)
-eventBuffer = proc ((bc, doPlay, tempo), t) -> do
+eventBuffer :: (ArrowTime a, ArrowInit a) => a (BufferControl b) (SEvent [b], Bool)
+eventBuffer = proc (bc, doPlay, tempo) -> do
+    t <- time -< ()
     rec tprev  <- delay 0    -< t   --used to calculate dt, the change in time
         buffer <- delay []   -< buffer''' --the buffer
         let dt = tempo * (t-tprev) --dt will never be negative

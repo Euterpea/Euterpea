@@ -785,23 +785,31 @@ getDeviceIDs = topDown $
 \subsection{Timers and Delays}
 \label{sec:timers}
 
-There is no implicit notion of time in the MUI, i.e.\ no implicit
-notion of elapsed time, the time of day, or whatever.  Anything that
-depends on the notion of time must take a time signal explicitly as an
-argument.  For this purpose, Euterpea defines the following signal
-source that outputs the current time:
+%% There is no implicit notion of time in the MUI, i.e.\ no implicit
+%% notion of elapsed time, the time of day, or whatever.  Anything that
+%% depends on the notion of time must take a time signal explicitly as an
+%% argument.  For this purpose, Euterpea defines the following signal
+%% source that outputs the current time:
+%% \begin{spec}
+%% time :: UISF () Time
+%% \end{spec}
+%% where |Time| is a type synonym for |Double|.
+
+Time can be accessed directly in Euterpea with:
 \begin{spec}
 time :: UISF () Time
 \end{spec}
-where |Time| is a type synonym for |Double|.
+where |Time| is a type synonym for |Double|.  However, this is often not 
+as useful as the timers and delays that will use time to meaningfully 
+affect a program.
 
-As an example of a function that depends explicitly on time is the
-following pre-defined signal function, which creates a \emph{timer}:
+For instance, the following pre-defined signal function creates 
+a \emph{timer}:
 \begin{spec}
-timer :: UISF (Time, Double) (SEvent ())
+timer :: UISF Double (SEvent ())
 \end{spec}
-For example, |timer -< (t, i)| takes a time source |t| and a signal
-|i| that represents the timer interval (in seconds), and generates an
+For example, |timer -< i| takes a signal
+|i| that represents the timer interval (in seconds) and generates an
 event stream, with each pair of consecutive events separated by the
 timer interval.  Note that the timer interval is itself a signal, so
 the timer output can have varying frequency.
@@ -820,15 +828,15 @@ ui6   =   proc _ -> do
     devid  <- selectOutput -< ()
     ap     <- title "Absolute Pitch" (hiSlider 1 (0,100) 0) -< ()
     title "Pitch" display -< pitch ap
-    t      <- time -< ()
     f      <- title "Tempo" (hSlider (1,10) 1) -< ()
-    tick   <- timer -< (t, 1/f)
+    tick   <- timer -< 1/f
     midiOut -< (devid, fmap (const [ANote 0 ap 100 0.1]) tick)
 
 mui6  = runUI "Pitch Player with Timer" ui6
 
 \end{code}
-Note that the time |t| is needed solely to drive the timer.  Also, the
+Note that we don't need to worry about the time because the timer takes 
+care of this for us.  Also, the
 rate of |tick|s is controlled by the second slider---a higher slider
 value causes a lower time between ticks, and thus a higher frequency,
 or tempo.
@@ -843,17 +851,16 @@ or tempo.
 Finally, an event stream can be delayed by a given (variable) amount
 of time using the following function:
 \begin{spec}
-vdelay :: UISF (Time, Double, Event b) (Event b)
+vdelay :: UISF (Double, Event b) (Event b)
 \end{spec}
-The first element of the input triple is the timer that is driving the
-execution.  The second element specifies the amount of delay to be
+The first element of the input pair specifies the amount of delay to be
 applied to the third element.  ``|vdelay|'' can be read ``variable
 delay.''
 
 If a variable delay is not needed, the more efficient |fdelay|
 (``fixed delay'') can be used:
 \begin{spec}
-fdelay :: Double -> UISF (Time, Event b) (Event b)
+fdelay :: Double -> UISF (Event b) (Event b)
 \end{spec}
 
 %% Introduce |delay| here as well
@@ -1038,12 +1045,11 @@ popToNote x =  [ANote 0 n 64 0.05]
 \begin{code}
 bifurcateUI :: UISF () ()
 bifurcateUI = proc _ -> do
-    t  <- time -< ()
     mo <- selectOutput -< ()
     f  <- title "Frequency" $ withDisplay (hSlider (1, 10) 1) -< ()
     r  <- title "Growth rate" $ withDisplay (hSlider (2.4, 4.0) 2.4) -< ()
 
-    tick <- timer -< (t, 1.0 / f)
+    tick <- timer -< 1.0 / f
     pop <- accum 0.1 -< fmap (const (grow r)) tick
 
     _ <- title "Population" $ display -< pop
@@ -1062,8 +1068,8 @@ successive note more softly until the velocity reduces to 0.
 
 The key component we need for this problem is a delay function that
 can delay a given event signal for a certain amount of time.  Recall
-that the function |vdelay| takes a time signal, the amount of time
-to delay, and an input signal, and returns a delayed version of the
+that the function |vdelay| takes the amount of time
+to delay and an input signal and returns a delayed version of the
 input signal.
 
 There are two signals we want to attenuate, or ``decay.''  One is the
@@ -1092,12 +1098,11 @@ echoUI = proc _ -> do
     mi <- selectInput  -< ()
     mo <- selectOutput -< ()
     m <- midiIn -< mi
-    t <- time -< ()
     r <- title "Decay rate" $ withDisplay (hSlider (0, 0.9) 0.5) -< ()
     f <- title "Echoing frequency" $ withDisplay (hSlider (1, 10) 10) -< ()
 
     rec let m' = removeNull $ mergeE (++) m s
-        s <- vdelay -< (t, 1.0 / f, fmap (mapMaybe (decay 0.1 r)) m')
+        s <- vdelay -< (1.0 / f, fmap (mapMaybe (decay 0.1 r)) m')
 
     midiOut -< (mo, m')
 
