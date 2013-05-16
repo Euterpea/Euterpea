@@ -6,7 +6,7 @@ GLFW library to provide window and input support.
 
 The monadic UI concept is borrowed from Phooey by Conal Elliott.
 
-> {-# LANGUAGE DoRec, Arrows #-}
+> {-# LANGUAGE DoRec, Arrows, TupleSections #-}
 
 > module Euterpea.IO.MUI.Widget where
 
@@ -57,12 +57,12 @@ A helper function to make stateful Widgets easier to write.
 >   returnA -< y
 >   --loop $ second (delay i) >>> arr (uncurry inj) >>> mkUISF aux
 >     where
->       aux s1 (ctx,f,inp) = (layout, db, f, action, nullCD, (y, s'))
+>       aux s1 (ctx,f,t,inp) = (layout, db, f, action, nullCD, (y, s'))
 >         where
 >           (s2, db) = comp (s1, (ctx, inp))
 >           (y, s') = prj s2
 >           action = (draw bbx (snd f == HasFocus) `cross` buzz) s'
->           bbx = bounds ctx --computeBBX ctx layout
+>           bbx = bounds ctx
 >           cross f g x = (f x, g x)
 
 
@@ -89,10 +89,10 @@ Labels are always left aligned and vertically centered.
 >     d = makeLayout (Fixed minw) (Fixed minh)
 >     drawit ((x, y), (w, h)) = withColor Black $ 
 >       text (x + padding, y + padding) s
->     aux a (ctx,f,inp) = (d, False, f, action, nullCD, a)
+>     aux a (ctx,f,_,_inp) = (d, False, f, action, nullCD, a)
 >       where 
 >         action = justGraphicAction $ drawit bbx
->         bbx = bounds ctx --computeBBX ctx d
+>         bbx = bounds ctx
 
 -----------------
  | Display Box | 
@@ -148,8 +148,7 @@ left, right, end, home, delete, and backspace special keys.
 >     ctx <- getCTX -< ()
 >     rec (s', i) <- delay (startingVal, 0) -< if inFocus then update s i ctx k else (s, i)
 >     displayStr -< seq i s'
->     t <- time -< ()
->     b <- timer -< (t, 0.5)
+>     b <- timer -< 0.5
 >     b' <- edge -< not inFocus --For use in drawing the cursor
 >     iPrev <- delay 0 -< i     --Also for use in drawing the cursor
 >     rec willDraw <- delay True -< willDraw'
@@ -194,9 +193,9 @@ Title frames a UI by borders, and displays a static title text.
 >       withColor Black (text (x + 10, y) label) //
 >       (withColor' bg $ block ((x + 8, y), (tw + 4, th))) //
 >       box marked ((x, y + 8), (w, h - 16)) // g
->     modsf sf a (ctx@(CTX _ bbx@((x,y), (w,h)) m _),f,inp) = do
+>     modsf sf a (ctx@(CTX _ bbx@((x,y), (w,h)) m _),f,t,inp) = do
 >       (l,db,f',action,ts,(v,nextSF)) <- expandUISF sf a (CTX TopDown ((x + 4, y + 20), (w - 8, h - 32))
->                                                         m False, f, inp)
+>                                                         m False, f, t, inp)
 >       let d = l { hFixed = hFixed l + 8, vFixed = vFixed l + 36, 
 >                   minW = max (tw + 20) (minW l), minH = max 36 (minH l) }
 >       return (d, db, f', (\(g, s) -> (drawit bbx g, s)) action, ts, (v,compressUISF (modsf nextSF)))
@@ -237,7 +236,7 @@ It also shows a static text label.
 > --          UIEvent (Key ' ' down) -> down
 >           _ -> s
 >           where
->             bbx = bounds ctx --computeBBX ctx d
+>             bbx = bounds ctx
 
 -------------------
  | Sticky Button | 
@@ -411,8 +410,8 @@ The values in the (value,time) event pairs should be between -1 and 1.
 The below two implementation of realtimeGraph produce the same output, 
 but the first one performs better for some reason.  I'm not sure why ...
 
-> realtimeGraph :: RealFrac a => Layout -> Time -> Color -> UISF (Time, [(a,Time)]) ()
-> realtimeGraph layout hist color = 
+> realtimeGraph :: RealFrac a => Layout -> Time -> Color -> UISF [(a,Time)] ()
+> realtimeGraph layout hist color = arr ((),) >>> first getTime >>>
 >   mkWidget ([(0,0)],0) layout draw (const nullSound) (,) process (\s -> ((), s))
 >   where draw ((x,y), (w, h)) _ (lst,t) = translateGraphic (x,y) $ 
 >           if null lst then nullGraphic else withColor color $ polyline (map (adjust t) lst)
@@ -526,7 +525,7 @@ of MidiMessages and sends the MidiMessages to the device.
 > midiIn :: UISF DeviceID (SEvent [MidiMessage])
 > midiIn = mkUISF aux 
 >   where 
->     aux dev (ctx,foc,inp) = (nullLayout, False, foc, action, nullCD, v)
+>     aux dev (ctx,foc,_t,inp) = (nullLayout, False, foc, action, nullCD, v)
 >       where 
 >         v = case inp of
 >               MidiEvent d ms | d == dev -> Just $ map Std ms
@@ -539,7 +538,7 @@ of MidiMessages and sends the MidiMessages to the device.
 > midiOut :: UISF (DeviceID, SEvent [MidiMessage]) ()
 > midiOut = mkUISF aux 
 >   where
->     aux (dev, mmsg) (_,foc,_) = (nullLayout, False, foc, action, nullCD, ())
+>     aux (dev, mmsg) (_,foc,_t,_) = (nullLayout, False, foc, action, nullCD, ())
 >       where
 >         action = justSoundAction $ do
 >           valid <- isValidOutputDevice dev 
@@ -607,16 +606,14 @@ if the buffer is full (meaning that items are still being played).
 
 > midiOutB :: UISF (DeviceID, SEvent [(DeltaT, MidiMessage)]) Bool
 > midiOutB = proc (devID, msgs) -> do
->   t <- time -< ()
->   (out, b) <- eventBuffer -< ((fmap AddDataToEnd msgs, True, 1), t)
+>   (out, b) <- eventBuffer -< (fmap AddDataToEnd msgs, True, 1)
 >   midiOut -< (devID, out)
 >   returnA -< b
 
 
 > midiOutB' :: UISF (DeviceID, BufferControl MidiMessage) Bool
 > midiOutB' = proc (devID, bc) -> do
->   t <- time -< ()
->   (out, b) <- eventBuffer -< (bc, t)
+>   (out, b) <- eventBuffer -< bc
 >   midiOut -< (devID, out)
 >   returnA -< b
 
@@ -781,7 +778,7 @@ The mkSlider widget builder is useful in the creation of all sliders.
 >           UIEvent (SKey SK.HOME  True) -> (pos2val 0  (bw - 2 * padding - tw), s)
 >           UIEvent (SKey SK.END   True) -> (pos2val bw (bw - 2 * padding - tw), s)
 >           _ -> (val, s)
->         bbx@((bx,by),(bw,bh)) = let b = bounds ctx {-computeBBX ctx d-} in rotR b b
+>         bbx@((bx,by),(bw,bh)) = let b = bounds ctx in rotR b b
 >         bar' = let ((x,y),(w,h)) = bar bbx in ((x,y-4),(w,h+8))
 >         target = (val2pt val bbx, (tw, th)) 
 >         ptDiff (x, y) val = 
@@ -843,14 +840,14 @@ focusable = id
 >       (y, hasFocus') <- compressUISF (h widget) -< (x, hasFocus)
 >   returnA -< y
 >  where
->   h w (a, hasFocus) (ctx, (myid,focus), inp) = do
+>   h w (a, hasFocus) (ctx, (myid,focus),t, inp) = do
 >     lshift <- isKeyPressed SK.LSHIFT
 >     rshift <- isKeyPressed SK.RSHIFT
 >     let isShift = lshift || rshift
 >         (f, hasFocus') = case (focus, hasFocus, inp) of
 >           (HasFocus, _, _) -> (HasFocus, True)
 >           (SetFocusTo n, _, _) | n == myid -> (NoFocus, True)
->           (_, _,    UIEvent (Button pt _ True)) -> (NoFocus, pt `inside` bounds ctx) --computeBBX ctx l
+>           (_, _,    UIEvent (Button pt _ True)) -> (NoFocus, pt `inside` bounds ctx)
 >           (_, True, UIEvent (SKey SK.TAB True)) -> if isShift then (SetFocusTo (myid-1), False) 
 >                                                               else (SetFocusTo (myid+1), False)
 >           (_, _, _) -> (focus, hasFocus)
@@ -864,7 +861,7 @@ focusable = id
 >               UIEvent (SKey _ _) -> NoEvent
 >               _ -> inp)
 >         redraw = hasFocus /= hasFocus'
->     (l, db, _, act, tids, (b, w')) <- expandUISF w a (ctx, (myid,focus'), inp')
+>     (l, db, _, act, tids, (b, w')) <- expandUISF w a (ctx, (myid,focus'), t, inp')
 >     return $! (l, db || redraw, (myid+1,f), act, tids, ((b, hasFocus'), compressUISF (h w')))
 
 Although mouse button clicks and keystrokes will be available once a 
@@ -873,29 +870,7 @@ know whether it is currently in focus to change its appearance.  This
 can be achieved with the following signal function.
 
 > isInFocus :: UISF () Bool
-> isInFocus = mkUISF (\_ (_, foc, _) -> (nullLayout, False, foc, nullAction, nullCD, snd foc == HasFocus))
-
-
-============================================================
-======================= UISF Getters =======================
-============================================================
-
-> getCTX :: UISF () CTX
-> getCTX = mkUISF f where
->   f _ (c, foc, _) = (nullLayout, False, foc, nullAction, nullCD, c)
-
-> getEvents :: UISF () Input
-> getEvents = mkUISF f where
->   f _ (_, foc, e) = (nullLayout, False, foc, nullAction, nullCD, e)
-
-> getMousePosition :: UISF () Point
-> getMousePosition = proc _ -> do
->   e <- getEvents -< ()
->   rec p' <- delay (0,0) -< p
->       let p = case e of
->                   UIEvent (MouseMove pt) -> pt
->                   _                      -> p'
->   returnA -< p
+> isInFocus = getFocusData >>> arr ((== HasFocus) . snd)
 
 
 ============================================================

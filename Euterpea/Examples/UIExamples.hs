@@ -29,11 +29,10 @@ fftEx = proc _ -> do
     f2 <- hSlider (1, 2000) 440 -< ()
     _ <- leftRight (label "Freq 2: " >>> display) -< f2
     d <- convertToUISF 0.1 myPureSignal -< (f1, f2)
-    t <- time -< ()
     let fft = listToMaybe $ catMaybes $ map (snd . fst) d
         s = map (\((s, _), t) -> (s,t)) d
     _ <- histogram (makeLayout (Stretchy 10) (Fixed 150)) -< fft
-    _ <- realtimeGraph (makeLayout (Stretchy 10) (Fixed 150)) 2 Black -< (t, s)
+    _ <- realtimeGraph (makeLayout (Stretchy 10) (Fixed 150)) 2 Black -< s
     outA -< ()
   where
     squareTable = tableLinearN 2048 0 [(1024,0),(1,1),(1023,1)]
@@ -52,7 +51,7 @@ t0 = runUIEx (500,600) "fft Test" fftEx
 
 -- This example displays the time from the start of the GUI application.
 timeEx :: UISF () ()
-timeEx = title "Time" $ time >>> display
+timeEx = title "Time" $ getTime >>> display
 
 -- This example shows off buttons and state by presenting a plus and 
 -- minus button with a counter that is adjusted by them.

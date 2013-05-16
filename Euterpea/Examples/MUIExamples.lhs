@@ -91,7 +91,7 @@ current population x, generates the next population.
 
 Then we define a signal 'tick' that pulsates at a given frequency
 specified by slider f.  This is the signal that will drive the
-simulation.  The timer function takes in a time signal and a frequency.
+simulation.  The timer function takes in a frequency.
 
 The next thing we need is a time-varying population.  This is where 
 the delay function and the rec keyword come in handy.  We initialize 
@@ -108,12 +108,11 @@ Finally, to play the note, we simply send the current population to
 popToNote, and send the result to the selected Midi output device.  
 
 > bifurcate = runUIEx (300,500) "Bifurcate!" $ proc _ -> do
->   t  <- time -< ()
 >   mo <- selectOutput -< ()
 >   f  <- title "Frequency" $ withDisplay (hSlider (1, 10) 1) -< ()
 >   r  <- title "Growth rate" $ withDisplay (hSlider (2.4, 4.0) 2.4) -< ()
 >   
->   tick <- timer -< (t, 1.0 / f)
+>   tick <- timer -< 1.0 / f
 >   rec pop <- delay 0.1 -<  maybe pop (const $ grow r pop) tick
 >       
 >   _ <- title "Population" $ display -< pop
@@ -130,7 +129,7 @@ more softly until the velocity reduces to 0.
 
 The key component we need for this problem is a delay function that
 can delay a given event signal for a certain amount of time.  vdelay
-takes in a time signal, the amount of time to delay, and an input signal,
+takes in the amount of time to delay and an input signal
 and outputs the delayed signal.
 
 There are two signals we want to attenuate.  One is the signal coming
@@ -143,20 +142,19 @@ The resulting signal, m', is then sent to the Midi output device.
 The echo signal s is created recursively from m' as follows.  We examine 
 the signal m' and decay any events that we find there, using the decay 
 rate indicated by the instantaneous value from the slider r.  This 
-decayed signal is fed into the vdelay signal function along with current 
-time and the amount of time to delay (the inverse of the echo frequency, 
+decayed signal is fed into the vdelay signal function along with 
+the amount of time to delay (the inverse of the echo frequency, 
 which is given by the other slider f).
 
 > echo = runUIEx (500,500) "Echo" $ proc _ -> do
 >   mi <- selectInput  -< ()
 >   mo <- selectOutput -< ()
 >   m <- midiIn -< mi
->   t <- time -< ()
 >   r <- title "Decay rate" $ withDisplay (hSlider (0, 0.9) 0.5) -< ()
 >   f <- title "Echoing frequency" $ withDisplay (hSlider (1, 10) 10) -< ()
 >   
 >   rec let m' = removeNull $ mergeS m s
->       s <- vdelay -< (t, 1.0 / f, fmap (mapMaybe (decay 0.1 r)) m')
+>       s <- vdelay -< (1.0 / f, fmap (mapMaybe (decay 0.1 r)) m')
 >   
 >   midiOut -< (mo, m')
 

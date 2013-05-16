@@ -26,7 +26,7 @@ earlier widgets and maps input signals to outputs, which consists of 6 parts:
  - and the parametrized output type.
 
 > newtype UI a = UI 
->   { unUI :: (CTX, Focus, Input) -> 
+>   { unUI :: (CTX, Focus, Time, Input) -> 
 >             IO (Layout, DirtyBit, Focus, Action, ControlData, a) }
 
 
@@ -35,20 +35,12 @@ earlier widgets and maps input signals to outputs, which consists of 6 parts:
 ============================================================
 
 > type ControlData = [ThreadId]
-> --type ControlData = (IO (), [ThreadId])
 > nullCD :: ControlData
 > nullCD = []
-> --nullCD = (return (), [])
 
 
 > addThreadID :: ThreadId -> UI ()
-> addThreadID t = UI (\(_,f,_) -> return (nullLayout, False, f, nullAction, [t], ()))
-
-addSeqAction :: a -> UI ()
-addSeqAction v = UI (\(_,f,_) -> return (nullLayout, False, f, nullAction, (seq v $ return (), []), ()))
-
-mergeCD :: ControlData -> ControlData -> ControlData
-mergeCD (s1, t1) (s2, t2) = (s1 >> s2, t1 ++ t2)
+> addThreadID t = UI (\(_,f,_,_) -> return (nullLayout, False, f, nullAction, [t], ()))
 
 > mergeCD :: ControlData -> ControlData -> ControlData
 > mergeCD = (++)
@@ -202,7 +194,6 @@ a timer event is needed to drive time based computations.
 
 > data Input 
 >   = UIEvent Event 
->   | Timer Time 
 >   | MidiEvent DeviceID [Message]
 >   | NoEvent
 >   deriving Show
@@ -258,13 +249,13 @@ The dirty bit is a bit to indicate if the widget needs to be redrawn.
 ============================================================
 
 > instance Monad UI where
->   return i = UI (\(_,foc,_) -> return (nullLayout, False, foc, nullAction, nullCD, i))
+>   return i = UI (\(_,foc,_,_) -> return (nullLayout, False, foc, nullAction, nullCD, i))
 
->   (UI m) >>= f = UI (\(ctx, foc, inp) -> do 
+>   (UI m) >>= f = UI (\(ctx, foc, t, inp) -> do 
 >     rec let (ctx1, ctx2)      = divideCTX ctx l1 layout
 > --            (ctx2, _)         = divideCTX ctx' l2 l2
->         (l1, db1, foc1, a1, cd1, v1) <- m (ctx1, foc, inp)
->         (l2, db2, foc2, a2, cd2, v2) <- unUI (f v1) (ctx2, foc1, inp)
+>         (l1, db1, foc1, a1, cd1, v1) <- m (ctx1, foc, t, inp)
+>         (l2, db2, foc2, a2, cd2, v2) <- unUI (f v1) (ctx2, foc1, t, inp)
 >         let action            = (if l1 == nullLayout || l2 == nullLayout then id 
 >                                  else scissorAction ctx) $ mergeAction a1 a2
 >             layout            = mergeLayout (flow ctx) l1 l2 
@@ -278,10 +269,10 @@ level recursion.
 > instance MonadFix UI where
 >   mfix f = UI aux
 >     where
->       aux (ctx, foc, inp) = u
->         where u = do rec (l, db, foc', a, cd, r) <- unUI (f r) (ctx, foc, inp)
+>       aux (ctx, foc, t, inp) = u
+>         where u = do rec (l, db, foc', a, cd, r) <- unUI (f r) (ctx, foc, t, inp)
 >                      return (l, db, foc', a, cd, r)
 
 > instance MonadIO UI where
->   liftIO a = UI (\(_,foc,_) -> a >>= (\v -> return (nullLayout, False, foc, nullAction, nullCD, v)))
+>   liftIO a = UI (\(_,foc,_,_) -> a >>= (\v -> return (nullLayout, False, foc, nullAction, nullCD, v)))
 
