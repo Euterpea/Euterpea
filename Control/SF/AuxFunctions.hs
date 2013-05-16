@@ -16,6 +16,7 @@ module Control.SF.AuxFunctions (
     snapshot, snapshot_,
 
     toMSF, toRealTimeMSF, 
+    async, 
     quantize, presentFFT, fftA
 ) where
 
@@ -421,6 +422,50 @@ toRealTimeMSF clockrate buffer threadHandler sf = MSF initFun
         worker inp out timevar t' (count+1) sf'
     seqLastElem s = Seq.index s (Seq.length s - 1)
 
+-- | The async function takes a pure (non-monadic) signal function and converts 
+--   it into an asynchronous signal function usable in a MonadIO signal 
+--   function context.  The output MSF takes events of type a, feeds them to 
+--   the asynchronously running input SF, and returns events with the output 
+--   b whenever they are ready.  The input SF is expected to run slowly 
+--   compared to the output MSF, but it is capable of running just as fast.
+--
+--   Might we practically want a way to "clear the buffer" if we accidentally 
+--   queue up too many async inputs?
+--   Perhaps the output should be something like:
+--   data AsyncOutput b = None | Calculating Int | Value b
+--   where the Int is the size of the buffer.  Similarly, we could have
+--   data AsyncInput  a = None | ClearBuffer | Value a
+async :: forall m a b. (Monad m, MonadIO m, MonadFix m, NFData b) => 
+                 (ThreadId -> m ()) -> SF a b -> MSF m (SEvent a) (SEvent b)
+async threadHandler sf = delay Nothing >>> MSF initFun
+  where
+    -- initFun creates some refs and threads and is never used again.
+    -- All future processing is done in sfFun and the spawned worker thread.
+    initFun :: (SEvent a) -> m ((SEvent b), MSF m (SEvent a) (SEvent b))
+    initFun ea = do
+        inp <- newChan
+        out <- newIORef empty
+        tid <- liftIO $ forkIO $ worker inp out sf
+        threadHandler tid
+        sfFun inp out ea
+    -- sfFun communicates with the worker thread, sending it the input values 
+    -- and collecting from it the output values.
+    sfFun :: Chan a -> IORef (Seq b) 
+          -> (SEvent a) -> m ((SEvent b), MSF m (SEvent a) (SEvent b))
+    sfFun inp out ea = do
+        maybe (return ()) (writeChan inp) ea    -- send the worker the new input
+        b <- atomicModifyIORef out seqRestHead  -- collect any ready results
+        return (b, MSF (sfFun inp out))
+    -- worker processes the inner, "simulated" signal function.
+    worker :: Chan a -> IORef (Seq b) -> SF a b -> IO ()
+    worker inp out (SF sf) = do
+        a <- readChan inp       -- get the latest input (or block if unavailable)
+        let (b, sf') = sf a     -- do the calculation
+        deepseq b $ atomicModifyIORef out (\s -> (s |> b, ()))
+        worker inp out sf'
+    seqRestHead s = case viewl s of
+        EmptyL  -> (s,  Nothing)
+        a :< s' -> (s', Just a)
 
 
 --------------------------------------
