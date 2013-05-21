@@ -73,6 +73,7 @@ Library
         Control.SF.MSF,
         Euterpea.Examples.EuterpeaExamples
         Euterpea.Examples.Interlude,
+        Euterpea.Examples.Instruments,
         Euterpea.Examples.LSystems,
         Euterpea.Examples.MUIExamples,
         Euterpea.Examples.MUI,
@@ -99,6 +100,10 @@ Library
         Euterpea.IO.MUI.UIMonad,
         Euterpea.IO.MUI.UISF,
         Euterpea.IO.MUI.Widget,
+        Euterpea.IO.MUI.InstrumentWidgets,
+        Euterpea.IO.MUI.InstrumentBase,
+        Euterpea.IO.MUI.Guitar,
+        Euterpea.IO.MUI.Piano,
         Euterpea.IO.MUI,
         Euterpea.Music.Note.MoreMusic,
         Euterpea.Music.Note.Music,

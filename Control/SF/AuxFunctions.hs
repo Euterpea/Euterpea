@@ -12,7 +12,7 @@ module Control.SF.AuxFunctions (
     timer, genEvents, 
     BufferEvent (..), BufferControl, eventBuffer, 
     
-    (=>>), (->>), (.|.),
+    (=>>), (->>), (.|.), (~++),
     snapshot, snapshot_,
 
     toMSF, toRealTimeMSF, 
@@ -514,3 +514,7 @@ nav n l | n < 0 = nav (n+1) (snd $ prev l)
 llToList :: LensList a -> [a]
 llToList (e, l) = e ++ l
 -}
+
+-- A nice infix operator for permissively merging lists
+(~++) :: Maybe [a] -> Maybe [a] -> Maybe [a]
+(~++) = mergeE (++)
