@@ -46,9 +46,17 @@ module Euterpea.IO.MUI
   , makeLayout          -- :: LayoutType -> LayoutType -> Layout
   , LayoutType (..)     -- data LayoutType = Stretchy { minSize :: Int } | Fixed { fixedSize :: Int }
   , Color (..)          -- data Color = Black | Blue | Green | Cyan | Red | Magenta | Yellow | White
+  -- Instrument Widgets
+  , PianoKeyMap, GuitarKeyMap,
+  KeyData, KeyState, InstrumentData,
+  defaultInstrumentData, defaultKeyLayout, defaultMap0, defaultMap1, defaultMap2,
+  addNotation, addTranspose, addPedal, addEcho,
+  selectInstrument, songPlayer,
+  piano, guitar, sixString
   ) where
 
 import Euterpea.IO.MUI.UIMonad
 import Euterpea.IO.MUI.UISF
 import Euterpea.IO.MUI.Widget
 import Euterpea.IO.MUI.SOE (Color (..))
+import Euterpea.IO.MUI.InstrumentWidgets
