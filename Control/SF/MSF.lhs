@@ -107,6 +107,11 @@
 > listSource :: Monad m => [c] -> MSF m () c
 > listSource cs = MSF (h cs) where h (c:cs) _ = return (c, MSF (h cs))
 
+> initialAction :: Monad m => m x -> (x -> MSF m a b) -> MSF m a b
+> initialAction mx f = MSF $ \a -> do
+>   x <- mx
+>   msfFun (f x) a
+
 > stepMSF :: Monad m => MSF m a b -> [a] -> m [b]
 > stepMSF (MSF f) (x:xs) = do 
 >   (y, f') <- f x

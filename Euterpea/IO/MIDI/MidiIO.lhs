@@ -236,16 +236,15 @@ pollMidi take an input device and a callback function and polls the device
 for midi events.  Any events are sent, along with the current time, to 
 the callback function.
 DWC NOTE: Why is the time even used?  All messages get the same time?
-          Also, should the callback function perhaps take [Message]?
 
-> pollMidi :: DeviceID -> ((Time, [Message]) -> IO ()) -> IO ()
-> pollMidi devId callback = do
+> pollMidiCB :: DeviceID -> ((Time, [Message]) -> IO ()) -> IO ()
+> pollMidiCB devId callback = do
 >   s <- lookupPort inPort devId 
 >   case s of
 >     Nothing -> do
 >       r <- openInput devId 
 >       case r of
->         Right e -> reportError "pollMIDI" e
+>         Right e -> reportError "pollMidiCB" e
 >         Left s -> addPort inPort (devId, s) >> input s
 >     Just s -> input s 
 >   where
@@ -255,12 +254,36 @@ DWC NOTE: Why is the time even used?  All messages get the same time?
 >       case e of
 >         Right e -> if e == NoError 
 >           then return () 
->           else reportError "pollMIDI" e
+>           else reportError "pollMidiCB" e
 >         Left l -> do
 >           now <- getTimeNow
 >           case mapMaybe (msgToMidi . message) l of
 >             [] -> return ()
 >             ms -> callback (now, ms)
+
+> pollMidi :: DeviceID -> IO (Maybe (Time, [Message]))
+> pollMidi devId = do
+>   s <- lookupPort inPort devId 
+>   case s of
+>     Nothing -> do
+>       r <- openInput devId 
+>       case r of
+>         Right e -> reportError "pollMIDI" e >> return Nothing
+>         Left s -> addPort inPort (devId, s) >> input s
+>     Just s -> input s 
+>   where
+>     input :: PMStream -> IO (Maybe (Time, [Message]))
+>     input s = do
+>       e <- readEvents s
+>       case e of
+>         Right e -> if e == NoError 
+>           then return Nothing
+>           else reportError "pollMIDI" e >> return Nothing
+>         Left l -> do
+>           now <- getTimeNow
+>           case mapMaybe (msgToMidi . message) l of
+>             [] -> return Nothing
+>             ms -> return $ Just (now, ms)
 
 
 ---------------------------------------------
