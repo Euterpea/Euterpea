@@ -71,7 +71,6 @@ A rendering context specifies the following:
 > data CTX = CTX 
 >   { flow   :: Flow
 >   , bounds :: Rect
->   , inject :: Input -> IO ()
 >   , isConjoined :: Bool
 >   }
 
@@ -148,18 +147,18 @@ overall layout of the widget that receives this CTX.  Therefore, the
 first layout argument should basically be a sublayout of the second.
 
 > divideCTX :: CTX -> Layout -> Layout -> (CTX, CTX)
-> divideCTX ctx@(CTX a ((x, y), (w, h)) f c) 
+> divideCTX ctx@(CTX a ((x, y), (w, h)) c) 
 >           ~(Layout m n u v minw minh) ~(Layout m' n' u' v' minw' minh') =
 >   if c then (ctx, ctx) else
 >   case a of
->     TopDown   -> (CTX a ((x, y), (w'', h')) f c, 
->                   CTX a ((x, y + h'), (w, h - h')) f c)
->     BottomUp  -> (CTX a ((x, y + h - h'), (w'', h')) f c, 
->                   CTX a ((x, y), (w, h - h')) f c)
->     LeftRight -> (CTX a ((x, y), (w', h'')) f c, 
->                   CTX a ((x + w', y), (w - w', h)) f c)
->     RightLeft -> (CTX a ((x + w - w', y), (w', h'')) f c, 
->                   CTX a ((x, y), (w - w', h)) f c)
+>     TopDown   -> (CTX a ((x, y), (w'', h')) c, 
+>                   CTX a ((x, y + h'), (w, h - h')) c)
+>     BottomUp  -> (CTX a ((x, y + h - h'), (w'', h')) c, 
+>                   CTX a ((x, y), (w, h - h')) c)
+>     LeftRight -> (CTX a ((x, y), (w', h'')) c, 
+>                   CTX a ((x + w', y), (w - w', h)) c)
+>     RightLeft -> (CTX a ((x + w - w', y), (w', h'')) c, 
+>                   CTX a ((x, y), (w - w', h)) c)
 >   where
 >     w' = max minw $ (m * div' (w - u') m' + u)
 >     h' = max minh $ (n * div' (h - v') n' + v)
@@ -194,7 +193,6 @@ a timer event is needed to drive time based computations.
 
 > data Input 
 >   = UIEvent Event 
->   | MidiEvent DeviceID [Message]
 >   | NoEvent
 >   deriving Show
 

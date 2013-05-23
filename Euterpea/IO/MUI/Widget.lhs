@@ -25,7 +25,6 @@ The monadic UI concept is borrowed from Phooey by Conal Elliott.
 
 > import Control.Arrow
 > import Control.Monad (when)
-> import System.IO.Unsafe (unsafePerformIO)
 > import qualified Graphics.UI.GLFW as SK (SpecialKey (..))
 
 
@@ -193,9 +192,9 @@ Title frames a UI by borders, and displays a static title text.
 >       withColor Black (text (x + 10, y) label) //
 >       (withColor' bg $ block ((x + 8, y), (tw + 4, th))) //
 >       box marked ((x, y + 8), (w, h - 16)) // g
->     modsf sf a (ctx@(CTX _ bbx@((x,y), (w,h)) m _),f,t,inp) = do
+>     modsf sf a (ctx@(CTX _ bbx@((x,y), (w,h)) _),f,t,inp) = do
 >       (l,db,f',action,ts,(v,nextSF)) <- expandUISF sf a (CTX TopDown ((x + 4, y + 20), (w - 8, h - 32))
->                                                         m False, f, t, inp)
+>                                                         False, f, t, inp)
 >       let d = l { hFixed = hFixed l + 8, vFixed = vFixed l + 36, 
 >                   minW = max (tw + 20) (minW l), minH = max 36 (minH l) }
 >       return (d, db, f', (\(g, s) -> (drawit bbx g, s)) action, ts, (v,compressUISF (modsf nextSF)))
@@ -523,17 +522,11 @@ midiOut is a widget that accepts a MIDI device ID as well as a stream
 of MidiMessages and sends the MidiMessages to the device.
 
 > midiIn :: UISF DeviceID (SEvent [MidiMessage])
-> midiIn = mkUISF aux 
->   where 
->     aux dev (ctx,foc,_t,inp) = (nullLayout, False, foc, action, nullCD, v)
->       where 
->         v = case inp of
->               MidiEvent d ms | d == dev -> Just $ map Std ms
->               _ -> Nothing
->         action = justSoundAction $ do
->           valid <- isValidInputDevice dev
->           when valid $ pollMidi dev (cb dev)
->         cb d (_t, ms) = inject ctx (MidiEvent d ms)
+> midiIn = arr Just >>> uisfPipeE f >>> arr (maybe Nothing id) where
+>  f dev = do
+>   valid <- isValidInputDevice dev
+>   m <- if valid then pollMidi dev else return Nothing
+>   return $ fmap (\(_t, ms) -> map Std ms) m
  
 > midiOut :: UISF (DeviceID, SEvent [MidiMessage]) ()
 > midiOut = mkUISF aux 
@@ -668,13 +661,12 @@ that just the radio button index as the radio widget would return.
 > selectOutput = selectDev "Output device" output
 
 > selectDev :: String -> (DeviceInfo -> Bool) -> UISF () DeviceID
-> selectDev t f = title t $ proc _ -> do
->   r <- radio (map (name . snd) devs) defaultChoice -< ()
->   let devId = if r == -1 then r else fst (devs !! r)
->   returnA -< devId
->       where devs = filter (\(i,d) -> f d && name d /= "Microsoft MIDI Mapper") $ 
->                      unsafePerformIO getAllDevices
->             defaultChoice = if null devs then (-1) else 0
+> selectDev t f = initialIOAction getAllDevices $ \devices ->
+>   let devs = filter (\(i,d) -> f d && name d /= "Microsoft MIDI Mapper") devices
+>       defaultChoice = if null devs then (-1) else 0
+>   in  title t $ proc _ -> do
+>       r <- radio (map (name . snd) devs) defaultChoice -< ()
+>       returnA -< if r == -1 then r else fst (devs !! r)
 
 
 The selectInputM and selectOutputM widgets use checkboxes instead of 
@@ -686,13 +678,12 @@ These widgets should be used with midiInM and midiOutM respectively.
 > selectOutputM = selectDevM "Output devices" output
 
 > selectDevM :: String -> (DeviceInfo -> Bool) -> UISF () [(DeviceID, Bool)]
-> selectDevM t f = 
->   let (devIDs, devNames) = unzip devs
+> selectDevM t f = initialIOAction getAllDevices $ \devices ->
+>   let devs = filter (\(i,d) -> f d && name d /= "Microsoft MIDI Mapper") devices
+>       (devIDs, devNames) = unzip devs
 >   in  title t $ proc _ -> do
 >       cs <- checkGroup (map name devNames) -< ()
 >       returnA -< zip devIDs cs
->         where devs = filter (\(i,d) -> f d && name d /= "Microsoft MIDI Mapper") $ 
->                        unsafePerformIO getAllDevices
 
 
 

@@ -100,6 +100,9 @@ The types pretty much say it all for how they work.
 >       (c, nextSF) <- f (sf a)
 >       return (c, transformUISF f nextSF)
 
+> initialIOAction :: IO x -> (x -> UISF a b) -> UISF a b
+> initialIOAction = initialAction . liftIO
+
 source, sink, and pipe functions
 DWC Note: I don't feel comfortable with how generic these are.
 Also, the continuous ones can't work.
@@ -198,8 +201,8 @@ Add space padding around a widget.
 >   where pad' :: (Int, Int, Int, Int) -> UI a -> UI a
 >         pad' (w,n,e,s) (UI f) = UI aux
 >           where
->             aux (ctx@(CTX i _ m c), foc, t, inp) = do
->               rec (l, db, foc', a, ts, v) <- f (CTX i ((x + w, y + n),(bw,bh)) m c, foc, t, inp)
+>             aux (ctx@(CTX i _ c), foc, t, inp) = do
+>               rec (l, db, foc', a, ts, v) <- f (CTX i ((x + w, y + n),(bw,bh)) c, foc, t, inp)
 >                   let d = l { hFixed = hFixed l + w + e, vFixed = vFixed l + n + s }
 >                       ((x,y),(bw,bh)) = bounds ctx
 >               return (d, db, foc', a, ts, v)
@@ -212,8 +215,8 @@ Some default parameters we start with.
 
 > defaultSize :: Dimension
 > defaultSize = (300, 300)
-> defaultCTX :: Dimension -> (Input -> IO ()) -> CTX
-> defaultCTX size inj = CTX TopDown ((0,0), size) inj False
+> defaultCTX :: Dimension -> CTX
+> defaultCTX size = CTX TopDown ((0,0), size) False
 > defaultFocus :: Focus
 > defaultFocus = (0, SetFocusTo 0)
 > resetFocus (n,SetFocusTo i) = (0, SetFocusTo $ (i+n) `rem` n)
@@ -236,7 +239,7 @@ Some default parameters we start with.
 >         wSize <- getMainWindowSize
 >         t <- timeGetTime
 >         let rt = t - t0
->         let ctx = defaultCTX wSize addEv
+>         let ctx = defaultCTX wSize
 >         (_, dirty, foc, (graphic, sound), tids', (_, uistream')) <- (unUI $ stream uistream) (ctx, lastFocus, rt, inp)
 >         -- always output sound
 >         sound
