@@ -25,7 +25,7 @@ by Conal Elliot.
 > import Euterpea.IO.MIDI.MidiIO (initializeMidi, terminateMidi)
 
 > import Control.Monad (when, unless)
-> import qualified Graphics.UI.GLFW as GLFW (sleep, SpecialKey (..))
+> import Graphics.UI.GLFW (sleep)
 > import Control.Concurrent.MonadIO
 > import Control.DeepSeq
 
@@ -260,7 +260,7 @@ Some default parameters we start with.
 >       render _ [] _ _ tids = return tids
 >   tids <- render True events defaultFocus (streamMSF sf (repeat ())) []
 >   -- wait a little while before all Midi messages are flushed
->   GLFW.sleep 0.5
+>   sleep 0.5
 >   terminateMidi
 >   mapM_ killThread tids
 >   --closeWindow w --unnecessary
@@ -279,8 +279,7 @@ Some default parameters we start with.
 >       Just e  -> case e of
 > -- There's a bug somewhere with GLFW that makes pressing ESC freeze up 
 > -- GHCi, so I've removed this.
-> --        SKey GLFW.ESC True -> closeWindow w >> return True
-> --        Key '\00'  True -> return True
+> --        Key (SpecialKey ESC) True _ -> closeWindow w >> return True
 >         Closed          -> return True
 >         _               -> addEv e >> loop
 
