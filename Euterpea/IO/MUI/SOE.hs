@@ -52,7 +52,10 @@ module Euterpea.IO.MUI.SOE (
 --  getKey,     -- See note at definition for why these are left out
 --  getLBP,
 --  getRBP,
-  Event (..),
+  KeyModifiers (..),
+  Key(..), 
+  SpecialKey (..),
+  UIEvent (..),
   maybeGetWindowEvent,
   getWindowEvent,
   Word32,
@@ -63,6 +66,7 @@ module Euterpea.IO.MUI.SOE (
 
 import Data.Ix (Ix)
 import Data.Word (Word32)
+import Graphics.UI.GLFW (Key(..), SpecialKey(..))
 import qualified Graphics.UI.GLFW as GLFW
 import qualified Graphics.Rendering.OpenGL as GL
 import Graphics.Rendering.OpenGL (($=), GLfloat)
@@ -84,7 +88,7 @@ type Size = (Int, Int)
 
 data Window = Window {
   graphicVar :: MVar (Graphic, Bool), -- boolean to remember if it's dirty
-  eventsChan :: TChan Event
+  eventsChan :: TChan UIEvent
 }
 
 -- Graphic is just a wrapper for OpenGL IO
@@ -133,14 +137,14 @@ openWindowEx title position size (RedrawMode useDoubleBuffer) = do
      
   let charCallback char state = atomically $ writeTChan eventsChan (Character char)
   let keyCallBack  key  state = do
-      lshift <- isKeyPressed (GLFW.SpecialKey GLFW.LSHIFT)
-      lctrl  <- isKeyPressed (GLFW.SpecialKey GLFW.LCTRL)
-      lalt   <- isKeyPressed (GLFW.SpecialKey GLFW.LALT)
-      rshift <- isKeyPressed (GLFW.SpecialKey GLFW.RSHIFT)
-      rctrl  <- isKeyPressed (GLFW.SpecialKey GLFW.RCTRL)
-      ralt   <- isKeyPressed (GLFW.SpecialKey GLFW.RALT)
+      lshift <- isKeyPressed (SpecialKey LSHIFT)
+      lctrl  <- isKeyPressed (SpecialKey LCTRL)
+      lalt   <- isKeyPressed (SpecialKey LALT)
+      rshift <- isKeyPressed (SpecialKey RSHIFT)
+      rctrl  <- isKeyPressed (SpecialKey RCTRL)
+      ralt   <- isKeyPressed (SpecialKey RALT)
       atomically $ writeTChan eventsChan (Key { key = key, isDown = (state == GLFW.Press),
-                                   modifiers = (lshift || rshift, lctrl || rctrl, lalt || ralt) })
+                    modifiers = KeyModifiers {shift = lshift || rshift, ctrl = lctrl || rctrl, alt = lalt || ralt}})
   
   GLFW.charCallback $= charCallback 
   GLFW.keyCallback  $= keyCallBack
@@ -487,24 +491,32 @@ combineRegion operator a b =
 -- Event Handling Functions
 ---------------------------
 
-data Event = Key {
-               key :: GLFW.Key,
-               isDown :: Bool,
-               modifiers :: (Bool, Bool, Bool) -- Shift, Control, Alt
-             }
-           | Character Char -- Character events in GLFW only emit when pressed.
-           | Button {
-              pt :: Point,
-              isLeft :: Bool,
-              isDown :: Bool
-             }
-           | MouseMove {
-               pt :: Point
-             }
-           | Resize GL.Size
-           | Refresh
-           | Closed
-  deriving Show
+data KeyModifiers = KeyModifiers {
+    shift :: Bool,
+    ctrl  :: Bool,
+    alt   :: Bool }
+  deriving (Show, Eq)
+
+data UIEvent = 
+    Key {
+      key :: GLFW.Key,
+      isDown :: Bool,
+      modifiers :: KeyModifiers
+    }
+  | Character Char -- Character events in GLFW only emit when pressed.
+  | Button {
+     pt :: Point,
+     isLeft :: Bool,
+     isDown :: Bool
+    }
+  | MouseMove {
+      pt :: Point
+    }
+  | Resize GL.Size
+  | Refresh
+  | Closed
+  | NoUIEvent
+ deriving Show
 
 
 -- | getWindowEvent and maybeGetWindowEvent both take an additional argument 
@@ -513,12 +525,12 @@ data Event = Key {
 --  tasks at these times rather than needlessly spinning.  The sleepTime 
 --  parameter used to be fixed at 0.01.
 
-getWindowEvent :: Double -> Window -> IO Event
+getWindowEvent :: Double -> Window -> IO UIEvent
 getWindowEvent sleepTime win = do
   event <- maybeGetWindowEvent sleepTime win
   maybe (getWindowEvent sleepTime win) return event
 
-maybeGetWindowEvent :: Double -> Window -> IO (Maybe Event)
+maybeGetWindowEvent :: Double -> Window -> IO (Maybe UIEvent)
 maybeGetWindowEvent sleepTime win = let winChan = eventsChan win in do
   updateWindowIfDirty win
   mevent <- atomically $ tryReadTChan winChan
@@ -546,7 +558,7 @@ maybeGetWindowEvent sleepTime win = let winChan = eventsChan win in do
 --   clears all resize and refresh events until the last resize one.
 --   Note that because this function is used, a Refresh event should follow 
 --   the resizing.
-getLastResizeEvent :: TChan Event -> Event -> IO Event
+getLastResizeEvent :: TChan UIEvent -> UIEvent -> IO UIEvent
 getLastResizeEvent ch prev = do
     mevent <- atomically $ tryReadTChan ch
     case mevent of

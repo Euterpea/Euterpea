@@ -53,7 +53,7 @@ We probably want this to be a deepseq, but changing the types is a pain.
 > getCTX       :: UISF () CTX
 > getCTX       = mkUISF (\_ (c,f,_,_) -> (nullLayout, False, f, nullAction, nullCD, c))
 
-> getEvents    :: UISF () Input
+> getEvents    :: UISF () UIEvent
 > getEvents    = mkUISF (\_ (_,f,_,e) -> (nullLayout, False, f, nullAction, nullCD, e))
 
 > getFocusData :: UISF () Focus
@@ -64,8 +64,8 @@ We probably want this to be a deepseq, but changing the types is a pain.
 >   e <- getEvents -< ()
 >   rec p' <- init (0,0) -< p
 >       let p = case e of
->                   UIEvent (MouseMove pt) -> pt
->                   _                      -> p'
+>                   MouseMove pt -> pt
+>                   _            -> p'
 >   returnA -< p
 
 
@@ -75,17 +75,17 @@ UISF constructors, transformers, and converters
 These fuctions are various shortcuts for creating UISFs.
 The types pretty much say it all for how they work.
 
-> mkUISF :: (a -> (CTX, Focus, Time, Input) -> (Layout, DirtyBit, Focus, Action, ControlData, b)) -> UISF a b
+> mkUISF :: (a -> (CTX, Focus, Time, UIEvent) -> (Layout, DirtyBit, Focus, Action, ControlData, b)) -> UISF a b
 > mkUISF f = pipe (\a -> UI $ (\cfa -> return $ f a cfa))
 
-> mkUISF' :: (a -> (CTX, Focus, Time, Input) -> IO (Layout, DirtyBit, Focus, Action, ControlData, b)) -> UISF a b
+> mkUISF' :: (a -> (CTX, Focus, Time, UIEvent) -> IO (Layout, DirtyBit, Focus, Action, ControlData, b)) -> UISF a b
 > mkUISF' f = pipe (\a -> UI $ f a)
 
-> expandUISF :: UISF a b -> a -> (CTX, Focus, Time, Input) -> IO (Layout, DirtyBit, Focus, Action, ControlData, (b, UISF a b))
+> expandUISF :: UISF a b -> a -> (CTX, Focus, Time, UIEvent) -> IO (Layout, DirtyBit, Focus, Action, ControlData, (b, UISF a b))
 > {-# INLINE expandUISF #-}
 > expandUISF (MSF f) = unUI . f
 
-> compressUISF :: (a -> (CTX, Focus, Time, Input) -> IO (Layout, DirtyBit, Focus, Action, ControlData, (b, UISF a b))) -> UISF a b
+> compressUISF :: (a -> (CTX, Focus, Time, UIEvent) -> IO (Layout, DirtyBit, Focus, Action, ControlData, (b, UISF a b))) -> UISF a b
 > {-# INLINE compressUISF #-}
 > compressUISF f = MSF sf
 >   where
@@ -234,7 +234,7 @@ Some default parameters we start with.
 >   -- poll events before we start to make sure event queue isn't empty
 >   t0 <- timeGetTime
 >   pollEvents
->   let render :: Bool -> [Input] -> Focus -> Stream UI () -> [ThreadId] -> IO [ThreadId]
+>   let render :: Bool -> [UIEvent] -> Focus -> Stream UI () -> [ThreadId] -> IO [ThreadId]
 >       render drawit' (inp:inps) lastFocus uistream tids = do
 >         wSize <- getMainWindowSize
 >         t <- timeGetTime
@@ -250,7 +250,7 @@ Some default parameters we start with.
 >             foc' = resetFocus foc
 >         foc' `seq` newtids `seq` case inp of
 >           -- Timer only comes in when we are done processing user events
->           NoEvent -> do 
+>           NoUIEvent -> do 
 >             -- output graphics 
 >             when drawit $ setDirty w
 >             quit <- pollEvents
@@ -265,10 +265,10 @@ Some default parameters we start with.
 >   mapM_ killThread tids
 >   --closeWindow w --unnecessary
 
-> windowUser :: Window -> (Input -> IO ()) -> IO Bool
+> windowUser :: Window -> (UIEvent -> IO ()) -> IO Bool
 > windowUser w addEv = do 
 >   quit <- loop
->   addEv NoEvent
+>   addEv NoUIEvent
 >   return quit
 >  where 
 >   loop :: IO Bool
@@ -282,7 +282,7 @@ Some default parameters we start with.
 > --        SKey GLFW.ESC True -> closeWindow w >> return True
 > --        Key '\00'  True -> return True
 >         Closed          -> return True
->         _               -> addEv (UIEvent e) >> loop
+>         _               -> addEv e >> loop
 
 > makeStream :: IO ([a], a -> IO ())
 > makeStream = do

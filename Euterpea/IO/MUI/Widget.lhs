@@ -10,7 +10,7 @@ The monadic UI concept is borrowed from Phooey by Conal Elliott.
 
 > module Euterpea.IO.MUI.Widget where
 
-> import Euterpea.IO.MUI.SOE hiding (Event)
+> import Euterpea.IO.MUI.SOE
 > import Euterpea.IO.MUI.UIMonad
 > import Euterpea.IO.MUI.UISF
 > import Euterpea.IO.MIDI.MidiIO
@@ -25,7 +25,6 @@ The monadic UI concept is borrowed from Phooey by Conal Elliott.
 
 > import Control.Arrow
 > import Control.Monad (when)
-> import qualified Graphics.UI.GLFW as SK
 
 
 ============================================================
@@ -34,11 +33,18 @@ The monadic UI concept is borrowed from Phooey by Conal Elliott.
 
 Default padding between border and content
 
+> padding :: Int
 > padding = 3 
 
 Introduce a shorthand for overGraphic
 
+> (//) :: Graphic -> Graphic -> Graphic
 > (//) = overGraphic
+
+And a nice way to make a graphic under only certain conditions
+
+> whenG :: Bool -> Graphic -> Graphic
+> whenG b g = if b then g else nullGraphic
 
 A helper function to make stateful Widgets easier to write.
 
@@ -47,7 +53,7 @@ A helper function to make stateful Widgets easier to write.
 >         (Rect -> Bool -> s -> Graphic) ->         -- drawing routine
 >         (s -> Sound) ->                           -- sound routine
 >         (a -> s -> s1) ->                         -- input injection
->         ((s1, (CTX, Input)) -> (s2, DirtyBit)) -> -- computation
+>         ((s1, (CTX, UIEvent)) -> (s2, DirtyBit)) -> -- computation
 >         (s2 -> (b, s)) ->                         -- output projection
 >         UISF a b
 > mkWidget i layout draw buzz inj comp prj = proc a -> do
@@ -63,13 +69,6 @@ A helper function to make stateful Widgets easier to write.
 >           action = (draw bbx (snd f == HasFocus) `cross` buzz) s'
 >           bbx = bounds ctx
 >           cross f g x = (f x, g x)
-
-
-A few useful shorthands for creating widgets with mkWidget
-
-> dup x = (x, x)
-> pair = (,)
-
 
 
 ============================================================
@@ -88,10 +87,7 @@ Labels are always left aligned and vertically centered.
 >     d = makeLayout (Fixed minw) (Fixed minh)
 >     drawit ((x, y), (w, h)) = withColor Black $ 
 >       text (x + padding, y + padding) s
->     aux a (ctx,f,_,_inp) = (d, False, f, action, nullCD, a)
->       where 
->         action = justGraphicAction $ drawit bbx
->         bbx = bounds ctx
+>     aux a (ctx,f,_,_) = (d, False, f, justGraphicAction $ drawit (bounds ctx), nullCD, a)
 
 -----------------
  | Display Box | 
@@ -100,7 +96,7 @@ DisplayStr is an output widget showing the instantaneous value of
 a signal of strings.
 
 > displayStr :: UISF String ()
-> displayStr = mkWidget "" d draw (const nullSound) pair 
+> displayStr = mkWidget "" d draw (const nullSound) (,) 
 >   (\((v, v'), (_, _)) -> (v, v /= v'))
 >   (\s -> ((), s))
 >   where
@@ -108,8 +104,9 @@ a signal of strings.
 >     d = makeLayout (Stretchy 8) (Fixed minh)
 >     draw b@(p@(x,y), (w, h)) _ s = 
 >       let n = (w - padding * 2) `div` 8
->       in withColor Black (text (x + padding, y + padding) (take n s)) // 
->          (box pushed b) // (withColor White $ block b) 
+>       in  withColor Black (text (x + padding, y + padding) (take n s))
+>           // box pushed b 
+>           // withColor White (block b) 
 
 display is a widget that takes any show-able value and displays it.
 
@@ -161,14 +158,14 @@ left, right, end, home, delete, and backspace special keys.
 >   where
 >     minh = 16 + padding * 2
 >     displayLayout = makeLayout (Stretchy 8) (Fixed minh)
->     update s i _ (UIEvent (Character c)) = (take i s ++ [c] ++ drop i s, i+1)
->     update s i _ (UIEvent (Key (SK.SpecialKey SK.BACKSPACE) True _)) = (take (i-1) s ++ drop i s, max (i-1) 0)
->     update s i _ (UIEvent (Key (SK.SpecialKey SK.DEL)       True _)) = (take i s ++ drop (i+1) s, i)
->     update s i _ (UIEvent (Key (SK.SpecialKey SK.LEFT)      True _)) = (s, max (i-1) 0)
->     update s i _ (UIEvent (Key (SK.SpecialKey SK.RIGHT)     True _)) = (s, min (i+1) (length s))
->     update s i _ (UIEvent (Key (SK.SpecialKey SK.END)       True _)) = (s, length s)
->     update s i _ (UIEvent (Key (SK.SpecialKey SK.HOME)      True _)) = (s, 0)
->     update s i ctx (UIEvent (Button (x,_) True True)) = (s, min (length s) $ (x - xoffset ctx) `div` 8)
+>     update s i _ (Character c) = (take i s ++ [c] ++ drop i s, i+1)
+>     update s i _ (Key (SpecialKey BACKSPACE) True _) = (take (i-1) s ++ drop i s, max (i-1) 0)
+>     update s i _ (Key (SpecialKey DEL)       True _) = (take i s ++ drop (i+1) s, i)
+>     update s i _ (Key (SpecialKey LEFT)      True _) = (s, max (i-1) 0)
+>     update s i _ (Key (SpecialKey RIGHT)     True _) = (s, min (i+1) (length s))
+>     update s i _ (Key (SpecialKey END)       True _) = (s, length s)
+>     update s i _ (Key (SpecialKey HOME)      True _) = (s, 0)
+>     update s i ctx (Button (x,_) True True) = (s, min (length s) $ (x - xoffset ctx) `div` 8)
 >     update s i _ _ = (s, max 0 $ min i $ length s)
 >     drawCursor (False, _) _ = nullGraphic
 >     drawCursor (True, i) (w,h) = 
@@ -189,9 +186,10 @@ Title frames a UI by borders, and displays a static title text.
 >   where
 >     (tw, th) = (length label * 8, 16)
 >     drawit ((x, y), (w, h)) g = 
->       withColor Black (text (x + 10, y) label) //
->       (withColor' bg $ block ((x + 8, y), (tw + 4, th))) //
->       box marked ((x, y + 8), (w, h - 16)) // g
+>       withColor Black (text (x + 10, y) label)
+>       // withColor' bg (block ((x + 8, y), (tw + 4, th)))
+>       // box marked ((x, y + 8), (w, h - 16)) 
+>       // g
 >     modsf sf a (ctx@(CTX _ bbx@((x,y), (w,h)) _),f,t,inp) = do
 >       (l,db,f',action,ts,(v,nextSF)) <- expandUISF sf a (CTX TopDown ((x + 4, y + 20), (w - 8, h - 32))
 >                                                         False, f, t, inp)
@@ -203,69 +201,55 @@ Title frames a UI by borders, and displays a static title text.
 ------------
  | Button | 
 ------------
-Button is an input widget with a state of being on or off.  
-It also shows a static text label.
+A button is a focusable input widget with a state of being on or off.  
+It can be activated with either a button press or the enter key.
+(Currently, there is no support for the space key due to non-special 
+ keys not having Release events.)
+Buttons also show a static label.
+
+The regular button is down as long as the mouse button or key press is 
+down and then returns to up.  The sticky button, on the other hand, once 
+pressed, remains depressed until is is clicked again to be released.
+Thus, it looks like a button, but it behaves more like a checkbox.
 
 > button :: String -> UISF () Bool
-> button label = focusable $ 
+> button = genButton False
+
+> stickyButton :: String -> UISF () Bool
+> stickyButton = genButton True
+
+> genButton :: Bool -> String -> UISF () Bool
+> genButton sticky l = focusable $ 
 >   mkWidget False d draw (const nullSound) (const id)
->        process dup
+>        (if sticky then processSticky else processRegular) (\x -> (x,x))
 >   where
->     (tw, th) = (8 * length label, 16) 
+>     (tw, th) = (8 * length l, 16) 
 >     (minw, minh) = (tw + padding * 2, th + padding * 2)
 >     d = makeLayout (Stretchy minw) (Fixed minh)
 >     draw b@((x,y), (w,h)) inFocus down = 
 >       let x' = x + (w - tw) `div` 2 + if down then 0 else -1
 >           y' = y + (h - th) `div` 2 + if down then 0 else -1
->       in (withColor Black $ text (x', y') label) // 
->          (if inFocus then box marked b else nullGraphic) //
->          (box (if down then pushed else popped) b)
->     process (s, (ctx, evt)) = (s', s /= s')
+>       in withColor Black (text (x', y') l) 
+>          // whenG inFocus (box marked b)
+>          // box (if down then pushed else popped) b
+>     processRegular (s, (ctx, evt)) = (s', s /= s')
 >       where 
 >         s' = case evt of
->           UIEvent (Button pt True down) -> case (s, down) of
+>           Button _ True down -> case (s, down) of
 >             (False, True) -> True
 >             (True, False) -> False
 >             _ -> s
->           UIEvent (MouseMove pt) -> if pt `inside` bbx then s else False
->           UIEvent (Key (SK.SpecialKey SK.ENTER) down _) -> down
-> -- Currently, non-special keys are implemented such that there is only a 
-> -- Press event and no Release event.  To work with buttons, we will need 
-> -- to add some state or something.
-> --          UIEvent (Key ' ' down) -> down
+>           MouseMove pt       -> (pt `inside` bounds ctx) && s
+>           Key (SpecialKey ENTER) down _ -> down
+>           Key (CharKey ' ') down _ -> down
 >           _ -> s
->           where
->             bbx = bounds ctx
-
--------------------
- | Sticky Button | 
--------------------
-The Sticky Button is like the button, but when it is pressed, it remains 
-depressed until it is clicked again to be released.  Thus, it looks like a 
-button, but it behaves more like a checkbox.
-
-> stickyButton :: String -> UISF () Bool
-> stickyButton label = focusable $ 
->   mkWidget False d draw (const nullSound) (const id)
->        process dup
->   where
->     (tw, th) = (8 * length label, 16) 
->     (minw, minh) = (tw + padding * 2, th + padding * 2)
->     d = makeLayout (Stretchy minw) (Fixed minh)
->     draw b@((x,y), (w,h)) inFocus down = 
->       let x' = x + (w - tw) `div` 2 + if down then 0 else -1
->           y' = y + (h - th) `div` 2 + if down then 0 else -1
->       in (withColor Black $ text (x', y') label) // 
->          (if inFocus then box marked b else nullGraphic) //
->          (box (if down then pushed else popped) b)
->     process (s, (ctx, evt)) = (s', s /= s')
+>     processSticky (s, (_ctx, evt)) = (s', s /= s')
 >       where 
 >         s' = case evt of
->           UIEvent (Button pt True True) -> not s
->           UIEvent (Key (SK.SpecialKey SK.ENTER) True _) -> not s
+>           Button _ True True -> not s
+>           Key (SpecialKey ENTER) True _ -> not s
+>           Key (CharKey ' ') True _ -> not s
 >           _ -> s
->           where
->             bbx = bounds ctx
 
 
 ---------------
@@ -288,15 +272,14 @@ It has a static label as well as an initial state.
 >       let x' = x + padding + 16 
 >           y' = y + (h - th) `div` 2
 >           b = ((x + padding + 2, y + h `div` 2 - 6), (12, 12))
->       in (withColor Black $ text (x', y') label) // 
->          (if inFocus then box marked b else nullGraphic) //
->          (if down 
->             then withColor' gray3 (polyline 
+>       in  withColor Black (text (x', y') label)
+>           // whenG inFocus (box marked b)
+>           // whenG down (withColor' gray3 $ polyline 
 >               [(x + padding + 5, y + h `div` 2),
 >                (x + padding + 7, y + h `div` 2 + 3),
 >                (x + padding + 11, y + h `div` 2 - 2)])
->             else nullGraphic) //
->       box pushed b // (withColor White $ block b)
+>           // box pushed b 
+>           // withColor White (block b)
 
 
 --------------------
@@ -346,11 +329,11 @@ choice.
 >         draw ((x,y), (w,h)) inFocus down = 
 >           let x' = x + padding + 16 
 >               y' = y + (h - th) `div` 2
->           in (withColor Black $ text (x', y') l) // 
->              (if down then circle gray3 (x,y) (5,6) (9,10) else nullGraphic) //
->              (circle gray3 (x,y) (2,3) (12,13)) //
->              (circle gray0 (x,y) (2,3) (13,14)) //
->              (if inFocus then circle gray2 (x,y) (0,0) (14,15) else nullGraphic)
+>           in  withColor Black (text (x', y') l) 
+>               // whenG down (circle gray3 (x,y) (5,6) (9,10)) 
+>               // circle gray3 (x,y) (2,3) (12,13) 
+>               // circle gray0 (x,y) (2,3) (13,14) 
+>               // whenG inFocus (circle gray2 (x,y) (0,0) (14,15))
 
 
 -------------
@@ -481,7 +464,7 @@ of the list (simply indicating no choice selected).
 
 > listbox :: (Eq a, Show a) => UISF ([a], Int) Int
 > listbox = focusable $ delay (-1) <<< mkWidget 
->   ([], -1) layout draw (const nullSound) pair
+>   ([], -1) layout draw (const nullSound) (,)
 >   process (\(lst,i) -> (i, (lst,i)))
 >   where
 >     layout = makeLayout (Stretchy 80) (Stretchy 16)
@@ -489,24 +472,25 @@ of the list (simply indicating no choice selected).
 >     lineheight = 16
 >     --draw :: Show a => Rect -> ([a], Int) -> Graphic
 >     draw rect@((x,y),(w,h)) _ (lst, i) = 
->         genTextGraphic rect i lst // 
->           (box pushed rect) // (withColor White $ block rect)
+>         genTextGraphic rect i lst 
+>         // box pushed rect 
+>         // withColor White (block rect)
 >         where
 >           n = (w - padding * 2) `div` 8
 >           genTextGraphic _ _ [] = nullGraphic
 >           genTextGraphic ((x,y),(w,h)) i (v:vs) = (if i == 0
->                 then withColor White (text (x + padding, y + padding) (take n (show v))) //
->                      withColor Blue (block ((x,y),(w,lineheight)))
->                 else withColor Black (text (x + padding, y + padding) (take n (show v)))) //
->             genTextGraphic ((x,y+lineheight),(w,h-lineheight)) (i - 1) vs
->     process :: Eq a => ((([a], Int),([a], Int)), (CTX, Input)) -> (([a], Int), Bool)
+>                 then withColor White (text (x + padding, y + padding) (take n (show v)))
+>                      // withColor Blue (block ((x,y),(w,lineheight)))
+>                 else withColor Black (text (x + padding, y + padding) (take n (show v))))
+>                 // genTextGraphic ((x,y+lineheight),(w,h-lineheight)) (i - 1) vs
+>     process :: Eq a => ((([a], Int),([a], Int)), (CTX, UIEvent)) -> (([a], Int), Bool)
 >     process (((lst,i), olds), (ctx, inp)) = 
 >       ((lst,i'), olds /= (lst, i'))
 >         where
 >         i' = case inp of
->           UIEvent (Button pt True True) -> pt2index pt
->           UIEvent (Key (SK.SpecialKey SK.DOWN) True _)   -> min (i+1) (length lst - 1)
->           UIEvent (Key (SK.SpecialKey SK.UP)   True _)   -> max (i-1) 0
+>           Button pt True True -> pt2index pt
+>           Key (SpecialKey DOWN) True _ -> min (i+1) (length lst - 1)
+>           Key (SpecialKey UP)   True _ -> max (i-1) 0
 >           _ -> i
 >         ((_,y),_) = bounds ctx
 >         pt2index (px,py) = (py-y) `div` lineheight
@@ -706,14 +690,14 @@ returns whether the toggle is being clicked.
 >        -> (Rect -> Bool -> s -> Graphic)  -- The drawing routine
 >        -> UISF s Bool
 > toggle iState layout draw = focusable $ 
->   mkWidget iState layout draw (const nullSound) pair process id
+>   mkWidget iState layout draw (const nullSound) (,) process id
 >   where
 >     process ((s,s'), (ctx, evt)) = ((on,s), s /= s')
 >       where 
 >         on = case evt of
->           UIEvent (Button pt True down) -> down
->           UIEvent (Key (SK.SpecialKey SK.ENTER) down _) -> down
->           UIEvent (Character ' ') -> True
+>           Button pt True True -> True
+>           Key (SpecialKey ENTER) True _ -> True
+>           Key (CharKey ' ') True _ -> True
 >           _ -> False 
 
 --------------
@@ -752,22 +736,22 @@ The mkSlider widget builder is useful in the creation of all sliders.
 >     process ((val, s), (ctx, evt)) = ((val', s'), val /= val')
 >       where
 >         (val', s') = case evt of
->           UIEvent (Button pt' True down) -> let pt = rotP pt' bbx in
+>           Button pt' True down -> let pt = rotP pt' bbx in
 >             case (pt `inside` target, down) of
 >               (True, True) -> (val, Just (ptDiff pt val))
 >               (_, False)   -> (val, Nothing)
 >               (False, True) | pt `inside` bar' -> clickonbar pt
 >               _ -> (val, s)
->           UIEvent (MouseMove pt') -> let pt = rotP pt' bbx in
+>           MouseMove pt' -> let pt = rotP pt' bbx in
 >             case s of
 >               Just pd -> (pt2val pd pt, Just pd)
 >               Nothing -> (val, s)
->           UIEvent (Key (SK.SpecialKey SK.LEFT)  True _) -> if hori then (jump (-1) bw val, s) else (val, s)
->           UIEvent (Key (SK.SpecialKey SK.RIGHT) True _) -> if hori then (jump 1    bw val, s) else (val, s)
->           UIEvent (Key (SK.SpecialKey SK.UP)    True _) -> if hori then (val, s) else (jump (-1) bw val, s)
->           UIEvent (Key (SK.SpecialKey SK.DOWN)  True _) -> if hori then (val, s) else (jump 1    bw val, s)
->           UIEvent (Key (SK.SpecialKey SK.HOME)  True _) -> (pos2val 0  (bw - 2 * padding - tw), s)
->           UIEvent (Key (SK.SpecialKey SK.END)   True _) -> (pos2val bw (bw - 2 * padding - tw), s)
+>           Key (SpecialKey LEFT)  True _ -> if hori then (jump (-1) bw val, s) else (val, s)
+>           Key (SpecialKey RIGHT) True _ -> if hori then (jump 1    bw val, s) else (val, s)
+>           Key (SpecialKey UP)    True _ -> if hori then (val, s) else (jump (-1) bw val, s)
+>           Key (SpecialKey DOWN)  True _ -> if hori then (val, s) else (jump 1    bw val, s)
+>           Key (SpecialKey HOME)  True _ -> (pos2val 0  (bw - 2 * padding - tw), s)
+>           Key (SpecialKey END)   True _ -> (pos2val bw (bw - 2 * padding - tw), s)
 >           _ -> (val, s)
 >         bbx@((bx,by),(bw,bh)) = let b = bounds ctx in rotR b b
 >         bar' = let ((x,y),(w,h)) = bar bbx in ((x,y-4),(w,h+8))
@@ -790,7 +774,7 @@ is there.
 
 > canvas :: Dimension -> UISF (SEvent Graphic) ()
 > canvas (w, h) = mkWidget nullGraphic layout draw (const nullSound)
->                 pair process (\s -> ((), s)) 
+>                 (,) process (\s -> ((), s)) 
 >   where
 >     layout = makeLayout (Fixed w) (Fixed h)
 >     draw ((x,y),(w,h)) _ = translateGraphic (x,y)
@@ -803,7 +787,7 @@ used in cases with stretchy layouts.
 
 > canvas' :: Layout -> (a -> Dimension -> Graphic) -> UISF (SEvent a) ()
 > canvas' layout draw = mkWidget Nothing layout drawit (const nullSound)
->                       pair process (\s -> ((), s))
+>                       (,) process (\s -> ((), s))
 >   where
 >     drawit (pt, dim) _ ea = maybe nullGraphic (\a -> translateGraphic pt $ draw a dim) ea
 >     process ((ea, a'), _) = case ea of
@@ -831,30 +815,27 @@ focusable = id
 >       (y, hasFocus') <- compressUISF (h widget) -< (x, hasFocus)
 >   returnA -< y
 >  where
->   h w (a, hasFocus) (ctx, (myid,focus),t, inp) = do
->     lshift <- isKeyPressed SK.LSHIFT
->     rshift <- isKeyPressed SK.RSHIFT
->     let isShift = lshift || rshift
->         (f, hasFocus') = case (focus, hasFocus, inp) of
+>   h w (a, hasFocus) (ctx, (myid,focus),t, inp) = 
+>     let (f, hasFocus') = case (focus, hasFocus, inp) of
 >           (HasFocus, _, _) -> (HasFocus, True)
 >           (SetFocusTo n, _, _) | n == myid -> (NoFocus, True)
->           (_, _,    UIEvent (Button pt _ True)) -> (NoFocus, pt `inside` bounds ctx)
->           (_, True, UIEvent (Key (SK.SpecialKey SK.TAB) True _))
->                                                 -> if isShift then (SetFocusTo (myid-1), False) 
->                                                               else (SetFocusTo (myid+1), False)
+>           (_, _,    Button pt _ True) -> (NoFocus, pt `inside` bounds ctx)
+>           (_, True, Key (SpecialKey TAB) True ms)
+>                                                 -> if shift ms then (SetFocusTo (myid-1), False) 
+>                                                                else (SetFocusTo (myid+1), False)
 >           (_, _, _) -> (focus, hasFocus)
 >         focus' = if hasFocus' then HasFocus else NoFocus
 >         inp' = if hasFocus' then (case inp of 
->               UIEvent (Key (SK.SpecialKey SK.TAB) True _)-> NoEvent
+>               Key (SpecialKey TAB) True _-> NoUIEvent
 >               _ -> inp)
 >                else (case inp of 
->               UIEvent (Button pt _ True) -> NoEvent
->               UIEvent (Character  _) -> NoEvent
->               UIEvent (Key _ _ _) -> NoEvent
+>               Button pt _ True -> NoUIEvent
+>               Character  _ -> NoUIEvent
+>               Key _ _ _ -> NoUIEvent
 >               _ -> inp)
 >         redraw = hasFocus /= hasFocus'
->     (l, db, _, act, tids, (b, w')) <- expandUISF w a (ctx, (myid,focus'), t, inp')
->     return $! (l, db || redraw, (myid+1,f), act, tids, ((b, hasFocus'), compressUISF (h w')))
+>     in do (l, db, _, act, tids, (b, w')) <- expandUISF w a (ctx, (myid,focus'), t, inp')
+>           return (l, db || redraw, (myid+1,f), act, tids, ((b, hasFocus'), compressUISF (h w')))
 
 Although mouse button clicks and keystrokes will be available once a 
 widget marks itself as focusable, the widget may also simply want to 
@@ -869,6 +850,7 @@ can be achieved with the following signal function.
 =============== UI colors and drawing routine ==============
 ============================================================
 
+> bg, gray0, gray1, gray2, gray3, blue3 :: RGB
 > bg = rgb 0xec 0xe9 0xd8
 > gray0 = rgb 0xff 0xff 0xff
 > gray1 = rgb 0xf1 0xef 0xe2
@@ -876,24 +858,27 @@ can be achieved with the following signal function.
 > gray3 = rgb 0x71 0x6f 0x64
 > blue3 = rgb 0x31 0x3c 0x79
 
-> box [] ((x, y), (w, h)) = nullGraphic 
+> box :: [(RGB,RGB)] -> Rect -> Graphic
+> box [] _ = nullGraphic 
 > box ((t, b):cs) ((x, y), (w, h)) = 
->   box cs ((x + 1, y + 1), (w - 2, h - 2)) // 
->   withColor' t (line (x, y) (x, y + h - 1) //
->                 line (x, y) (x + w - 2, y)) //
->   withColor' b (line (x + 1, y + h - 1) (x + w - 1, y + h - 1) //
->                 line (x + w - 1, y) (x + w - 1, y + h - 1))
+>   box cs ((x + 1, y + 1), (w - 2, h - 2)) 
+>   // withColor' t (line (x, y) (x, y + h - 1) 
+>                    // line (x, y) (x + w - 2, y)) 
+>   // withColor' b (line (x + 1, y + h - 1) (x + w - 1, y + h - 1) 
+>                    // line (x + w - 1, y) (x + w - 1, y + h - 1))
 
+> circle :: RGB -> Point -> Dimension -> Dimension -> Graphic
 > circle c (x, y) (w1, h1) (w2, h2) = 
 >   withColor' c $ arc (x + padding + w1, y + padding + h1) 
 >                      (x + padding + w2, y + padding + h2) 0 360
 
-
+> block :: Rect -> Graphic
 > block ((x,y), (w, h)) = polygon [(x, y), (x + w, y), (x + w, y + h), (x, y + h)]
->
-> pushed = (gray2, gray0) : (gray3, gray1) : []
-> popped = (gray1, gray3) : (gray0, gray2) : []
-> marked = (gray2, gray0) : (gray0, gray2) : []
 
+> pushed, popped, marked :: [(RGB,RGB)]
+> pushed = [(gray2, gray0),(gray3, gray1)]
+> popped = [(gray1, gray3),(gray0, gray2)]
+> marked = [(gray2, gray0),(gray0, gray2)]
+
+> inside :: Point -> Rect -> Bool
 > inside (u, v) ((x, y), (w, h)) = u >= x && v >= y && u < x + w && v < y + h
-

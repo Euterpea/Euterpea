@@ -11,7 +11,6 @@ import Control.SF.AuxFunctions
 import Control.Arrow
 import Euterpea.IO.MUI.InstrumentBase
 import qualified Codec.Midi as Midi
-import qualified Graphics.UI.GLFW as GLFW
 import Data.Maybe
 import qualified Data.Char as Char
 
@@ -159,15 +158,15 @@ mkKey c kt =
         process ((kd,(kb,_)),(ctx,evt)) = ((kb'', notation kd), kb /= kb'') where
             kb'  = if isJust (pressed kd) then kb { song = fromJust $ pressed kd } else kb
             kb'' = case evt of
-                UIEvent (Key (GLFW.CharKey c') down (shift,_,_)) ->
-                    if detectKey c' shift
+                Key (CharKey c') down ms ->
+                    if detectKey c' (shift ms)
                     then kb' { keypad = down, vel = 127 }
                     else kb'
-                UIEvent (Button pt True down) -> case (mouse kb', down, insideKey kt pt bbx) of 
+                Button pt True down -> case (mouse kb', down, insideKey kt pt bbx) of 
                     (False, True, True) -> kb' { mouse = True,  vel = getVel pt bbx }
                     (True, False, True) -> kb' { mouse = False, vel = getVel pt bbx }
                     otherwise -> kb'
-                UIEvent (MouseMove pt) -> if insideKey kt pt bbx then kb' else kb' { mouse = False }
+                MouseMove pt -> if insideKey kt pt bbx then kb' else kb' { mouse = False }
                 otherwise -> kb'
                 where bbx = bounds ctx
                       getVel (u,v) ((x,y),(w,h)) = 40 + 87 * round ((fromIntegral v - fromIntegral y) / fromIntegral h)
