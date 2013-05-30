@@ -11,7 +11,6 @@ import Control.SF.AuxFunctions
 import Control.Arrow
 import Euterpea.IO.MUI.InstrumentBase
 import qualified Codec.Midi as Midi
-import qualified Graphics.UI.GLFW as GLFW
 import Data.Maybe
 import qualified Data.Char as Char
 
@@ -84,16 +83,16 @@ mkKey c kt =
         process ((kd,(kb,_)),(ctx,evt)) = ((kb'', notation kd), kb /= kb'') where
             kb' = if isJust (pressed kd) then kb { song = fromJust $ pressed kd } else kb
             kb'' = case evt of
-                UIEvent (Key (GLFW.CharKey c') down (shift,_,_)) ->
-                    if detectKey c' shift
+                Key (CharKey c') down ms ->
+                    if detectKey c' (shift ms)
                     then kb' { keypad = down, vel = 127 }
                     else kb'
-                UIEvent (Button pt True down) ->
+                Button pt True down ->
                     case (mouse kb', down, pt `inside` box) of
                         (False, True, True) -> kb' { mouse = True,  vel = getVel pt box }
                         (True, False, True) -> kb' { mouse = False, vel = getVel pt box }
                         otherwise -> kb'
-                UIEvent (MouseMove pt) ->
+                MouseMove pt ->
                     if pt `inside` box
                     then kb'
                     else kb' { mouse = False }
@@ -122,7 +121,7 @@ mkString (frets, freePitch, p) = leftRight $ proc insData -> do
     where freeap = absPitch freePitch
 
 pluckString :: Char -> UISF () Bool
-pluckString c = mkWidget False nullLayout draw (const nullSound) (const id) process dup where
+pluckString c = mkWidget False nullLayout draw (const nullSound) (const id) process (\x -> (x,x)) where
     draw b@((x,y),(w,h)) inFocus down =
         let x' = x + (w - tw) `div` 2 + if down then 0 else -1
             y' = y + (h - th) `div` 2 + if down then 0 else -1
@@ -130,8 +129,8 @@ pluckString c = mkWidget False nullLayout draw (const nullSound) (const id) proc
 
     process (s,(ctx,evt)) = (s', s /= s') where
         s' = case evt of
-            UIEvent (Button pt True down) -> down
-            UIEvent (Key (GLFW.CharKey c') down _) ->
+            Button pt True down -> down
+            Key (CharKey c') down _ ->
                 down && c == c'
             otherwise -> s
 

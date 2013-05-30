@@ -26,7 +26,7 @@ earlier widgets and maps input signals to outputs, which consists of 6 parts:
  - and the parametrized output type.
 
 > newtype UI a = UI 
->   { unUI :: (CTX, Focus, Time, Input) -> 
+>   { unUI :: (CTX, Focus, Time, UIEvent) -> 
 >             IO (Layout, DirtyBit, Focus, Action, ControlData, a) }
 
 
@@ -185,16 +185,8 @@ Merge two layouts into one.
 
 
 ============================================================
-============= Input, Action, and System State ==============
+================= Action and System State ==================
 ============================================================
-
-Input is a union of user events and Midi events, and in addition,
-a timer event is needed to drive time based computations.
-
-> data Input 
->   = UIEvent Event 
->   | NoEvent
->   deriving Show
 
 Actions include both Graphics and Sound output. Even though both
 are indeed just IO monads, we separate them because Sound output
