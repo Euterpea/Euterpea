@@ -11,7 +11,25 @@ import Control.SF.AuxFunctions
 import Control.Arrow
 import Euterpea.IO.MUI.InstrumentBase
 import qualified Codec.Midi as Midi
+import qualified Graphics.UI.GLFW as GLFW
 import Data.Maybe
+import qualified Data.Char as Char
+
+--Note, only valid for standard US keyboards:
+--Also, this is an ugly hack that can't stay
+--it's mostly to test the new key events
+toUpper :: Char -> Char
+toUpper c = case lookup c keyMap of
+                Just c' -> c'
+                Nothing -> Char.toUpper c
+            where keyMap = [('`', '~'), ('1', '!'), ('2', '@'), ('3', '#'), ('4', '$'),
+                            ('5', '%'), ('6', '^'), ('7', '&'), ('8', '*'), ('9', '('),
+                            ('0', ')'), ('-', '_'), ('=', '+'), ('[', '{'), (']', '}'),
+                            ('|', '\\'), ('\'', '\"'), (';', ':'), ('/', '?'), ('.', '>'),
+                            (',', '<')]
+
+isUpper :: Char -> Bool
+isUpper c = toUpper c == c
 
 data KeyType = White1 | White2 | White3 | Black1 deriving (Show, Eq)
 
@@ -141,7 +159,10 @@ mkKey c kt =
         process ((kd,(kb,_)),(ctx,evt)) = ((kb'', notation kd), kb /= kb'') where
             kb'  = if isJust (pressed kd) then kb { song = fromJust $ pressed kd } else kb
             kb'' = case evt of
-                UIEvent (Key c' st) -> if c == c' then kb' { keypad = st, vel = 127 } else kb'
+                UIEvent (Key (GLFW.CharKey c') down (shift,_,_)) ->
+                    if detectKey c' shift
+                    then kb' { keypad = down, vel = 127 }
+                    else kb'
                 UIEvent (Button pt True down) -> case (mouse kb', down, insideKey kt pt bbx) of 
                     (False, True, True) -> kb' { mouse = True,  vel = getVel pt bbx }
                     (True, False, True) -> kb' { mouse = False, vel = getVel pt bbx }
@@ -150,6 +171,7 @@ mkKey c kt =
                 otherwise -> kb'
                 where bbx = bounds ctx
                       getVel (u,v) ((x,y),(w,h)) = 40 + 87 * round ((fromIntegral v - fromIntegral y) / fromIntegral h)
+                      detectKey c' s = toUpper c == toUpper c' && isUpper c == s -- This line should be more robust
 
         outputProj st = (fst st, st)
 

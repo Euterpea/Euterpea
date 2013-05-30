@@ -25,7 +25,7 @@ The monadic UI concept is borrowed from Phooey by Conal Elliott.
 
 > import Control.Arrow
 > import Control.Monad (when)
-> import qualified Graphics.UI.GLFW as SK (SpecialKey (..))
+> import qualified Graphics.UI.GLFW as SK
 
 
 ============================================================
@@ -161,13 +161,13 @@ left, right, end, home, delete, and backspace special keys.
 >   where
 >     minh = 16 + padding * 2
 >     displayLayout = makeLayout (Stretchy 8) (Fixed minh)
->     update s i _ (UIEvent (Key c True)) = (take i s ++ [c] ++ drop i s, i+1)
->     update s i _ (UIEvent (SKey SK.BACKSPACE True)) = (take (i-1) s ++ drop i s, max (i-1) 0)
->     update s i _ (UIEvent (SKey SK.DEL       True)) = (take i s ++ drop (i+1) s, i)
->     update s i _ (UIEvent (SKey SK.LEFT      True)) = (s, max (i-1) 0)
->     update s i _ (UIEvent (SKey SK.RIGHT     True)) = (s, min (i+1) (length s))
->     update s i _ (UIEvent (SKey SK.END       True)) = (s, length s)
->     update s i _ (UIEvent (SKey SK.HOME      True)) = (s, 0)
+>     update s i _ (UIEvent (Character c)) = (take i s ++ [c] ++ drop i s, i+1)
+>     update s i _ (UIEvent (Key (SK.SpecialKey SK.BACKSPACE) True _)) = (take (i-1) s ++ drop i s, max (i-1) 0)
+>     update s i _ (UIEvent (Key (SK.SpecialKey SK.DEL)       True _)) = (take i s ++ drop (i+1) s, i)
+>     update s i _ (UIEvent (Key (SK.SpecialKey SK.LEFT)      True _)) = (s, max (i-1) 0)
+>     update s i _ (UIEvent (Key (SK.SpecialKey SK.RIGHT)     True _)) = (s, min (i+1) (length s))
+>     update s i _ (UIEvent (Key (SK.SpecialKey SK.END)       True _)) = (s, length s)
+>     update s i _ (UIEvent (Key (SK.SpecialKey SK.HOME)      True _)) = (s, 0)
 >     update s i ctx (UIEvent (Button (x,_) True True)) = (s, min (length s) $ (x - xoffset ctx) `div` 8)
 >     update s i _ _ = (s, max 0 $ min i $ length s)
 >     drawCursor (False, _) _ = nullGraphic
@@ -228,7 +228,7 @@ It also shows a static text label.
 >             (True, False) -> False
 >             _ -> s
 >           UIEvent (MouseMove pt) -> if pt `inside` bbx then s else False
->           UIEvent (SKey SK.ENTER down) -> down
+>           UIEvent (Key (SK.SpecialKey SK.ENTER) down _) -> down
 > -- Currently, non-special keys are implemented such that there is only a 
 > -- Press event and no Release event.  To work with buttons, we will need 
 > -- to add some state or something.
@@ -262,7 +262,7 @@ button, but it behaves more like a checkbox.
 >       where 
 >         s' = case evt of
 >           UIEvent (Button pt True True) -> not s
->           UIEvent (SKey SK.ENTER True) -> not s
+>           UIEvent (Key (SK.SpecialKey SK.ENTER) True _) -> not s
 >           _ -> s
 >           where
 >             bbx = bounds ctx
@@ -505,8 +505,8 @@ of the list (simply indicating no choice selected).
 >         where
 >         i' = case inp of
 >           UIEvent (Button pt True True) -> pt2index pt
->           UIEvent (SKey SK.DOWN True)   -> min (i+1) (length lst - 1)
->           UIEvent (SKey SK.UP   True)   -> max (i-1) 0
+>           UIEvent (Key (SK.SpecialKey SK.DOWN) True _)   -> min (i+1) (length lst - 1)
+>           UIEvent (Key (SK.SpecialKey SK.UP)   True _)   -> max (i-1) 0
 >           _ -> i
 >         ((_,y),_) = bounds ctx
 >         pt2index (px,py) = (py-y) `div` lineheight
@@ -712,8 +712,8 @@ returns whether the toggle is being clicked.
 >       where 
 >         on = case evt of
 >           UIEvent (Button pt True down) -> down
->           UIEvent (SKey SK.ENTER down) -> down
->           UIEvent (Key ' ' down) -> down
+>           UIEvent (Key (SK.SpecialKey SK.ENTER) down _) -> down
+>           UIEvent (Character ' ') -> True
 >           _ -> False 
 
 --------------
@@ -762,12 +762,12 @@ The mkSlider widget builder is useful in the creation of all sliders.
 >             case s of
 >               Just pd -> (pt2val pd pt, Just pd)
 >               Nothing -> (val, s)
->           UIEvent (SKey SK.LEFT  True) -> if hori then (jump (-1) bw val, s) else (val, s)
->           UIEvent (SKey SK.RIGHT True) -> if hori then (jump 1    bw val, s) else (val, s)
->           UIEvent (SKey SK.UP    True) -> if hori then (val, s) else (jump (-1) bw val, s)
->           UIEvent (SKey SK.DOWN  True) -> if hori then (val, s) else (jump 1    bw val, s)
->           UIEvent (SKey SK.HOME  True) -> (pos2val 0  (bw - 2 * padding - tw), s)
->           UIEvent (SKey SK.END   True) -> (pos2val bw (bw - 2 * padding - tw), s)
+>           UIEvent (Key (SK.SpecialKey SK.LEFT)  True _) -> if hori then (jump (-1) bw val, s) else (val, s)
+>           UIEvent (Key (SK.SpecialKey SK.RIGHT) True _) -> if hori then (jump 1    bw val, s) else (val, s)
+>           UIEvent (Key (SK.SpecialKey SK.UP)    True _) -> if hori then (val, s) else (jump (-1) bw val, s)
+>           UIEvent (Key (SK.SpecialKey SK.DOWN)  True _) -> if hori then (val, s) else (jump 1    bw val, s)
+>           UIEvent (Key (SK.SpecialKey SK.HOME)  True _) -> (pos2val 0  (bw - 2 * padding - tw), s)
+>           UIEvent (Key (SK.SpecialKey SK.END)   True _) -> (pos2val bw (bw - 2 * padding - tw), s)
 >           _ -> (val, s)
 >         bbx@((bx,by),(bw,bh)) = let b = bounds ctx in rotR b b
 >         bar' = let ((x,y),(w,h)) = bar bbx in ((x,y-4),(w,h+8))
@@ -839,17 +839,18 @@ focusable = id
 >           (HasFocus, _, _) -> (HasFocus, True)
 >           (SetFocusTo n, _, _) | n == myid -> (NoFocus, True)
 >           (_, _,    UIEvent (Button pt _ True)) -> (NoFocus, pt `inside` bounds ctx)
->           (_, True, UIEvent (SKey SK.TAB True)) -> if isShift then (SetFocusTo (myid-1), False) 
+>           (_, True, UIEvent (Key (SK.SpecialKey SK.TAB) True _))
+>                                                 -> if isShift then (SetFocusTo (myid-1), False) 
 >                                                               else (SetFocusTo (myid+1), False)
 >           (_, _, _) -> (focus, hasFocus)
 >         focus' = if hasFocus' then HasFocus else NoFocus
 >         inp' = if hasFocus' then (case inp of 
->               UIEvent (SKey SK.TAB True)-> NoEvent
+>               UIEvent (Key (SK.SpecialKey SK.TAB) True _)-> NoEvent
 >               _ -> inp)
 >                else (case inp of 
 >               UIEvent (Button pt _ True) -> NoEvent
->               UIEvent (Key  _ _) -> NoEvent
->               UIEvent (SKey _ _) -> NoEvent
+>               UIEvent (Character  _) -> NoEvent
+>               UIEvent (Key _ _ _) -> NoEvent
 >               _ -> inp)
 >         redraw = hasFocus /= hasFocus'
 >     (l, db, _, act, tids, (b, w')) <- expandUISF w a (ctx, (myid,focus'), t, inp')

@@ -131,18 +131,17 @@ openWindowEx title position size (RedrawMode useDoubleBuffer) = do
         writeTChan eventsChan MouseMove { pt = (fromIntegral x, fromIntegral y) }
   GLFW.mousePosCallback $= motionCallback
      
-  let charCallback char state =  atomically $ 
-        writeTChan eventsChan (Key { char = char, isDown = (state == GLFW.Press) })
-  let keyCallBack key state = case key of
-        GLFW.SpecialKey sk -> atomically $ writeTChan eventsChan (SKey { skey = sk, isDown = (state == GLFW.Press) })
---      GLFW.SpecialKey GLFW.ESC -> charCallback '\033' state
---      GLFW.SpecialKey GLFW.BACKSPACE -> charCallback '\08' state
---      GLFW.SpecialKey GLFW.DEL   -> charCallback '\0177' state
---      GLFW.SpecialKey GLFW.LEFT  -> charCallback '\0208' state
---      GLFW.SpecialKey GLFW.RIGHT -> charCallback '\0214' state
---      GLFW.SpecialKey GLFW.UP    -> charCallback '\0213' state
---      GLFW.SpecialKey GLFW.DOWN  -> charCallback '\0200' state
-        _ -> return ()
+  let charCallback char state = atomically $ writeTChan eventsChan (Character char)
+  let keyCallBack  key  state = do
+      lshift <- isKeyPressed (GLFW.SpecialKey GLFW.LSHIFT)
+      lctrl  <- isKeyPressed (GLFW.SpecialKey GLFW.LCTRL)
+      lalt   <- isKeyPressed (GLFW.SpecialKey GLFW.LALT)
+      rshift <- isKeyPressed (GLFW.SpecialKey GLFW.RSHIFT)
+      rctrl  <- isKeyPressed (GLFW.SpecialKey GLFW.RCTRL)
+      ralt   <- isKeyPressed (GLFW.SpecialKey GLFW.RALT)
+      atomically $ writeTChan eventsChan (Key { key = key, isDown = (state == GLFW.Press),
+                                   modifiers = (lshift || rshift, lctrl || rctrl, lalt || ralt) })
+  
   GLFW.charCallback $= charCallback 
   GLFW.keyCallback  $= keyCallBack
   GLFW.enableSpecial GLFW.KeyRepeat
@@ -489,13 +488,11 @@ combineRegion operator a b =
 ---------------------------
 
 data Event = Key {
-               char :: Char,
-               isDown :: Bool
+               key :: GLFW.Key,
+               isDown :: Bool,
+               modifiers :: (Bool, Bool, Bool) -- Shift, Control, Alt
              }
-           | SKey {
-               skey :: GLFW.SpecialKey,
-               isDown :: Bool
-             }
+           | Character Char -- Character events in GLFW only emit when pressed.
            | Button {
               pt :: Point,
               isLeft :: Bool,
