@@ -6,7 +6,7 @@ by Conal Elliot.
 > module Euterpea.IO.MUI.UIMonad where
 
 > import Euterpea.IO.MUI.SOE
-> import Euterpea.IO.MIDI.MidiIO (Message, DeviceID, Time)
+> import Control.SF.AuxFunctions (Time)
 
 > import Control.Monad.Fix
 > import Control.Concurrent.MonadIO

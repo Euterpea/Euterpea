@@ -58,5 +58,6 @@ module Euterpea.IO.MUI
 import Euterpea.IO.MUI.UIMonad
 import Euterpea.IO.MUI.UISF
 import Euterpea.IO.MUI.Widget
+import Euterpea.IO.MUI.MidiWidgets
 import Euterpea.IO.MUI.SOE (Color (..))
 import Euterpea.IO.MUI.InstrumentWidgets

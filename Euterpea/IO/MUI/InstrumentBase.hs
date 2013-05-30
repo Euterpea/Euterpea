@@ -9,6 +9,7 @@ import Euterpea.IO.MUI.SOE
 import Euterpea.IO.MUI.UIMonad
 import Euterpea.IO.MUI.UISF
 import Euterpea.IO.MUI.Widget
+import Euterpea.IO.MUI.MidiWidgets (musicToMsgs)
 import Euterpea.IO.MIDI
 import Euterpea.Music.Note.Music hiding (transpose)
 import Euterpea.Music.Note.Performance
