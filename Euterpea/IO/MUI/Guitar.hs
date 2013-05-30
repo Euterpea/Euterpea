@@ -15,9 +15,6 @@ import qualified Graphics.UI.GLFW as GLFW
 import Data.Maybe
 import qualified Data.Char as Char
 
-import System.IO.Unsafe
-debug s x = unsafePerformIO (print s) `seq` x
-
 --Note, only valid for standard US keyboards:
 --Also, this is an ugly hack that can't stay
 --it's mostly to test the new key events
