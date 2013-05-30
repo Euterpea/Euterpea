@@ -11,7 +11,28 @@ import Control.SF.AuxFunctions
 import Control.Arrow
 import Euterpea.IO.MUI.InstrumentBase
 import qualified Codec.Midi as Midi
+import qualified Graphics.UI.GLFW as GLFW
 import Data.Maybe
+import qualified Data.Char as Char
+
+import System.IO.Unsafe
+debug s x = unsafePerformIO (print s) `seq` x
+
+--Note, only valid for standard US keyboards:
+--Also, this is an ugly hack that can't stay
+--it's mostly to test the new key events
+toUpper :: Char -> Char
+toUpper c = case lookup c keyMap of
+                Just c' -> c'
+                Nothing -> Char.toUpper c
+            where keyMap = [('`', '~'), ('1', '!'), ('2', '@'), ('3', '#'), ('4', '$'),
+                            ('5', '%'), ('6', '^'), ('7', '&'), ('8', '*'), ('9', '('),
+                            ('0', ')'), ('-', '_'), ('=', '+'), ('[', '{'), (']', '}'),
+                            ('|', '\\'), ('\'', '\"'), (';', ':'), ('/', '?'), ('.', '>'),
+                            (',', '<')]
+
+isUpper :: Char -> Bool
+isUpper c = toUpper c == c
 
 -- first fret's width and height
 fw,fh,tw,th :: Int
@@ -66,15 +87,23 @@ mkKey c kt =
         process ((kd,(kb,_)),(ctx,evt)) = ((kb'', notation kd), kb /= kb'') where
             kb' = if isJust (pressed kd) then kb { song = fromJust $ pressed kd } else kb
             kb'' = case evt of
-                UIEvent (Key c' down) -> if c == c' then kb' { keypad = down, vel = 127 } else kb'
-                UIEvent (Button pt True down) -> case (mouse kb', down, pt `inside` box) of
-                    (False, True, True) -> kb' { mouse = True,  vel = getVel pt box }
-                    (True, False, True) -> kb' { mouse = False, vel = getVel pt box }
-                    otherwise -> kb'
-                UIEvent (MouseMove pt) -> if pt `inside` box then kb' else kb' { mouse = False }
+                UIEvent (Key (GLFW.CharKey c') down (shift,_,_)) ->
+                    if detectKey c' shift
+                    then kb' { keypad = down, vel = 127 }
+                    else kb'
+                UIEvent (Button pt True down) ->
+                    case (mouse kb', down, pt `inside` box) of
+                        (False, True, True) -> kb' { mouse = True,  vel = getVel pt box }
+                        (True, False, True) -> kb' { mouse = False, vel = getVel pt box }
+                        otherwise -> kb'
+                UIEvent (MouseMove pt) ->
+                    if pt `inside` box
+                    then kb'
+                    else kb' { mouse = False }
                 otherwise -> kb'
                 where box = bounds ctx
                       getVel (u,v) ((x,y),(w,h)) = 127 - round (87 * (abs (fromIntegral u - fromIntegral (2 * x + w) / 2) / (fromIntegral w / 2)))
+                      detectKey c' s = toUpper c == toUpper c' && isUpper c == s -- This line should be more robust
 
         outputProj st = (fst st, st)
 
@@ -83,7 +112,7 @@ mkKeys _ [] = proc _ -> returnA -< Nothing
 mkKeys free ((c,kt,ap):ckas) = proc (pluck, instr) -> do
     msg <- unique <<< mkKey c kt -< getKeyData ap instr
     let on  = maybe False isKeyPlay msg
-        ret | pluck     = if on then [(ap,True, maybe 127 vel msg)] else [(free,True, 127)]
+        ret | pluck     = if on then [(ap, True, maybe 127 vel msg)] else [(free, True, 127)]
             | not pluck = [(ap, False, maybe 0 vel msg)]
     msgs <- mkKeys free ckas -< (pluck, instr)
     returnA -< fmap (const ret) msg ~++ msgs
@@ -105,7 +134,8 @@ pluckString c = mkWidget False nullLayout draw (const nullSound) (const id) proc
     process (s,(ctx,evt)) = (s', s /= s') where
         s' = case evt of
             UIEvent (Button pt True down) -> down
-            UIEvent (Key c' down) -> c == c' && down
+            UIEvent (Key (GLFW.CharKey c') down _) ->
+                down && c == c'
             otherwise -> s
 
 guitar :: GuitarKeyMap -> Midi.Channel -> UISF (InstrumentData,EMM) EMM
