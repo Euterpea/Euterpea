@@ -7,7 +7,7 @@
 > import Euterpea.IO.MUI.UISF
 > import Euterpea.IO.MUI.Widget
 > import Euterpea.IO.MIDI.MidiIO
-> import Control.SF.AuxFunctions (SEvent, DeltaT, mergeE, 
+> import Control.SF.AuxFunctions (SEvent, DeltaT, (~++),
 >                                 eventBuffer, BufferControl, BufferEvent(..))
 
 > import Control.Arrow
@@ -69,7 +69,7 @@ That said, perhaps checkGroup should just return the list of true values ...
 >       d:ds -> do
 >           m  <- midiIn   -< d
 >           ms <- midiInM' -< ds
->           returnA -< mergeE (++) m ms
+>           returnA -< m ~++ ms
 >
 > midiInM :: UISF ([(DeviceID, Bool)]) (SEvent [MidiMessage])
 > midiInM = arr (map fst . filter snd) >>> midiInM'
@@ -110,17 +110,19 @@ widget returns a flat that is True if the buffer is empty and False
 if the buffer is full (meaning that items are still being played).
 
 > midiOutB :: UISF (DeviceID, SEvent [(DeltaT, MidiMessage)]) Bool
-> midiOutB = proc (devID, msgs) -> do
->   (out, b) <- eventBuffer -< (fmap AddDataToEnd msgs, True, 1)
->   midiOut -< (devID, out)
->   returnA -< b
+> midiOutB = second (arr $ \e -> (fmap AddDataToEnd e, True, 1)) >>> midiOutB'
 
 
 > midiOutB' :: UISF (DeviceID, BufferControl MidiMessage) Bool
 > midiOutB' = proc (devID, bc) -> do
 >   (out, b) <- eventBuffer -< bc
->   midiOut -< (devID, out)
+>   let extraMsgs = case bc of
+>           (Just Clear, _, _) -> Just clearMsgs
+>           (Just (SkipAhead _), _, _) -> Just clearMsgs
+>           _ -> Nothing
+>   midiOut -< (devID, extraMsgs ~++ out)
 >   returnA -< b
+>  where clearMsgs = map (\c -> Std (ControlChange c 123 0)) [0..15]
 
 
 The musicToMsgs function bridges the gap between a Music1 value and
