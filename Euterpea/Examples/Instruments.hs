@@ -1,20 +1,32 @@
 {-# LANGUAGE Arrows #-}
 module Euterpea.Examples.Instruments where
-import Euterpea
 import Control.SF.AuxFunctions -- for ~++
+import Euterpea
 
 -- Here is a demonstration of the guitar and piano widgets available in Euterpea.
 
 instrumentDemo :: IO ()
 instrumentDemo = runUIEx (1038,706) "Instrument Demo" $ proc _ -> do
     devId <- selectOutput -< ()
+    -- The song player is a standard component that plays back a music value. The string is used
+    -- as a display name.
     song <- songPlayer [("Sonata In C", tempo 2 sonataInC), ("Frere Jaques", tempo (2/3) fjfj)] -< ()
+    -- The InstrumentData structure holds the settings for each instrument.
+    -- If you want to be able to change these settings at runtime, a structure like this is necessary
+    -- addNotation presents a checkbox that allows the user to toggle the display of pitch classes
+    -- on the instruements. In this example, a single settings variable is used.
     rec settings' <- addNotation -< settings
         settings <- hold defaultInstrumentData -< Just settings'
-    guitar1 <- guitar sixString 1 -< (settings, Just [])
+    -- The guitar UISF takes in a keymap (sixString is the only one available at the moment) and
+    -- a midi channel. Any midi messages passed into the guitar will be coerced to that channel.
+    guitar1 <- guitar sixString 1 -< (settings, Nothing)
+    -- Select instrument takes in a channel and an initial midi instrument, 0 is Grand Piano, 25 is steel guitar.
+    -- As the slider is changed, it prepends midi messages to its input to change the instrument on the given
+    -- channel.
     outG <- selectInstrument 1 25 -< guitar1
     piano1 <- piano defaultMap0 0 -< (settings, song)
     outP <- selectInstrument 0 0 -< piano1
+    -- ~++ attempts to concatenate Maybe Lists, using Nothing as though it were []
     midiOut -< (devId, outG ~++ outP)
 
 -- The exposition of Mozart's Sonata in C, the "Easy Sonata"
