@@ -3,17 +3,19 @@
 module Control.SF.AuxFunctions (
     SEvent, Time, DeltaT, 
     ArrowTime, time, 
+    constA, 
     edge, 
     accum, unique, 
     hold, now, 
-    mergeE, 
+    mergeE, (~++), 
+    concatA, 
     delay, vdelay, fdelay, 
     vdelayC, fdelayC, 
     timer, genEvents, 
     BufferEvent (..), BufferControl, eventBuffer, 
     
-    (=>>), (->>), (.|.), (~++),
-    snapshot, snapshot_,
+    (=>>), (->>), (.|.), 
+    snapshot, snapshot_, 
 
     toMSF, toRealTimeMSF, 
     async, 
@@ -73,6 +75,10 @@ class ArrowTime a where
 -- Useful SF Utilities (Mediators)
 --------------------------------------
 
+-- | constA is an arrowized version of const
+constA  :: Arrow a => c -> a b c
+constA = arr . const
+
 -- | edge generates an event whenever the Boolean input signal changes
 --   from False to True -- in signal processing this is called an ``edge
 --   detector,'' and thus the name chosen here.
@@ -113,6 +119,10 @@ mergeE _       le@(Just _) Nothing     = le
 mergeE _       Nothing     re@(Just _) = re
 mergeE resolve (Just l)    (Just r)    = Just (resolve l r)
 
+-- | A nice infix operator for merging event lists
+(~++) :: SEvent [a] -> SEvent [a] -> SEvent [a]
+(~++) = mergeE (++)
+
 -- | Returns n samples of type b from the input stream at a time, 
 --   updating after k samples.  This function is good for chunking 
 --   data and is a critical component to fftA
@@ -121,6 +131,12 @@ quantize n k = proc d -> do
     rec (ds,c) <- init ([],0) -< (take n (d:ds), c+1)
     returnA -< if c >= n && c `mod` k == 0 then Just ds else Nothing
 
+concatA :: Arrow a => [a b c] -> a [b] [c]
+concatA [] = arr $ const []
+concatA (sf:sfs) = proc (b:bs) -> do
+    c <- sf -< b
+    cs <- concatA sfs -< bs
+    returnA -< (c:cs)
 
 --------------------------------------
 -- Delays and Timers
@@ -514,7 +530,3 @@ nav n l | n < 0 = nav (n+1) (snd $ prev l)
 llToList :: LensList a -> [a]
 llToList (e, l) = e ++ l
 -}
-
--- A nice infix operator for permissively merging lists
-(~++) :: Maybe [a] -> Maybe [a] -> Maybe [a]
-(~++) = mergeE (++)

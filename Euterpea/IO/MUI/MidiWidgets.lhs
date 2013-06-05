@@ -1,3 +1,4 @@
+
 > {-# LANGUAGE DoRec, Arrows, TupleSections #-}
 
 > module Euterpea.IO.MUI.MidiWidgets where
@@ -17,7 +18,7 @@
 > import Euterpea.IO.MIDI.GeneralMidi (toGM)
 > import Euterpea.Music.Note.Performance (Music1, Event (..), perform, defPMap, defCon)
 > import Euterpea.Music.Note.Music (InstrumentName)
-> import Data.List (nub, findIndex, sortBy)
+> import Data.List (nub, elemIndex, sortBy)
 
 
 ============================================================
@@ -63,15 +64,14 @@ can easily apply (map fst . filter snd) to make the conversion.
 That said, perhaps checkGroup should just return the list of true values ...
 
 > midiInM' :: UISF [DeviceID] (SEvent [MidiMessage])
-> midiInM' = proc bs -> do
->   case bs of
->       [] -> returnA -< Nothing
->       d:ds -> do
->           m  <- midiIn   -< d
->           ms <- midiInM' -< ds
->           returnA -< m ~++ ms
+> midiInM' = proc bs -> case bs of
+>   [] -> returnA -< Nothing
+>   d:ds -> do
+>       m  <- midiIn   -< d
+>       ms <- midiInM' -< ds
+>       returnA -< m ~++ ms
 >
-> midiInM :: UISF ([(DeviceID, Bool)]) (SEvent [MidiMessage])
+> midiInM :: UISF [(DeviceID, Bool)] (SEvent [MidiMessage])
 > midiInM = arr (map fst . filter snd) >>> midiInM'
 
 
@@ -86,12 +86,11 @@ Perhaps it is, but this still seems odd.  Also, I apply the same type
 changes here.
 
 > midiOutM' :: UISF ([DeviceID], SEvent [MidiMessage]) ()
-> midiOutM' = proc (bs, e) -> do
->   case bs of
->       [] -> returnA -< ()
->       d:ds -> do
->           midiOut   -< (d,  e)
->           midiOutM' -< (ds, e)
+> midiOutM' = proc (bs, e) -> case bs of
+>   [] -> returnA -< ()
+>   d:ds -> do
+>       midiOut   -< (d,  e)
+>       midiOutM' -< (ds, e)
 
 > midiOutM :: UISF ([(DeviceID, Bool)], SEvent [MidiMessage]) ()
 > midiOutM = first (arr (map fst . filter snd)) >>> midiOutM'
@@ -144,7 +143,7 @@ since the last event. The arguments are as follows:
 > musicToMsgs inf is m = 
 >     let p = perform defPMap defCon m -- obtain the performance
 >         instrs = if null is && not inf then nub $ map eInst p else is
->         chan e = 1 + case findIndex (==eInst e) instrs of 
+>         chan e = 1 + case elemIndex (eInst e) instrs of 
 >                          Just i -> i
 >                          Nothing -> error ("Instrument "++show (eInst e)++
 >                                     "is not assigned to a channel.")                               
