@@ -76,10 +76,10 @@ These fuctions are various shortcuts for creating UISFs.
 The types pretty much say it all for how they work.
 
 > mkUISF :: (a -> (CTX, Focus, Time, UIEvent) -> (Layout, DirtyBit, Focus, Action, ControlData, b)) -> UISF a b
-> mkUISF f = pipe (\a -> UI $ (\cfa -> return $ f a cfa))
+> mkUISF f = pipe (\a -> UI (return . f a))
 
 > mkUISF' :: (a -> (CTX, Focus, Time, UIEvent) -> IO (Layout, DirtyBit, Focus, Action, ControlData, b)) -> UISF a b
-> mkUISF' f = pipe (\a -> UI $ f a)
+> mkUISF' f = pipe (UI . f)
 
 > expandUISF :: UISF a b -> a -> (CTX, Focus, Time, UIEvent) -> IO (Layout, DirtyBit, Focus, Action, ControlData, (b, UISF a b))
 > {-# INLINE expandUISF #-}
@@ -87,18 +87,12 @@ The types pretty much say it all for how they work.
 
 > compressUISF :: (a -> (CTX, Focus, Time, UIEvent) -> IO (Layout, DirtyBit, Focus, Action, ControlData, (b, UISF a b))) -> UISF a b
 > {-# INLINE compressUISF #-}
-> compressUISF f = MSF sf
->   where
->     sf a = UI mf
->       where
->         mf cfa = f a cfa
+> compressUISF f = MSF (UI . f)
 
 > transformUISF :: (UI (c, UISF b c) -> UI (c, UISF b c)) -> UISF b c -> UISF b c
-> transformUISF f (MSF sf) = MSF sf'
->   where
->     sf' a = do
->       (c, nextSF) <- f (sf a)
->       return (c, transformUISF f nextSF)
+> transformUISF f (MSF sf) = MSF $ \a -> do
+>   (c, nextSF) <- f (sf a)
+>   return (c, transformUISF f nextSF)
 
 > initialIOAction :: IO x -> (x -> UISF a b) -> UISF a b
 > initialIOAction = initialAction . liftIO

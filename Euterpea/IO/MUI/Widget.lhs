@@ -13,7 +13,7 @@ The monadic UI concept is borrowed from Phooey by Conal Elliott.
 > import Euterpea.IO.MUI.SOE
 > import Euterpea.IO.MUI.UIMonad
 > import Euterpea.IO.MUI.UISF
-> import Control.SF.AuxFunctions (Time, SEvent, timer, edge, delay)
+> import Control.SF.AuxFunctions (Time, SEvent, timer, edge, concatA, constA, delay)
 
 > import Control.Arrow
 
@@ -162,7 +162,7 @@ left, right, end, home, delete, and backspace special keys.
 >     drawCursor (True, i) (w,h) = 
 >         let n = (w - padding * 2) `div` 8
 >             linew = padding + i*8
->         in if linew > w then nullGraphic else withColor Black $
+>         in  whenG (linew <= w) $ withColor Black $
 >             line (linew, padding) (linew, 16+padding)
 >     xoffset = fst . fst . bounds
 
@@ -176,17 +176,16 @@ Title frames a UI by borders, and displays a static title text.
 > title label sf = compressUISF (modsf sf)
 >   where
 >     (tw, th) = (length label * 8, 16)
->     drawit ((x, y), (w, h)) g = 
+>     drawit ((x, y), (w, h)) = 
 >       withColor Black (text (x + 10, y) label)
 >       // withColor' bg (block ((x + 8, y), (tw + 4, th)))
 >       // box marked ((x, y + 8), (w, h - 16)) 
->       // g
 >     modsf sf a (ctx@(CTX _ bbx@((x,y), (w,h)) _),f,t,inp) = do
 >       (l,db,f',action,ts,(v,nextSF)) <- expandUISF sf a (CTX TopDown ((x + 4, y + 20), (w - 8, h - 32))
 >                                                         False, f, t, inp)
 >       let d = l { hFixed = hFixed l + 8, vFixed = vFixed l + 36, 
 >                   minW = max (tw + 20) (minW l), minH = max 36 (minH l) }
->       return (d, db, f', (\(g, s) -> (drawit bbx g, s)) action, ts, (v,compressUISF (modsf nextSF)))
+>       return (d, db, f', (\(g, s) -> (drawit bbx // g, s)) action, ts, (v,compressUISF (modsf nextSF)))
 
 
 ------------
@@ -276,19 +275,13 @@ It has a static label as well as an initial state.
 --------------------
  | Checkbox Group | 
 --------------------
-
-The checkGroup widget creates a group of check boxes that
-all send to the same output stream. It takes a list of 
-labels for the check boxes.
+The checkGroup widget creates a group of check boxes that all send 
+their outputs to the same output stream. It takes a static list of 
+labels for the check boxes and assumes they all start unchecked.
 
 > checkGroup :: [String] -> UISF () [Bool]
-> checkGroup (s:ss) = proc _ -> do
->     c <- checkbox s False -< ()
->     cs <- checkGroup ss -< ()
->     returnA -< (c:cs)
-> checkGroup [] = proc _ -> do
->     returnA -< []
-
+> checkGroup ss = constA (repeat ()) >>> 
+>                 concatA (zipWith checkbox ss (repeat False))
 
 
 -------------------
@@ -386,8 +379,9 @@ but the first one performs better for some reason.  I'm not sure why ...
 > realtimeGraph :: RealFrac a => Layout -> Time -> Color -> UISF [(a,Time)] ()
 > realtimeGraph layout hist color = arr ((),) >>> first getTime >>>
 >   mkWidget ([(0,0)],0) layout draw (const nullSound) (,) process (\s -> ((), s))
->   where draw ((x,y), (w, h)) _ (lst,t) = translateGraphic (x,y) $ 
->           if null lst then nullGraphic else withColor color $ polyline (map (adjust t) lst)
+>   where draw _              _ ([],        _) = nullGraphic
+>         draw ((x,y), (w,h)) _ (lst@(_:_), t) = translateGraphic (x,y) $ 
+>           withColor color $ polyline (map (adjust t) lst)
 >           where adjust t (i,t0) = (truncate $ fromIntegral w * (hist + t0 - t) / hist,
 >                                    buffer + truncate (fromIntegral (h - 2*buffer) * (1 + i)/2))
 >                 buffer = truncate $ fromIntegral h / 10
@@ -395,16 +389,6 @@ but the first one performs better for some reason.  I'm not sure why ...
 >         removeOld t ((i,t0):is) = if t0+hist>=t then (i,t0):is else removeOld t is
 >         process (((t,is),(lst,_)), _) = ((removeOld t (lst ++ is), t), True)
 
- realtimeGraph :: RealFrac a => Layout -> Time -> Color -> UISF (Time, [(a,Time)]) ()
- realtimeGraph layout hist color = proc (t, is) -> do
-   rec lst <- delay [(0,0)] -< removeOld t (lst ++ is)
-   canvas' layout draw -< if null lst then Nothing else Just (lst, t)
-   where removeOld _ [] = []
-         removeOld t ((i,t0):is) = if t0+hist>=t then (i,t0):is else removeOld t is
-         draw (lst,t) (w,h) = withColor color $ polyline (map (adjust t) lst) where
-           adjust t (i,t0) = (truncate $ fromIntegral w * (hist + t0 - t) / hist,
-                              buffer + truncate (fromIntegral (h - 2*buffer) * (1 - i)))
-           buffer = truncate $ fromIntegral h / 10
 
 
 ---------------
@@ -432,17 +416,6 @@ the first one performs better for some reason.
 >                 mymap f (Just lst@(_:_)) = f lst
 >                 mymap _ _ = nullGraphic
 
- histogram :: RealFrac a => Layout -> UISF (SEvent [a]) ()
- histogram layout = canvas' layout draw where
-   draw lst (w,h) = maybeEmptyList nullGraphic (polyline . mkPts) lst where
-       mkPts l  = zip (xs $ length l) (map adjust . normalize . reverse $ l)
-       xs n     = reverse $ map truncate [0,(fromIntegral w / fromIntegral (n-1))..(fromIntegral w)]
-       adjust i = buffer + truncate (fromIntegral (h - 2*buffer) * (1 - i))
-       normalize lst = map (/m) lst where m = maximum lst
-       maybeEmptyList :: b -> ([a] -> b) -> [a] -> b
-       maybeEmptyList _ f lst@(_:_) = f lst
-       maybeEmptyList b _ [] = b
-       buffer = truncate $ fromIntegral h / 10
 
 --------------
  | List Box | 
@@ -482,9 +455,11 @@ of the list (simply indicating no choice selected).
 >           Button pt True True -> pt2index pt
 >           Key (SpecialKey DOWN) True _ -> min (i+1) (length lst - 1)
 >           Key (SpecialKey UP)   True _ -> max (i-1) 0
+>           Key (SpecialKey HOME) True _ -> 0
+>           Key (SpecialKey END)  True _ -> length lst - 1
 >           _ -> i
 >         ((_,y),_) = bounds ctx
->         pt2index (px,py) = (py-y) `div` lineheight
+>         pt2index (_px,py) = (py-y) `div` lineheight
 
 
 ============================================================
@@ -546,9 +521,9 @@ The mkSlider widget builder is useful in the creation of all sliders.
 >     draw b@((x,y), (w, h)) inFocus (val, _) = 
 >       let p@(mx,my) = val2pt val (rotR b b)
 >       in box popped (rotR (p, (tw, th)) b)
->          // (if inFocus then box marked (rotR (p, (tw-2, th-2)) b) else nullGraphic)
->          // (withColor' bg $ block $ rotR ((mx + 2, my + 2), (tw - 4, th - 4)) b)
->          // (box pushed $ rotR (bar (rotR b b)) b)
+>          // whenG inFocus (box marked $ rotR (p, (tw-2, th-2)) b)
+>          // withColor' bg (block $ rotR ((mx + 2, my + 2), (tw - 4, th - 4)) b)
+>          // box pushed (rotR (bar (rotR b b)) b)
 >     process ((val, s), (ctx, evt)) = ((val', s'), val /= val')
 >       where
 >         (val', s') = case evt of
@@ -605,7 +580,7 @@ used in cases with stretchy layouts.
 > canvas' layout draw = mkWidget Nothing layout drawit (const nullSound)
 >                       (,) process (\s -> ((), s))
 >   where
->     drawit (pt, dim) _ ea = maybe nullGraphic (\a -> translateGraphic pt $ draw a dim) ea
+>     drawit (pt, dim) _ = maybe nullGraphic (\a -> translateGraphic pt $ draw a dim)
 >     process ((ea, a'), _) = case ea of
 >       Just a  -> (Just a, True)
 >       Nothing -> (a',     False)
@@ -621,9 +596,6 @@ must be focusable.  The focusable function below achieves this.
 Making a widget focusable makes it accessible to tabbing and allows 
 it to see any mouse button clicks and keystrokes when it is actually 
 in focus.
-
-focusable :: UISF a b -> UISF a b
-focusable = id
 
 > focusable :: UISF a b -> UISF a b
 > focusable widget = proc x -> do
@@ -641,14 +613,15 @@ focusable = id
 >                                                                else (SetFocusTo (myid+1), False)
 >           (_, _, _) -> (focus, hasFocus)
 >         focus' = if hasFocus' then HasFocus else NoFocus
->         inp' = if hasFocus' then (case inp of 
->               Key (SpecialKey TAB) True _-> NoUIEvent
->               _ -> inp)
->                else (case inp of 
->               Button pt _ True -> NoUIEvent
->               Character  _ -> NoUIEvent
->               Key _ _ _ -> NoUIEvent
->               _ -> inp)
+>         withFocusInp = case inp of 
+>           Key (SpecialKey TAB) True _-> NoUIEvent
+>           _ -> inp
+>         noFocusInp   = case inp of 
+>           Button pt _ True -> NoUIEvent
+>           Character{}      -> NoUIEvent
+>           Key{}            -> NoUIEvent
+>           _                -> inp
+>         inp' = if hasFocus' then withFocusInp else noFocusInp
 >         redraw = hasFocus /= hasFocus'
 >     in do (l, db, _, act, tids, (b, w')) <- expandUISF w a (ctx, (myid,focus'), t, inp')
 >           return (l, db || redraw, (myid+1,f), act, tids, ((b, hasFocus'), compressUISF (h w')))
