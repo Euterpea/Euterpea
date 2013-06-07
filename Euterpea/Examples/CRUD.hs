@@ -52,7 +52,7 @@ main = crud
 crudUISF :: Database NameEntry -> UISF () ()
 crudUISF initnamesDB = proc _ -> do
   rec
-    fStr <- leftRight $ label "Filter text: " >>> textbox "" -< fStr
+    fStr <- leftRight $ label "Filter text: " >>> textboxE "" -< Nothing
     (i, db, fdb, nameStr, surnStr) <- (| leftRight (do
         (i, db, fdb) <- (| topDown (do
             rec i <- listbox -< (fdb, i')
@@ -60,10 +60,10 @@ crudUISF initnamesDB = proc _ -> do
                 let fdb = filter (filterFun fStr) db
             returnA -< (i, db, fdb)) |)
         (nameStr, surnStr) <- (| topDown (do
-            rec nameStr <- leftRight $ label "Name:    " >>> textbox "" -< nameStr'
-                surnStr <- leftRight $ label "Surname: " >>> textbox "" -< surnStr'
-                let nameStr' = if previ == i' then nameStr else firstName ((filter (filterFun fStr) db') `at` i')
-                    surnStr' = if previ == i' then surnStr else lastName  ((filter (filterFun fStr) db') `at` i')
+            rec nameStr <- leftRight $ label "Name:    " >>> textboxE "" -< nameStr'
+                surnStr <- leftRight $ label "Surname: " >>> textboxE "" -< surnStr'
+                let nameStr' = if previ == i then Nothing else Just $ firstName ((filter (filterFun fStr) db') `at` i')
+                    surnStr' = if previ == i then Nothing else Just $ lastName  ((filter (filterFun fStr) db') `at` i')
             returnA -< (nameStr, surnStr)) |)
         returnA -< (i, db, fdb, nameStr, surnStr)) |)
     buttons <- leftRight $ (edge <<< button "Create") &&& 

@@ -8,7 +8,7 @@
 > import Euterpea.IO.MUI.UISF
 > import Euterpea.IO.MUI.Widget
 > import Euterpea.IO.MIDI.MidiIO
-> import Control.SF.AuxFunctions (SEvent, DeltaT, (~++),
+> import Control.SF.AuxFunctions (SEvent, DeltaT, constA, (~++),
 >                                 eventBuffer, BufferControl, BufferEvent(..))
 
 > import Control.Arrow
@@ -42,16 +42,13 @@ of MidiMessages and sends the MidiMessages to the device.
 >   return $ fmap (\(_t, ms) -> map Std ms) m
  
 > midiOut :: UISF (DeviceID, SEvent [MidiMessage]) ()
-> midiOut = mkUISF aux 
->   where
->     aux (dev, mmsg) (_,foc,_t,_) = (nullLayout, False, foc, action, nullCD, ())
->       where
->         action = justSoundAction $ do
->           valid <- isValidOutputDevice dev 
->           when valid $ case mmsg of
->                 Just msgs -> outputMidi dev >>
->                              mapM_ (\m -> deliverMidiEvent dev (0, m)) msgs
->                 Nothing   -> outputMidi dev
+> midiOut = arr eventizeInput >>> uisfSinkE f >>> constA () where
+>   eventizeInput (_, Nothing) = Nothing
+>   eventizeInput (dev, Just ms) = Just (dev, ms)
+>   f (dev, ms) = do
+>       valid <- isValidOutputDevice dev 
+>       when valid $ outputMidi dev >>
+>                    mapM_ (\m -> deliverMidiEvent dev (0, m)) ms
 
  
 The midiInM widget takes input from multiple devices and combines 

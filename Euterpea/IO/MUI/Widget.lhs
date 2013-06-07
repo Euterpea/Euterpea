@@ -37,30 +37,60 @@ And a nice way to make a graphic under only certain conditions
 > whenG :: Bool -> Graphic -> Graphic
 > whenG b g = if b then g else nullGraphic
 
-A helper function to make stateful Widgets easier to write.
+mkWidget is a helper function to make stateful widgets easier to write.  
+In essence, it breaks down the idea of a widget into 4 constituent 
+components: state, layout, computation, and drawing.
 
-> mkWidget :: s ->                                  -- initial state
->         Layout ->                                 -- layout
->         (Rect -> Bool -> s -> Graphic) ->         -- drawing routine
->         (s -> Sound) ->                           -- sound routine
->         (a -> s -> s1) ->                         -- input injection
->         ((s1, (CTX, UIEvent)) -> (s2, DirtyBit)) -> -- computation
->         (s2 -> (b, s)) ->                         -- output projection
->         UISF a b
-> mkWidget i layout draw buzz inj comp prj = proc a -> do
+As mkWidget allows for making stateful widgets, the first parameter is 
+simply the initial state.
+
+The layout is the static layout that this widget will use.  It 
+cannot be dependent on any streaming arguments, but a layout can have 
+``stretchy'' sides so that it can expand/shrink to fit an area.  Learn 
+more about making layouts in UIMonad's UI Layout section -- specifically, 
+check out the makeLayout function and the LayoutType data type.
+
+The computation is where the logic of the widget is held.  This 
+function takes as input the streaming argument a, the widget's state, 
+a Rect of coordinates indicating the area that has been allotted for 
+this widget, and the UIEvent that is triggering this widget's activation 
+(see the definition of UIEvent in SOE).  The output consists of the 
+streaming output, the new state, and the dirty bit, which represents 
+whether the widget needs to be redrawn.
+
+Lastly, the drawing routine takes the same Rect as the computation, a 
+Bool that is true when this widget is in focus and false otherwise, 
+and the current state of the widget (technically, this state is the 
+one freshly returned from the computation).  Its output is the Graphic 
+that this widget should display.
+
+> mkWidget :: s                                 -- initial state
+>          -> Layout                            -- layout
+>          -> (a -> s -> Rect -> UIEvent ->     -- computation
+>              (b, s, DirtyBit))
+>          -> (Rect -> Bool -> s -> Graphic)    -- drawing routine
+>          -> UISF a b
+> mkWidget i layout comp draw = proc a -> do
 >   rec s  <- delay i -< s'
->       (y, s') <- mkUISF aux -< inj a s
->   returnA -< y
+>       (b, s') <- mkUISF aux -< (a, s)
+>   returnA -< b
 >   --loop $ second (delay i) >>> arr (uncurry inj) >>> mkUISF aux
 >     where
->       aux s1 (ctx,f,t,inp) = (layout, db, f, action, nullCD, (y, s'))
+>       aux (a,s) (ctx,f,t,e) = (layout, db, f, justGraphicAction g, nullCD, (b, s'))
 >         where
->           (s2, db) = comp (s1, (ctx, inp))
->           (y, s') = prj s2
->           action = (draw bbx (snd f == HasFocus) `cross` buzz) s'
->           bbx = bounds ctx
->           cross f g x = (f x, g x)
+>           rect = bounds ctx
+>           (b, s', db) = comp a s rect e
+>           g = draw rect (snd f == HasFocus) s'
 
+Occasionally, one may want to display a non-interactive graphic in 
+the UI: mkBasicWidget facilitates this.  It takes a layout and a 
+simple drawing routine and produces a non-interacting widget.
+
+> mkBasicWidget :: Layout               -- layout
+>               -> (Rect -> Graphic)    -- drawing routine
+>               -> UISF a a
+> mkBasicWidget layout draw = mkUISF $ \a (ctx, f, _, _) ->
+>   (layout, False, f, justGraphicAction (draw $ bounds ctx), nullCD, a)
 
 ============================================================
 ========================= Widgets ==========================
@@ -72,13 +102,11 @@ A helper function to make stateful Widgets easier to write.
 Labels are always left aligned and vertically centered.
 
 > label :: String -> UISF a a
-> label s = mkUISF aux
+> label s = mkBasicWidget layout draw
 >   where
 >     (minw, minh) = (length s * 8 + padding * 2, 16 + padding * 2)
->     d = makeLayout (Fixed minw) (Fixed minh)
->     drawit ((x, y), (w, h)) = withColor Black $ 
->       text (x + padding, y + padding) s
->     aux a (ctx,f,_,_) = (d, False, f, justGraphicAction $ drawit (bounds ctx), nullCD, a)
+>     layout = makeLayout (Fixed minw) (Fixed minh)
+>     draw ((x, y), (w, h)) = withColor Black $ text (x + padding, y + padding) s
 
 -----------------
  | Display Box | 
@@ -87,13 +115,11 @@ DisplayStr is an output widget showing the instantaneous value of
 a signal of strings.
 
 > displayStr :: UISF String ()
-> displayStr = mkWidget "" d draw (const nullSound) (,) 
->   (\((v, v'), (_, _)) -> (v, v /= v'))
->   (\s -> ((), s))
+> displayStr = mkWidget "" d (\v v' _ _ -> ((), v, v /= v')) draw
 >   where
 >     minh = 16 + padding * 2
 >     d = makeLayout (Stretchy 8) (Fixed minh)
->     draw b@(p@(x,y), (w, h)) _ s = 
+>     draw b@((x,y), (w, h)) _ s = 
 >       let n = (w - padding * 2) `div` 8
 >       in  withColor Black (text (x + padding, y + padding) (take n s))
 >           // box pushed b 
@@ -127,17 +153,25 @@ However, it uses delay internally, so there should be no fear of a blackhole.
 The textbox widget supports mouse clicks and typing as well as the 
 left, right, end, home, delete, and backspace special keys.
 
-> textbox :: String -> UISF String String
-> textbox startingVal = focusable $ 
+> textboxE :: String -> UISF (SEvent String) String
+> textboxE startingVal = proc ms -> do
+>   rec s' <- delay startingVal -< ts
+>       let s = maybe s' id ms
+>       ts <- textbox -< maybe s id ms
+>   returnA -< ts
+
+> textbox :: UISF String String
+> textbox = focusable $ 
 >   conjoin $ proc s -> do
 >     inFocus <- isInFocus -< ()
 >     k <- getEvents -< ()
 >     ctx <- getCTX -< ()
->     rec (s', i) <- delay (startingVal, 0) -< if inFocus then update s i ctx k else (s, i)
+>     rec let (s', i) = if inFocus then update s iPrev ctx k else (s, iPrev)
+>         iPrev <- delay 0 -< i
 >     displayStr -< seq i s'
->     b <- timer -< 0.5
+>     inf <- delay False -< inFocus
+>     b <- if inf then timer -< 0.5 else returnA -< Nothing
 >     b' <- edge -< not inFocus --For use in drawing the cursor
->     iPrev <- delay 0 -< i     --Also for use in drawing the cursor
 >     rec willDraw <- delay True -< willDraw'
 >         let willDraw' = maybe willDraw (const $ not willDraw) b --if isJust b then not willDraw else willDraw
 >     canvas' displayLayout drawCursor -< case (inFocus, b, b', i == iPrev) of
@@ -210,8 +244,7 @@ Thus, it looks like a button, but it behaves more like a checkbox.
 
 > genButton :: Bool -> String -> UISF () Bool
 > genButton sticky l = focusable $ 
->   mkWidget False d draw (const nullSound) (const id)
->        (if sticky then processSticky else processRegular) (\x -> (x,x))
+>   mkWidget False d (if sticky then processSticky else processRegular) draw
 >   where
 >     (tw, th) = (8 * length l, 16) 
 >     (minw, minh) = (tw + padding * 2, th + padding * 2)
@@ -222,18 +255,18 @@ Thus, it looks like a button, but it behaves more like a checkbox.
 >       in withColor Black (text (x', y') l) 
 >          // whenG inFocus (box marked b)
 >          // box (if down then pushed else popped) b
->     processRegular (s, (ctx, evt)) = (s', s /= s')
+>     processRegular _ s b evt = (s', s', s /= s')
 >       where 
 >         s' = case evt of
 >           Button _ True down -> case (s, down) of
 >             (False, True) -> True
 >             (True, False) -> False
 >             _ -> s
->           MouseMove pt       -> (pt `inside` bounds ctx) && s
+>           MouseMove pt       -> (pt `inside` b) && s
 >           Key (SpecialKey ENTER) down _ -> down
 >           Key (CharKey ' ') down _ -> down
 >           _ -> s
->     processSticky (s, (_ctx, evt)) = (s', s /= s')
+>     processSticky _ s _ evt = (s', s', s /= s')
 >       where 
 >         s' = case evt of
 >           Button _ True True -> not s
@@ -373,12 +406,9 @@ The signal function then takes an input stream of time as well as
 at once, we use [] rather than SEvent for the type.
 The values in the (value,time) event pairs should be between -1 and 1.
 
-The below two implementation of realtimeGraph produce the same output, 
-but the first one performs better for some reason.  I'm not sure why ...
-
 > realtimeGraph :: RealFrac a => Layout -> Time -> Color -> UISF [(a,Time)] ()
 > realtimeGraph layout hist color = arr ((),) >>> first getTime >>>
->   mkWidget ([(0,0)],0) layout draw (const nullSound) (,) process (\s -> ((), s))
+>   mkWidget ([(0,0)],0) layout process draw
 >   where draw _              _ ([],        _) = nullGraphic
 >         draw ((x,y), (w,h)) _ (lst@(_:_), t) = translateGraphic (x,y) $ 
 >           withColor color $ polyline (map (adjust t) lst)
@@ -387,7 +417,7 @@ but the first one performs better for some reason.  I'm not sure why ...
 >                 buffer = truncate $ fromIntegral h / 10
 >         removeOld _ [] = []
 >         removeOld t ((i,t0):is) = if t0+hist>=t then (i,t0):is else removeOld t is
->         process (((t,is),(lst,_)), _) = ((removeOld t (lst ++ is), t), True)
+>         process (t,is) (lst,_) _ _ = ((), (removeOld t (lst ++ is), t), True)
 
 
 
@@ -397,16 +427,13 @@ but the first one performs better for some reason.  I'm not sure why ...
 The histogram widget creates a histogram of the input map.  It assumes 
 that the elements are to be displayed linearly and evenly spaced.
 
-Similar to realtimeGraph above, these two histograms are the same, but 
-the first one performs better for some reason.
-
 > histogram :: RealFrac a => Layout -> UISF (SEvent [a]) ()
 > histogram layout = 
->   mkWidget Nothing layout draw (const nullSound) inj process (\s -> ((), s))
->   where inj inp prev = maybe prev Just inp
->         process (Nothing, _) = (Nothing, False)
->         process (Just a,  _) = (Just a, True)
->         draw ((x,y), (w, h)) _ = translateGraphic (x,y) . mymap (polyline . mkPts)
+>   mkWidget Nothing layout process draw
+>   where process Nothing Nothing  _ _ = ((), Nothing, False)
+>         process Nothing (Just a) _ _ = ((), Just a, False) --TODO check if this should be True
+>         process (Just a) _       _ _ = ((), Just a, True)
+>         draw (xy, (w, h)) _ = translateGraphic xy . mymap (polyline . mkPts)
 >           where mkPts l  = zip (xs $ length l) (map adjust . normalize . reverse $ l)
 >                 xs n     = reverse $ map truncate [0,(fromIntegral w / fromIntegral (n-1))..(fromIntegral w)]
 >                 adjust i = buffer + truncate (fromIntegral (h - 2*buffer) * (1 - i))
@@ -427,9 +454,7 @@ selected entry.  Note that the index can be greater than the length
 of the list (simply indicating no choice selected).
 
 > listbox :: (Eq a, Show a) => UISF ([a], Int) Int
-> listbox = focusable $ delay (-1) <<< mkWidget 
->   ([], -1) layout draw (const nullSound) (,)
->   process (\(lst,i) -> (i, (lst,i)))
+> listbox = focusable $ mkWidget ([], -1) layout process draw >>> delay (-1)
 >   where
 >     layout = makeLayout (Stretchy 80) (Stretchy 16)
 >     -- takes the rectangle to draw in and a tuple of the list of choices and the index selected
@@ -447,18 +472,17 @@ of the list (simply indicating no choice selected).
 >                      // withColor Blue (block ((x,y),(w,lineheight)))
 >                 else withColor Black (text (x + padding, y + padding) (take n (show v))))
 >                 // genTextGraphic ((x,y+lineheight),(w,h-lineheight)) (i - 1) vs
->     process :: Eq a => ((([a], Int),([a], Int)), (CTX, UIEvent)) -> (([a], Int), Bool)
->     process (((lst,i), olds), (ctx, inp)) = 
->       ((lst,i'), olds /= (lst, i'))
+>     process :: Eq a => ([a], Int) -> ([a], Int) -> Rect -> UIEvent -> (Int, ([a], Int), Bool)
+>     process (lst,i) olds bbx e = (i', (lst, i'), olds /= (lst, i'))
 >         where
->         i' = case inp of
+>         i' = case e of
 >           Button pt True True -> pt2index pt
 >           Key (SpecialKey DOWN) True _ -> min (i+1) (length lst - 1)
 >           Key (SpecialKey UP)   True _ -> max (i-1) 0
 >           Key (SpecialKey HOME) True _ -> 0
 >           Key (SpecialKey END)  True _ -> length lst - 1
 >           _ -> i
->         ((_,y),_) = bounds ctx
+>         ((_,y),_) = bbx
 >         pt2index (_px,py) = (py-y) `div` lineheight
 
 
@@ -481,11 +505,11 @@ returns whether the toggle is being clicked.
 >        -> (Rect -> Bool -> s -> Graphic)  -- The drawing routine
 >        -> UISF s Bool
 > toggle iState layout draw = focusable $ 
->   mkWidget iState layout draw (const nullSound) (,) process id
+>   mkWidget iState layout process draw
 >   where
->     process ((s,s'), (ctx, evt)) = ((on,s), s /= s')
+>     process s s' _ e = (on, s, s /= s')
 >       where 
->         on = case evt of
+>         on = case e of
 >           Button pt True True -> True
 >           Key (SpecialKey ENTER) True _ -> True
 >           Key (CharKey ' ') True _ -> True
@@ -504,8 +528,7 @@ The mkSlider widget builder is useful in the creation of all sliders.
 >          -> a                         -- The initial value for the slider
 >          -> UISF () a
 > mkSlider hori val2pos pos2val jump val0 = focusable $ 
->   mkWidget (val0, Nothing) d draw (const nullSound) (const id)
->        process (\s -> (fst s, s))
+>   mkWidget (val0, Nothing) d process draw
 >   where
 >     rotP p@(x,y) ((bx,by),_) = if hori then p else (bx + y - by, by + x - bx)
 >     rotR r@(p@(x,y),(w,h)) bbx = if hori then r else (rotP p bbx, (h,w))
@@ -518,13 +541,13 @@ The mkSlider widget builder is useful in the creation of all sliders.
 >       in (bx + p + padding, by + 8 - th `div` 2 + padding) 
 >     bar ((x,y),(w,h)) = ((x + padding + tw `div` 2, y + 6 + padding), 
 >                          (w - tw - padding * 2, 4))
->     draw b@((x,y), (w, h)) inFocus (val, _) = 
+>     draw b inFocus (val, _) = 
 >       let p@(mx,my) = val2pt val (rotR b b)
 >       in box popped (rotR (p, (tw, th)) b)
 >          // whenG inFocus (box marked $ rotR (p, (tw-2, th-2)) b)
 >          // withColor' bg (block $ rotR ((mx + 2, my + 2), (tw - 4, th - 4)) b)
 >          // box pushed (rotR (bar (rotR b b)) b)
->     process ((val, s), (ctx, evt)) = ((val', s'), val /= val')
+>     process _ (val, s) b evt = (val', (val', s'), val /= val')
 >       where
 >         (val', s') = case evt of
 >           Button pt' True down -> let pt = rotP pt' bbx in
@@ -544,7 +567,7 @@ The mkSlider widget builder is useful in the creation of all sliders.
 >           Key (SpecialKey HOME)  True _ -> (pos2val 0  (bw - 2 * padding - tw), s)
 >           Key (SpecialKey END)   True _ -> (pos2val bw (bw - 2 * padding - tw), s)
 >           _ -> (val, s)
->         bbx@((bx,by),(bw,bh)) = let b = bounds ctx in rotR b b
+>         bbx@((bx,by),(bw,bh)) = rotR b b
 >         bar' = let ((x,y),(w,h)) = bar bbx in ((x,y-4),(w,h+8))
 >         target = (val2pt val bbx, (tw, th)) 
 >         ptDiff (x, y) val = 
@@ -564,26 +587,22 @@ event because we only want to redraw the screen when the input
 is there.
 
 > canvas :: Dimension -> UISF (SEvent Graphic) ()
-> canvas (w, h) = mkWidget nullGraphic layout draw (const nullSound)
->                 (,) process (\s -> ((), s)) 
+> canvas (w, h) = mkWidget nullGraphic layout process draw 
 >   where
 >     layout = makeLayout (Fixed w) (Fixed h)
 >     draw ((x,y),(w,h)) _ = translateGraphic (x,y)
->     process ((u, g), _) = case u of
->       Just g' -> (g', True)
->       Nothing -> (g,  False)
+>     process (Just g) _ _ _ = ((), g, True)
+>     process Nothing  g _ _ = ((), g, False)
 
 canvas' uses a layout and a graphic generator which allows canvas to be 
 used in cases with stretchy layouts.
 
 > canvas' :: Layout -> (a -> Dimension -> Graphic) -> UISF (SEvent a) ()
-> canvas' layout draw = mkWidget Nothing layout drawit (const nullSound)
->                       (,) process (\s -> ((), s))
+> canvas' layout draw = mkWidget Nothing layout process drawit
 >   where
 >     drawit (pt, dim) _ = maybe nullGraphic (\a -> translateGraphic pt $ draw a dim)
->     process ((ea, a'), _) = case ea of
->       Just a  -> (Just a, True)
->       Nothing -> (a',     False)
+>     process (Just a) _ _ _ = ((), Just a, True)
+>     process Nothing  a _ _ = ((), a, False)
 
 
 ============================================================

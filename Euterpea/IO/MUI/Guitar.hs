@@ -57,59 +57,62 @@ drawString down ((x, y), (w, h)) =
           midY = y + h `div` 2
 
 -- Draws just the guitar head, not interactive
-          
+
 drawHead :: Int -> UISF () ()
-drawHead 0 = proc _ -> returnA -< ()
-drawHead n = topDown $  proc _ -> do
-    ui <- mkUISF aux -< ()
-    ui' <- drawHead (n-1) -< ()
-    returnA -< ()
-    where action ((x,y),(w,h)) = withColor Black $ line (x, y + h `div` 2 + 5 * (3 - n)) (x + w, y + h `div` 2)
-          aux x (ctx,f,t,inp) = (Layout 0 0 fw fh fw fh, True, f, justGraphicAction $ action (bounds ctx), nullCD, ())
+drawHead n = topDown $ constA (repeat ()) >>>
+             concatA (map (\k -> mkBasicWidget layout (draw k)) [n,n-1..1]) >>>
+             constA ()
+    where draw k ((x,y),(w,h)) = withColor Black $ line (x, y + h `div` 2 + 5 * (3 - k)) (x + w, y + h `div` 2)
+          layout = Layout 0 0 fw fh fw fh
+
+
+--drawHead :: Int -> UISF () ()
+--drawHead 0 = proc _ -> returnA -< ()
+--drawHead n = topDown $  proc _ -> do
+--    ui <- mkBasicWidget layout draw -< ()
+--    ui' <- drawHead (n-1) -< ()
+--    returnA -< ()
+--    where draw ((x,y),(w,h)) = withColor Black $ line (x, y + h `div` 2 + 5 * (3 - n)) (x + w, y + h `div` 2)
+--          layout = Layout 0 0 fw fh fw fh
 
 -- Given a character to respond to, and which fret it is, draws and displays a single interactive fret
           
 mkKey :: Char -> KeyType -> UISF KeyData KeyState
-mkKey c kt =
-    mkWidget (KeyState False False False 127, Nothing) d draw (const nullSound) inputInj process outputProj where
-        d = Layout 0 0 0 minh minw minh
-        (minh, minw) = (fh, fw - kt * 3)
+mkKey c kt = mkWidget iState d process draw where
+    iState = (KeyState False False False 127, Nothing)
 
-        draw rect inFocus (kb, showNote) =
-            let isDown = isKeyDown kb
-                box@((x,y),(w,h)) = rect
-                x' = x + (w - tw) `div` 2 + if isDown then 0 else -1
-                y' = y + h `div` 5 + (h - th) `div` 2 + if isDown then 0 else -1
-                drawNotation s = withColor Red $ text (x' + (1 - length s) * tw `div` 2, y' - th) s
-             in (withColor Blue $ text (x', y') [c]) //
-                (maybe nullGraphic drawNotation showNote) //
-                (drawString isDown box) //
-                drawFret popped box
+    d = Layout 0 0 0 minh minw minh
+    (minh, minw) = (fh, fw - kt * 3)
 
-        inputInj = (,)
+    draw box@((x,y),(w,h)) _ (kb, showNote) =
+        let isDown = isKeyDown kb
+            x' = x + (w - tw) `div` 2 + if isDown then 0 else -1
+            y' = y + h `div` 5 + (h - th) `div` 2 + if isDown then 0 else -1
+            drawNotation s = withColor Red $ text (x' + (1 - length s) * tw `div` 2, y' - th) s
+         in withColor Blue (text (x', y') [c]) 
+            // maybe nullGraphic drawNotation showNote 
+            // drawString isDown box 
+            // drawFret popped box
 
-        process ((kd,(kb,_)),(ctx,evt)) = ((kb'', notation kd), kb /= kb'') where
-            kb' = if isJust (pressed kd) then kb { song = fromJust $ pressed kd } else kb
-            kb'' = case evt of
-                Key (CharKey c') down ms ->
-                    if detectKey c' (shift ms)
-                    then kb' { keypad = down, vel = 127 }
-                    else kb'
-                Button pt True down ->
-                    case (mouse kb', down, pt `inside` box) of
-                        (False, True, True) -> kb' { mouse = True,  vel = getVel pt box }
-                        (True, False, True) -> kb' { mouse = False, vel = getVel pt box }
-                        otherwise -> kb'
-                MouseMove pt ->
-                    if pt `inside` box
-                    then kb'
-                    else kb' { mouse = False }
-                otherwise -> kb'
-                where box = bounds ctx
-                      getVel (u,v) ((x,y),(w,h)) = 127 - round (87 * (abs (fromIntegral u - fromIntegral (2 * x + w) / 2) / (fromIntegral w / 2)))
-                      detectKey c' s = toUpper c == toUpper c' && isUpper c == s -- This line should be more robust
-
-        outputProj st = (fst st, st)
+    process kd (kb,_) box evt = (kb'', (kb'', notation kd), kb /= kb'') where
+        kb' = if isJust (pressed kd) then kb { song = fromJust $ pressed kd } else kb
+        kb'' = case evt of
+            Key (CharKey c') down ms ->
+                if detectKey c' (shift ms)
+                then kb' { keypad = down, vel = 127 }
+                else kb'
+            Button pt True down ->
+                case (mouse kb', down, pt `inside` box) of
+                    (False, True, True) -> kb' { mouse = True,  vel = getVel pt box }
+                    (True, False, True) -> kb' { mouse = False, vel = getVel pt box }
+                    otherwise -> kb'
+            MouseMove pt ->
+                if pt `inside` box
+                then kb'
+                else kb' { mouse = False }
+            otherwise -> kb'
+            where getVel (u,v) ((x,y),(w,h)) = 127 - round (87 * (abs (fromIntegral u - fromIntegral (2 * x + w) / 2) / (fromIntegral w / 2)))
+                  detectKey c' s = toUpper c == toUpper c' && isUpper c == s -- This line should be more robust
 
 -- Makes all of the frets on a string, returning the combined list of their outputs
         
@@ -136,13 +139,13 @@ mkString (frets, freePitch, p) = leftRight $ proc insData -> do
 -- There should really be built-in behavior for this sort of thing
     
 pluckString :: Char -> UISF () Bool
-pluckString c = mkWidget False nullLayout draw (const nullSound) (const id) process (\x -> (x,x)) where
-    draw b@((x,y),(w,h)) inFocus down =
+pluckString c = mkWidget False nullLayout process draw where
+    draw ((x,y),(w,h)) _ down =
         let x' = x + (w - tw) `div` 2 + if down then 0 else -1
             y' = y + (h - th) `div` 2 + if down then 0 else -1
          in withColor (if down then White else Black) $ block ((0,0),(10,10))
 
-    process (s,(ctx,evt)) = (s', s /= s') where
+    process _ s _ evt = (s', s', s /= s') where
         s' = case evt of
             Button pt True down -> down
             Key (CharKey c') down _ ->
