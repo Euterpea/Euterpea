@@ -9,7 +9,7 @@ for line in content:
 
 print "Generating test script..."
 
-hs = open('test.hs','w')
+hs = open('RunAllTests.hs','w')
 
 hs.write("module Main where\n")
 hs.write("import Text.Show.Functions\n")
@@ -33,10 +33,9 @@ hs.close()
 
 print "Compiling test script..."
 
-subprocess.call(["ghc", "-outputdir", "tmp", "test.hs"])
+subprocess.call(["ghc", "-outputdir", "tmp", "RunAllTests.hs"])
 shutil.rmtree("tmp")
-os.unlink("test.hs")
 
 print "Running tests..."
 
-subprocess.call(["test.exe"])
+subprocess.call(["RunAllTests.exe"])
