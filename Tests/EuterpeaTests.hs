@@ -119,10 +119,10 @@ prop_Axiom_11_3_3b m1 m2 =
         tempo r (m1 :=: m2) =~= tempo r m1 :=: tempo r m2
     where types = (m1 :: Music Pitch, m2 :: Music Pitch)
 
-prop_Axiom_11_3_3c r m1 m2 = transpose r (m1 :+: m2) == transpose r m1 :+: transpose r m2
+prop_Axiom_11_3_3c r m1 m2 = transpose r (m1 :+: m2) =~= transpose r m1 :+: transpose r m2
     where types = (r :: AbsPitch, m1 :: Music Pitch, m2 :: Music Pitch)
 
-prop_Axiom_11_3_3d r m1 m2 = transpose r (m1 :=: m2) == transpose r m1 :=: transpose r m2
+prop_Axiom_11_3_3d r m1 m2 = transpose r (m1 :=: m2) =~= transpose r m1 :=: transpose r m2
     where types = (r :: AbsPitch, m1 :: Music Pitch, m2 :: Music Pitch)
 
 
