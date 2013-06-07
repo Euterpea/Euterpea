@@ -132,47 +132,43 @@ colorKey kt ((x,y), (w,h)) = withColor White $ block ((x, y+bh), (ww, wh-bh)) //
 --   Single-key widget: handles key/mouse input and check if the song is playing
 -- *****************************************************************************
 mkKey :: Char -> KeyType -> UISF KeyData KeyState
-mkKey c kt =
-    mkWidget (KeyState False False False 127, Nothing) d draw (const nullSound) inputInj process outputProj where
-        d = Layout 0 0 0 minh minw minh
-        minw = topW kt
-        minh | isBlack kt = bh
-             | otherwise  = wh
+mkKey c kt = mkWidget iState d process draw where
+    iState = (KeyState False False False 127, Nothing)
 
-        draw rect inFocus (kb, showNote) = 
-            let isDown = isKeyDown kb
-                b'@((x,y),(w,h)) = realBBX rect
-                x' = x + (w - tw) `div` 2 + if isDown then 0 else -1
-                y' = y + h `div` 3 + (h - th) `div` 2 + if isDown then 0 else -1
-                drawNotation s = withColor Red $ text (x'+(1-length s)*tw `div` 2, y'- th + 2) s
-             in withColor (if isBlack kt then White else Black) (text (x',y') [c]) //
-                maybe nullGraphic drawNotation showNote //
-                withColor White (drawBox kt (if isDown then pushed else popped) b') //
-                colorKey kt b'
-        realBBX b@((x,y),(w,h)) = let (w', h') | isBlack kt = (bw,bh)
-                                               | otherwise  = (ww,wh)
-                                   in ((x,y),(w',h'))
+    d = Layout 0 0 0 minh minw minh
+    minw = topW kt
+    minh | isBlack kt = bh
+         | otherwise  = wh
 
-        inputInj = (,)
+    draw rect inFocus (kb, showNote) = 
+        let isDown = isKeyDown kb
+            b@((x,y),(w,h)) = realBBX rect
+            x' = x + (w - tw) `div` 2 + if isDown then 0 else -1
+            y' = y + h `div` 3 + (h - th) `div` 2 + if isDown then 0 else -1
+            drawNotation s = withColor Red $ text (x'+(1-length s)*tw `div` 2, y'- th + 2) s
+         in withColor (if isBlack kt then White else Black) (text (x',y') [c]) 
+            // maybe nullGraphic drawNotation showNote 
+            // withColor White (drawBox kt (if isDown then pushed else popped) b) 
+            // colorKey kt b
+    realBBX ((x,y),(w,h)) = let (w', h') | isBlack kt = (bw,bh)
+                                         | otherwise  = (ww,wh)
+                             in ((x,y),(w',h'))
 
-        process ((kd,(kb,_)),(ctx,evt)) = ((kb'', notation kd), kb /= kb'') where
-            kb'  = if isJust (pressed kd) then kb { song = fromJust $ pressed kd } else kb
-            kb'' = case evt of
-                Key (CharKey c') down ms ->
-                    if detectKey c' (shift ms)
-                    then kb' { keypad = down, vel = 127 }
-                    else kb'
-                Button pt True down -> case (mouse kb', down, insideKey kt pt bbx) of 
-                    (False, True, True) -> kb' { mouse = True,  vel = getVel pt bbx }
-                    (True, False, True) -> kb' { mouse = False, vel = getVel pt bbx }
-                    otherwise -> kb'
-                MouseMove pt -> if insideKey kt pt bbx then kb' else kb' { mouse = False }
+    process kd (kb,_) bbx evt = (kb'', (kb'', notation kd), kb /= kb'') where
+        kb'  = if isJust (pressed kd) then kb { song = fromJust $ pressed kd } else kb
+        kb'' = case evt of
+            Key (CharKey c') down ms ->
+                if detectKey c' (shift ms)
+                then kb' { keypad = down, vel = 127 }
+                else kb'
+            Button pt True down -> case (mouse kb', down, insideKey kt pt bbx) of 
+                (False, True, True) -> kb' { mouse = True,  vel = getVel pt bbx }
+                (True, False, True) -> kb' { mouse = False, vel = getVel pt bbx }
                 otherwise -> kb'
-                where bbx = bounds ctx
-                      getVel (u,v) ((x,y),(w,h)) = 40 + 87 * round ((fromIntegral v - fromIntegral y) / fromIntegral h)
-                      detectKey c' s = toUpper c == toUpper c' && isUpper c == s -- This line should be more robust
-
-        outputProj st = (fst st, st)
+            MouseMove pt -> if insideKey kt pt bbx then kb' else kb' { mouse = False }
+            otherwise -> kb'
+            where getVel (u,v) ((x,y),(w,h)) = 40 + 87 * round ((fromIntegral v - fromIntegral y) / fromIntegral h)
+                  detectKey c' s = toUpper c == toUpper c' && isUpper c == s -- This line should be more robust
 
 -- *****************************************************************************
 --   Group all keys together

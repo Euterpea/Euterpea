@@ -118,11 +118,10 @@ colorDemo = setSize (300, 220) $ title "Color" $ pad (4,0,4,0) $ leftRight $ pro
 -- is pressed.
 textboxdemo :: UISF () ()
 textboxdemo = proc _ -> do
-  rec
-    str <- leftRight $ label "Text: " >>> textbox "" -< str
-    b <- button "Save text to below" -< ()
-    str' <- delay "" -< if b then str else str'
-    leftRight $ label "Saved value: " >>> displayStr -< str'
+  str <- leftRight $ label "Text: " >>> textboxE "" -< Nothing
+  b <- button "Save text to below" -< ()
+  rec str' <- delay "" -< if b then str else str'
+  leftRight $ label "Saved value: " >>> displayStr -< str'
   outA -< ()
 
 -- This is the main demo that incorporates all of the other examples 

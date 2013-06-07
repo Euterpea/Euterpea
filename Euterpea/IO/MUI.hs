@@ -20,7 +20,8 @@ module Euterpea.IO.MUI
   , displayStr          -- :: UISF String ()
   , display             -- :: Show a => UISF a ()
   , withDisplay         -- :: Show b => UISF a b -> UISF a b
-  , textbox             -- :: String -> UISF String String
+  , textboxE            -- :: String -> UISF (Sevent String) String
+  , textbox             -- :: UISF String String
   , title               -- :: String -> UISF a b -> UISF a b
   , button              -- :: String -> UISF () Bool
   , stickyButton        -- :: String -> UISF () Bool

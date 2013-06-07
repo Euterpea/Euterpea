@@ -9,7 +9,7 @@
 >   module Euterpea.IO.MIDI,
 >   module Euterpea.IO.MUI,
 >   -- These 4 lines are from Control.SF.AuxFunctions
->   SEvent, edge, accum, 
+>   SEvent, edge, accum, constA,
 >   unique, hold, now, mergeE, 
 >   delay, vdelay, fdelay, 
 >   timer, genEvents, Time, DeltaT,
