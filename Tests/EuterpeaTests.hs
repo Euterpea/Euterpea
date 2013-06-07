@@ -1,150 +1,157 @@
-{-# OPTIONS -XTypeSynonymInstances #-}
-{-# OPTIONS -XFlexibleInstances #-}
 module EuterpeaTests where
 import Control.Monad
+import Text.Show.Functions
 import Test.QuickCheck
+import EuterpeaInstances
 import Euterpea
+infixr 4 =~=
 
--- Instances and generators for Music-related types and data from Music.hs
+-- Musical equivalence for Pitches, taken from a restriction of the definition from Chapter 11 of HSoM
+-- Will replace with arbitrary pmaps and contexts once the axioms hold for the default set
 
-genPositiveRational :: Gen Rational
-genPositiveRational = liftM abs (arbitrary :: Gen Rational)
+-- Currently suspect that perf is bugged.
 
-genOctave :: Gen Octave
-genOctave = choose (0,9) -- The tenth octave isn't full.
+(=~=) :: Music Pitch -> Music Pitch -> Bool
+mp1 =~= mp2 = perf defPMap defCon (toMusic1 mp1) == perf defPMap defCon (toMusic1 mp2)
 
-genPitch :: Gen Pitch
-genPitch = do
-    pc <- arbitrary
-    oc <- genOctave
-    return (pc,oc)
+-- Tests for Euterpea.Music.Note.Music
 
-genDur :: Gen Dur
-genDur = do
-    num <- choose (0,64) :: Gen Integer
-    den <- choose (1,16) :: Gen Integer
-    return (toRational num / toRational den)
+prop_AbsPitch_Pitch ap = absPitch (pitch ap) == ap
+    where types = ap :: AbsPitch
 
-instance Bounded PitchClass where
-    minBound = Cff
-    maxBound = Bss
+prop_Trans_Composition i j p = trans i (trans j p) == trans (i+j) p
+    where types = (i :: Int, j :: Int, p :: Pitch)
 
-instance Arbitrary PitchClass where
-    arbitrary = arbitraryBoundedEnum
+-- Tests for Euterpea.Music.Note.MoreMusic
 
-instance Arbitrary (Primitive Pitch) where
-    arbitrary = oneof [
-        liftM2 Note genDur genPitch,
-        liftM  Rest genDur]
+prop_Retro_Composition = forAll musicPitchLines $
+    \line -> (retro.retro) line == line
 
-instance Arbitrary (Music Pitch) where
-    arbitrary = song
-        where song = sized song'
-              song' 0 = liftM Prim arbitrary
-              song' n = let submp = song' (n `div` 2)
-                         in oneof [ liftM Prim arbitrary,
-                                    liftM2 (:+:) submp submp,
-                                    liftM2 (:=:) submp submp,
-                                    liftM2 Modify arbitrary submp]
+prop_Invert_Composition = forAll musicPitchLines $
+    \line -> (invert.invert) line == line
 
-instance Arbitrary Control where
-    arbitrary = oneof [
-        liftM Tempo genPositiveRational,
-        liftM Transpose (choose (0,127)),
-        liftM Instrument arbitrary,
-        liftM Phrase (vector 10),
-        liftM Player arbitrary,
-        liftM2 KeySig arbitrary arbitrary]
+prop_RetroInvert_Composition = forAll musicPitchLines $
+    \line -> (retroInvert.invertRetro) line == line
 
-instance Enum Mode where
-    toEnum 0 = Major
-    toEnum 1 = Minor
-    fromEnum Major = 0
-    fromEnum Minor = 1
+prop_Dur_Times_Composition m = forAll positiveIntegers $ \n ->
+    dur (timesM n m) == toRational n * dur m
+    where types = m :: Music Pitch
 
-instance Bounded Mode where
-    minBound = Major
-    maxBound = Minor
+prop_Dur_Take_Composition m = forAll (liftM toRational (choose (0.0, fromRational (dur m)) :: Gen Double)) $ \d ->
+    dur (takeM d m) == d
+    where types = m :: Music Pitch
 
-instance Arbitrary Mode where
-    arbitrary = arbitraryBoundedEnum
+prop_Mmap_Id m = mMap id m == m
+    where types = m :: Music Pitch
 
-instance Arbitrary InstrumentName where
-    arbitrary = oneof [
-        liftM Custom arbitrary,
-        liftM (is !!) (choose (0, length is - 1))]
-        where is = [ AcousticGrandPiano, BrightAcousticPiano, ElectricGrandPiano, HonkyTonkPiano,
-                     RhodesPiano, ChorusedPiano, Harpsichord, Clavinet, Celesta,  Glockenspiel,
-                     MusicBox, Vibraphone, Marimba, Xylophone, TubularBells, Dulcimer,
-                     HammondOrgan, PercussiveOrgan, RockOrgan, ChurchOrgan, ReedOrgan, Accordion,
-                     Harmonica, TangoAccordion, AcousticGuitarNylon, AcousticGuitarSteel,
-                     ElectricGuitarJazz, ElectricGuitarClean , ElectricGuitarMuted, OverdrivenGuitar,
-                     DistortionGuitar, GuitarHarmonics, AcousticBass, ElectricBassFingered,
-                     ElectricBassPicked, FretlessBass, SlapBass1, SlapBass2, SynthBass1, SynthBass2,
-                     Violin, Viola, Cello, Contrabass, TremoloStrings, PizzicatoStrings, OrchestralHarp,
-                     StringEnsemble1, StringEnsemble2, SynthStrings1, SynthStrings2, ChoirAahs, VoiceOohs,
-                     SynthVoice, OrchestraHit, Trumpet, Trombone, Tuba, MutedTrumpet, FrenchHorn,
-                     BrassSection, SynthBrass1, SynthBrass2, SopranoSax, AltoSax, TenorSax, BaritoneSax,
-                     Oboe, Bassoon, EnglishHorn, Clarinet, Piccolo, Flute, Recorder, PanFlute, BlownBottle,
-                     Shakuhachi, Whistle, Ocarina, Lead1Square, Lead2Sawtooth, Lead3Calliope, Lead4Chiff,
-                     Lead5Charang, Lead6Voice, Lead7Fifths, Lead8BassLead, Pad1NewAge, Pad2Warm,
-                     Pad3Polysynth, Pad4Choir, Pad5Bowed, Pad6Metallic, Pad7Halo, Pad8Sweep, FX1Train,
-                     FX2Soundtrack, FX3Crystal, FX4Atmosphere, FX5Brightness, FX6Goblins, FX7Echoes,
-                     FX8SciFi, Sitar, Banjo, Shamisen, Koto, Kalimba, Bagpipe, Fiddle, Shanai, TinkleBell,
-                     Agogo, SteelDrums, Woodblock, TaikoDrum, MelodicDrum, SynthDrum, ReverseCymbal,
-                     GuitarFretNoise, BreathNoise, Seashore, BirdTweet, TelephoneRing, Helicopter,
-                     Applause, Gunshot, Percussion]
+prop_Mmap_Function_Composition f g m = mMap f (mMap g m) == mMap (f.g) m
+    where types = (f :: Pitch -> Pitch, g :: Pitch -> Pitch, m :: Music Pitch)
 
-instance Arbitrary PhraseAttribute where
-    arbitrary = oneof [
-        liftM Dyn arbitrary,
-        liftM Tmp arbitrary,
-        liftM Art arbitrary,
-        liftM Orn arbitrary]
+prop_TimesM_Seq m =
+    forAll positiveIntegers $ \a ->
+    forAll positiveIntegers $ \b ->
+        timesM a m :+: timesM b m =~= timesM (a+b) m
+    where types = m :: Music Pitch
 
-instance Arbitrary Dynamic where
-    arbitrary = oneof [
-        liftM Accent genPositiveRational,
-        liftM Crescendo genPositiveRational,
-        liftM Diminuendo genPositiveRational,
-        liftM StdLoudness arbitrary,
-        liftM Loudness genPositiveRational]
+prop_Mfold_Identity m = mFold Prim (:+:) (:=:) Modify m == m
+    where types = m :: Music Pitch
 
-instance Bounded StdLoudness where
-    minBound = PPP
-    maxBound = FFF
+prop_revM_SelfInverting m = revM (revM m) =~= m
+    where types = m :: Music Pitch
 
-instance Arbitrary StdLoudness where
-    arbitrary = arbitraryBoundedEnum
+-- Tests for Euterpea.Music.Note.Performance
 
-instance Arbitrary Tempo where
-    arbitrary = oneof [
-        liftM Ritardando genPositiveRational,
-        liftM Accelerando genPositiveRational ]
+prop_Perf_Id pmap c m = perf pmap c m == (perform pmap c m, dur m)
+    where types = (pmap :: PMap Note1, c :: Context Note1, m :: Music Note1)
 
-instance Arbitrary Articulation where
-    arbitrary = oneof [
-        liftM Staccato genPositiveRational,
-        liftM Legato   genPositiveRational,
-        liftM Slurred  genPositiveRational,
-        liftM (as !!) (choose (0, length as - 1))]
-        where as = [ Tenuto, Marcato, Pedal, Fermata, FermataDown, Breath, 
-                     DownBow, UpBow, Harmonic, Pizzicato, LeftPizz, 
-                     BartokPizz, Swell, Wedge, Thumb, Stopped ]
+-- Verification of Axioms in HSoM
 
-instance Arbitrary Ornament where
-    arbitrary = oneof [
-        liftM Instruction arbitrary,
-        liftM Head arbitrary,
-        liftM DiatonicTrans (liftM (\x -> x `mod` 12) arbitrary),
-        liftM (os !!) (choose (0, length os - 1))]
-        where os = [ Trill, Mordent, InvMordent, DoubleMordent, Turn,
-                     TrilledTurn, ShortTrill, Arpeggio, ArpeggioUp,
-                     ArpeggioDown ]
+prop_Axiom_11_2_1 m = 
+    forAll tempos $ \d1 ->
+    forAll tempos $ \d2 ->
+        tempo d1 (tempo d2 m) =~= tempo (d1*d2) m
+    where types = m :: Music Pitch
 
-instance Arbitrary NoteHead where
-    arbitrary = liftM (ns !!) (choose (0, length ns - 1))
-        where ns = [ DiamondHead, SquareHead, XHead, TriangleHead,
-                     TremoloHead, SlashHead, ArtHarmonic, NoHead ]
+prop_Axiom_11_2_2 m1 m2 = 
+    forAll tempos $ \r ->
+        tempo r (m1 :+: m2) =~= tempo r m1 :+: tempo r m2
+    where types = (m1 :: Music Pitch, m2 :: Music Pitch)
 
--- Instances and generators for Music-related types and data from MoreMusic.hs
+prop_Axiom_11_2_3 m = tempo 1 m =~= m
+    where types = m :: Music Pitch
+
+prop_Theorem_11_2_1 m1 m2 = forAll tempos $
+    \r -> tempo r m1 :+: m2 =~= tempo r (m1 :+: tempo (1/r) m2)
+
+prop_Axiom_11_3_1a m = 
+    forAll tempos $ \r1 ->
+    forAll tempos $ \r2 ->
+        tempo r1 (tempo r2 m) =~= tempo (r1*r2) m
+    where types = m :: Music Pitch
+
+prop_Axiom_11_3_1b ap1 ap2 m = trans ap1 (trans ap2 m) == trans (ap1+ap2) m
+    where types = (ap1 :: Int, ap2 :: Int, m :: Pitch)
+
+
+prop_Axiom_11_3_2a m = 
+    forAll tempos $ \r1 ->
+    forAll tempos $ \r2 ->
+        (tempo r1 . tempo r2) m =~= (tempo r2 . tempo r1) m
+    where types = m :: Music Pitch
+
+prop_Axiom_11_3_2b p1 p2 m = (trans p1 . trans p2) m == (trans p2 . trans p1) m
+    where types = (p1 :: Int, p2 :: Int, m :: Pitch)
+
+{- tempo and trans are incompatible. I assume you meant transpose? -}
+
+prop_Axiom_11_3_2c p m = 
+    forAll tempos $ \r1 ->
+        (tempo r1 . transpose p) m =~= (transpose p . tempo r1) m
+    where types = m :: Music Pitch
+
+prop_Axiom_11_3_3a m1 m2 = 
+    forAll tempos $ \r ->
+        tempo r (m1 :+: m2) =~= tempo r m1 :+: tempo r m2
+    where types = (m1 :: Music Pitch, m2 :: Music Pitch)
+
+prop_Axiom_11_3_3b m1 m2 = 
+    forAll tempos $ \r ->
+        tempo r (m1 :=: m2) =~= tempo r m1 :=: tempo r m2
+    where types = (m1 :: Music Pitch, m2 :: Music Pitch)
+
+prop_Axiom_11_3_3c r m1 m2 = transpose r (m1 :+: m2) == transpose r m1 :+: transpose r m2
+    where types = (r :: AbsPitch, m1 :: Music Pitch, m2 :: Music Pitch)
+
+prop_Axiom_11_3_3d r m1 m2 = transpose r (m1 :=: m2) == transpose r m1 :=: transpose r m2
+    where types = (r :: AbsPitch, m1 :: Music Pitch, m2 :: Music Pitch)
+
+
+prop_Axiom_11_3_4a m0 m1 m2 = m0 :+: (m1 :+: m2) =~= (m0 :+: m1) :+: m2
+    where types = (m0 :: Music Pitch, m1 :: Music Pitch, m2 :: Music Pitch)
+
+prop_Axiom_11_3_4b m0 m1 m2 = m0 :=: (m1 :=: m2) =~= (m0 :=: m1) :=: m2
+    where types = (m0 :: Music Pitch, m1 :: Music Pitch, m2 :: Music Pitch)
+
+prop_Axiom_11_3_5 m0 m1 = m0 :=: m1 =~= m1 :=: m0
+    where types = (m0 :: Music Pitch, m1 :: Music Pitch)
+
+prop_Axiom_11_3_6a =
+    forAll tempos $ \r ->
+        tempo r (rest 0) =~= rest 0
+
+prop_Axiom_11_3_6b p = transpose p (rest 0) =~= rest 0
+    where types = p :: AbsPitch
+
+prop_Axiom_11_3_6c m = (m :+: rest 0 =~= m) && (m =~= rest 0 :+: m)
+    where types = m :: Music Pitch
+
+prop_Axiom_11_3_6d m = (m :=: rest 0 =~= m) && (m =~= rest 0 :=: m)
+    where types = m :: Music Pitch
+
+{- I couldn't make sense of Axiom 11.3.7 -}
+
+prop_Axiom_11_3_8 m0 m1 m2 m3 =
+    (m0' :+: m1) :=: (m2' :+: m3) =~= (m0' :=: m2') :+: (m1 :=: m3)
+    where types = (m0 :: Music Pitch, m1 :: Music Pitch, m2 :: Music Pitch, m3 :: Music Pitch)
+          m0' = takeM (dur m0) (repeatM m0)
+          m2' = takeM (dur m0) (repeatM m2)
