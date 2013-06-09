@@ -13,7 +13,7 @@
 -- example using arrowized FRP.
 
 
-{-# LANGUAGE Arrows, DoRec #-}
+{-# LANGUAGE Arrows, RecursiveDo #-}
 module Crud where
 import Euterpea
 import Control.Arrow

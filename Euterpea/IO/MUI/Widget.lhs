@@ -6,7 +6,7 @@ GLFW library to provide window and input support.
 
 The monadic UI concept is borrowed from Phooey by Conal Elliott.
 
-> {-# LANGUAGE DoRec, Arrows, TupleSections #-}
+> {-# LANGUAGE RecursiveDo, Arrows, TupleSections #-}
 
 > module Euterpea.IO.MUI.Widget where
 

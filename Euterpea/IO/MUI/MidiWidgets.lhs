@@ -1,5 +1,5 @@
 
-> {-# LANGUAGE DoRec, Arrows, TupleSections #-}
+> {-# LANGUAGE RecursiveDo, Arrows, TupleSections #-}
 
 > module Euterpea.IO.MUI.MidiWidgets where
 

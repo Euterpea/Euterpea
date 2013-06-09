@@ -1,7 +1,7 @@
 A simple Graphical User Interface with concepts borrowed from Phooey
 by Conal Elliot.
 
-> {-# LANGUAGE Arrows, ExistentialQuantification, ScopedTypeVariables, DoRec, CPP, OverlappingInstances, FlexibleInstances, TypeSynonymInstances #-}
+> {-# LANGUAGE Arrows, ExistentialQuantification, ScopedTypeVariables, RecursiveDo, CPP, OverlappingInstances, FlexibleInstances, TypeSynonymInstances #-}
 
 > module Euterpea.IO.MUI.UISF where
 
