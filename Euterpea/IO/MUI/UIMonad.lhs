@@ -1,7 +1,7 @@
 A simple Graphical User Interface with concepts borrowed from Phooey
 by Conal Elliot.
 
-> {-# LANGUAGE RecursiveDo #-}
+> {-# LANGUAGE DoRec #-}
 
 > module Euterpea.IO.MUI.UIMonad where
 
