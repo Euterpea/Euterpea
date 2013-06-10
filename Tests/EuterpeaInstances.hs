@@ -1,16 +1,25 @@
 {-# LANGUAGE TypeSynonymInstances, FlexibleInstances, OverlappingInstances #-}
 module EuterpeaInstances where
 import Control.Monad
+import Data.IORef
 import Test.QuickCheck
-import Euterpea
+import Euterpea hiding (run)
 
--- Instances and generators for Music-related types and data from Euterpea.Music.Note.Music
+-- Specialized generators for tests that must work under particular constraints.
 
 positiveIntegers :: Gen Int
 positiveIntegers = liftM abs (arbitrary :: Gen Int)
 
+smallIntegers :: Gen Int
+smallIntegers = choose (0,1000)
+
 positiveRationals :: Gen Rational
 positiveRationals = liftM ((+1).abs) (arbitrary :: Gen Rational)
+
+unitBoundedRationals :: Gen Rational
+unitBoundedRationals = do
+    num <- choose (-1000,1000) :: Gen Integer
+    return (toRational num / 1000)
 
 octaves :: Gen Octave
 octaves = choose (0,10)
@@ -20,10 +29,21 @@ tempos = do
     num <- positiveRationals
     den <- positiveRationals
     return (num/den)
+    
+genVolume :: Gen Volume
+genVolume = choose (0,127)
+
+genAbsPitch :: Gen AbsPitch
+genAbsPitch = choose (0,127)
+
+musicPitchLines :: Gen (Music Pitch)
+musicPitchLines = liftM line (liftM (map Prim) (listOf (arbitrary :: Gen (Primitive Pitch))))
+
+-- Instances for Music-related types and data from Euterpea.Music.Note.Music
 
 instance Arbitrary Dur where
     arbitrary = do
-        num <- choose (0,64) :: Gen Integer -- perf is bugged in that it crashes when presented with a zero
+        num <- choose (0,64) :: Gen Integer
         den <- choose (1,16) :: Gen Integer
         return (toRational num / toRational den)
 
@@ -48,9 +68,6 @@ instance Arbitrary a => Arbitrary (Primitive a) where
         liftM2 Note arbitrary arbitrary,
         liftM  Rest arbitrary]
 
-musicPitchLines :: Gen (Music Pitch)
-musicPitchLines = liftM line (liftM (map Prim) (listOf (arbitrary :: Gen (Primitive Pitch))))
-
 instance Arbitrary a => Arbitrary (Music a) where
     arbitrary = song
         where song = sized song'
@@ -70,7 +87,7 @@ instance CoArbitrary (Music Pitch) where
 
 instance Arbitrary Control where
     arbitrary = oneof [
-        liftM Tempo positiveRationals,
+        liftM Tempo tempos,
         liftM Transpose (choose (0,127)),
         liftM Instrument arbitrary,
         liftM Phrase (vector 10),
@@ -140,8 +157,8 @@ instance Arbitrary StdLoudness where
 
 instance Arbitrary Tempo where
     arbitrary = oneof [
-        liftM Ritardando positiveRationals,
-        liftM Accelerando positiveRationals ]
+        liftM Ritardando unitBoundedRationals,
+        liftM Accelerando unitBoundedRationals ]
 
 instance Arbitrary Articulation where
     arbitrary = oneof [
@@ -168,7 +185,7 @@ instance Arbitrary NoteHead where
         where ns = [ DiamondHead, SquareHead, XHead, TriangleHead,
                      TremoloHead, SlashHead, ArtHarmonic, NoHead ]
 
--- Instances and generators for Music-related types and data from Euterpea.Music.Note.MoreMusic
+-- Instances for Music-related types and data from Euterpea.Music.Note.MoreMusic
 
 instance Bounded PercussionSound where
     minBound = AcousticBassDrum
@@ -177,12 +194,6 @@ instance Bounded PercussionSound where
 instance Arbitrary PercussionSound where
     arbitrary = arbitraryBoundedEnum
 
-genVolume :: Gen Volume
-genVolume = choose (0,127)
-
-genAbsPitch :: Gen AbsPitch
-genAbsPitch = choose (0,127)
-
 instance Arbitrary NoteAttribute where
     arbitrary = oneof [
         liftM Volume genVolume,
@@ -190,7 +201,7 @@ instance Arbitrary NoteAttribute where
         liftM Dynamics arbitrary,
         liftM Params (listOf arbitrary)]
 
--- Instances and generators for Music-related types and data from Euterpea.Music.Note.Performance
+-- Instances for Music-related types and data from Euterpea.Music.Note.Performance
 -- Where there are defaults in Euterpea, they are being used instead of random instances.
 
 instance Arbitrary Performance where
@@ -199,39 +210,32 @@ instance Arbitrary Performance where
 instance Arbitrary Event where
     arbitrary = return
         Event `ap` positiveRationals -- eTime
-              `ap` arbitrary           -- eInst
-              `ap` genAbsPitch         -- ePitch
-              `ap` arbitrary           -- eDur
-              `ap` genVolume           -- eVol
-              `ap` listOf arbitrary    -- eParams
+              `ap` arbitrary         -- eInst
+              `ap` genAbsPitch       -- ePitch
+              `ap` arbitrary         -- eDur
+              `ap` genVolume         -- eVol
+              `ap` listOf arbitrary  -- eParams
 
 instance Arbitrary (PMap Note1) where
     arbitrary = elements [defPMap]
 
 instance Arbitrary (Context Note1) where
-    arbitrary = elements [defCon]
-
-{- Contexts and Players are peculiar since they need to satisfy axioms.
-
-instance Arbitrary (Context Note1) where
     arbitrary = return 
         Context `ap` positiveRationals -- cTime
-                `ap` arbitrary           -- cPlayer
-                `ap` arbitrary           -- cInst
-                `ap` arbitrary           -- cDur
-                `ap` genAbsPitch         -- cPch
-                `ap` genVolume           -- cVol
-                `ap` arbitrary           -- cKey
+                `ap` arbitrary         -- cPlayer
+                `ap` arbitrary         -- cInst
+                `ap` arbitrary         -- cDur
+                `ap` genAbsPitch       -- cPch
+                `ap` genVolume         -- cVol
+                `ap` arbitrary         -- cKey
 
+{- Players are difficult (if not impossible) to generate since they need to satisfy axioms.
+   In my opinion, we should only worry about testing the players we package with Euterpea,
+   rather than trying to generate random players. Let users test their own additions.
+     -- Alex
+   
+   When fancyPlayer is in the list below, half the tests fail.
 -}
-
+                
 instance Arbitrary (Player Note1) where
     arbitrary = elements [defPlayer, fancyPlayer]
-
-{- Still have to find a good way to generate complicated arbitrary functions
-
-type NoteFun a    =  Context a -> Dur -> a -> Performance
-type PhraseFun a  =  PMap a -> Context a -> [PhraseAttribute]
-                     -> Music a -> (Performance, DurT)
--}
-

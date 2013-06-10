@@ -55,12 +55,13 @@ perf pm
              let  (pf1,d1)  = perf pm c m1
                   (pf2,d2)  = perf pm c m2
              in (merge pf1 pf2, max d1 d2)
-     Modify  (Tempo r)       m  -> perf pm (c {cDur = dt / r})    m
-     Modify  (Transpose p)   m  -> perf pm (c {cPch = k + p})     m
+     Modify  (Tempo r)       m  -> perf pm (c {cDur  = scaleDur dt r})   m
+     Modify  (Transpose p)   m  -> perf pm (c {cPch  = k + p})    m
      Modify  (Instrument i)  m  -> perf pm (c {cInst = i})        m
-     Modify  (KeySig pc mo)  m  -> perf pm (c {cKey = (pc,mo)})   m
+     Modify  (KeySig pc mo)  m  -> perf pm (c {cKey  = (pc,mo)})  m
      Modify  (Player pn)     m  -> perf pm (c {cPlayer = pm pn})  m
      Modify  (Phrase pas)    m  -> interpPhrase pl pm c pas       m
+  where scaleDur dt r = if r == 0 then 0 else dt / r
 type Note1   = (Pitch, [NoteAttribute])
 type Music1  = Music Note1
 

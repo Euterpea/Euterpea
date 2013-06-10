@@ -26,7 +26,10 @@ lineToList _                  =
     error "lineToList: argument not created by function line"
 invert :: Music Pitch -> Music Pitch
 invert m   = 
-  let  l@(Prim (Note _ r) : _)  = lineToList m
+  let  l   = lineToList m
+       l'  = filter (\x -> case x of (Just _) -> True; _ -> False) $ 
+             map (\x -> case x of (Prim (Note _ r)) -> Just r; _ -> Nothing) l
+       r   = if null l' then (C,0) else (\(Just r) -> r) (head l')
        inv (Prim  (Note d p))    = 
                   note d (pitch (2 * absPitch r - absPitch p))
        inv (Prim  (Rest d))      = rest d
