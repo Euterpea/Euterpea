@@ -37,7 +37,7 @@ import Text.Printf
 import EuterpeaTests
 import Control.Concurrent
 
-totalTests = 1000
+totalTests = {}
 
 -- Thank you, Rosetta Code!
 colorStrLn :: ColorIntensity -> Color -> ColorIntensity -> Color -> String -> IO ()

@@ -1,17 +1,17 @@
-Axiom_11_3_8:
-*** Failed! Falsifiable (after 2 tests and 6 shrinks): 
-<function>
-Context {cTime = 77 % 16, cPlayer = Player Fancy, cInst = FX3Crystal, cDur = 57 % 1, cPch = 26, cVol = 96, cKey = (Ess,Major)}
-Prim (Rest (53 % 15)) :+: Prim (Rest (51 % 7))
-Prim (Rest (21 % 2)) :+: Prim (Rest (1 % 8))
-Modify (Phrase [Tmp (Ritardando ((-447) % 500)),Dyn (Accent (69 % 10)),Art (Legato (29 % 11))]) (Prim (Note (27 % 2) (As,7)))
-Prim (Note (45 % 1) (Af,7))
-
-
 revM_SelfInverting:
-*** Failed! Falsifiable (after 60 tests and 6 shrinks): 
+*** Failed! Falsifiable (after 21 tests and 5 shrinks): 
 <function>
-Context {cTime = 39 % 1, cPlayer = Player Fancy, cInst = ElectricGuitarJazz, cDur = 4 % 1, cPch = 114, cVol = 26, cKey = (Dff,Minor)}
-((((Prim (Rest (11 % 3)) :=: Prim (Rest (22 % 3))) :+: (Prim (Note (28 % 1) (Fss,1)) :+: Prim (Note (18 % 1) (Css,4)))) :+: Modify (Phrase []) (Prim (Note (10 % 13) (Css,6)))) :=: Modify (Phrase [Tmp (Ritardando (157 % 200))]) (Modify (Transpose 48) (Prim (Rest (9 % 4))))) :+: Prim (Rest (4 % 1))
+Context {cTime = 69 % 13, cPlayer = Player Fancy, cInst = Banjo, cDur = 11 % 1, cPch = 63, cVol = 119, cKey = (Gf,Major)}
+(Modify (Phrase [Tmp (Ritardando (89 % 200)),Dyn (Accent (17 % 8))]) (Modify (Phrase [Art (Slurred (16 % 5)),Art BartokPizz,Tmp (Ritardando (383 % 1000)),Tmp (Accelerando (567 % 1000))]) (Prim (Rest (5 % 1))) :=: (Prim (Note (32 % 1) (Ess,5)) :+: Prim (Note (14 % 1) (Eff,10)))) :=: ((Modify (Transpose 115) (Prim (Note (55 % 1) (Fss,8))) :=: Prim (Rest (5 % 7))) :+: (Prim (Rest (47 % 11)) :+: Prim (Note (63 % 2) (Bss,0))))) :+: ((((Prim (Note (5 % 3) (C,9)) :=: Prim (Rest (47 % 12))) :=: (Prim (Note (64 % 1) (Cs,3)) :+: Prim (Rest (44 % 1)))) :+: Prim (Rest (18 % 5))) :+: (Prim (Rest (23 % 4)) :=: Prim (Note (57 % 1) (As,10))))
+
+
+Axiom_11_3_8:
+*** Failed! Falsifiable (after 9 tests and 19 shrinks): 
+<function>
+Context {cTime = 5 % 1, cPlayer = Player Fancy, cInst = FX8SciFi, cDur = 44 % 15, cPch = 29, cVol = 124, cKey = (Ass,Major)}
+Modify (KeySig Dff Minor) (Modify (Phrase []) (Prim (Rest (11 % 9))))
+Modify (KeySig D Major) (Modify (Transpose 88) (Modify (Tempo (33 % 8)) (Prim (Rest (58 % 9)) :+: Prim (Note (63 % 5) (F,4)))))
+Modify (Phrase [Tmp (Accelerando (6 % 25))]) ((Prim (Note (25 % 3) (Ff,3)) :+: Prim (Note (19 % 3) (Fs,4))) :+: (Prim (Note (23 % 12) (E,6)) :=: Prim (Note (1 % 2) (Bff,2)))) :+: (((Prim (Rest (5 % 4)) :+: Prim (Rest (13 % 4))) :+: Prim (Rest (16 % 7))) :=: Prim (Note (10 % 1) (Css,1)))
+(Prim (Note (58 % 1) (F,7)) :=: (Modify (Tempo (29 % 231)) (Prim (Rest (61 % 12))) :+: Prim (Note (5 % 8) (Cf,7)))) :+: Modify (Phrase []) (Prim (Note (41 % 1) (As,1)) :=: Prim (Note (45 % 8) (Ff,9)))
 
 
