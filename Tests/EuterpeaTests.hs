@@ -177,10 +177,10 @@ prop_Axiom_11_3_6a p c =
 prop_Axiom_11_3_6b p c t = musEquiv p c (transpose t (rest 0)) (rest 0)
     where types = (p :: PMap Note1, c :: Context Note1, t :: AbsPitch)
 
-prop_Axiom_11_3_6c p c m = (musEquiv p c (m :+: rest 0) m) && (musEquiv p c m (rest 0 :+: m))
+prop_Axiom_11_3_6c p c m = musEquiv p c (m :+: rest 0) m && musEquiv p c m (rest 0 :+: m)
     where types = (p :: PMap Note1, c :: Context Note1, m :: Music Pitch)
 
-prop_Axiom_11_3_6d p c m = (musEquiv p c (m :=: rest 0) m) && (musEquiv p c m (rest 0 :=: m))
+prop_Axiom_11_3_6d p c m = musEquiv p c (m :=: rest 0) m && musEquiv p c m (rest 0 :=: m)
     where types = (p :: PMap Note1, c :: Context Note1, m :: Music Pitch)
 
 {- I couldn't make sense of Axiom 11.3.7 -}

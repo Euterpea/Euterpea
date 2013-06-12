@@ -1,7 +1,6 @@
 {-# LANGUAGE TypeSynonymInstances, FlexibleInstances, OverlappingInstances #-}
 module EuterpeaInstances where
 import Control.Monad
-import Data.IORef
 import Test.QuickCheck
 import Euterpea hiding (run)
 
@@ -37,7 +36,7 @@ genAbsPitch :: Gen AbsPitch
 genAbsPitch = choose (0,127)
 
 musicPitchLines :: Gen (Music Pitch)
-musicPitchLines = liftM line (liftM (map Prim) (listOf (arbitrary :: Gen (Primitive Pitch))))
+musicPitchLines = liftM (line . map Prim) (listOf (arbitrary :: Gen (Primitive Pitch)))
 
 -- Instances for Music-related types and data from Euterpea.Music.Note.Music
 
@@ -78,7 +77,7 @@ instance (Arbitrary a, Eq a) => Arbitrary (Music a) where
                                     liftM2 (:=:) submp submp,
                                     liftM2 Modify arbitrary submp]
 
-    shrink m = if m /= m' then [shrink' m] else []
+    shrink m = [shrink' m | m /= m']
         where m' = shrink' m
 
               isUseful (Orn _) = False
@@ -94,16 +93,15 @@ instance (Arbitrary a, Eq a) => Arbitrary (Music a) where
                 | dur mp1 == 0 = shrink' mp2
                 | dur mp2 == 0 = shrink' mp1
                 | otherwise    = shrink' mp1 :=: shrink' mp2
-              shrink' (Modify (Phrase (c:cs)) mp) = if dur mp == 0
-                                                    then (Modify (Phrase (filter isUseful cs)) (rest 0))
-                                                    else (Modify (Phrase (filter isUseful cs)) (shrink' mp))
+              shrink' (Modify (Phrase (_:cs)) mp) = Modify (Phrase (filter isUseful cs))
+                                                    (if dur mp == 0 then rest 0 else shrink' mp)
               shrink' (Modify (Transpose 0) mp) = if dur mp == 0 then rest 0 else shrink' mp
               shrink' (Modify (Instrument _) mp) = if dur mp == 0 then rest 0 else shrink' mp
-              shrink' (Modify (Player pl) mp) = if dur mp == 0 then rest 0 else
-                                                if pl == "Fancy" then Modify (Player pl) (shrink' mp)
-                                                else (shrink' mp)
-              shrink' (Modify (KeySig _ _) mp) = if dur mp == 0 then rest 0 else shrink' mp
-              shrink' (Modify p mp) = if dur mp == 0 then (Modify p (rest 0)) else (Modify p (shrink' mp))
+              shrink' (Modify (Player pl) mp)
+                | dur mp == 0   = rest 0
+                | pl == "Fancy" = Modify (Player pl) (shrink' mp)
+                | otherwise     = shrink' mp
+              shrink' (Modify p mp) = Modify p (if dur mp == 0 then rest 0 else shrink' mp)
               shrink' p             = p
 
 
@@ -112,7 +110,7 @@ instance CoArbitrary (Music Pitch) where
     coarbitrary (Prim (Rest d)) = variant 1 . coarbitrary d
     coarbitrary (mp1 :+: mp2) = variant 2 . coarbitrary mp1 . coarbitrary mp2
     coarbitrary (mp1 :=: mp2) = variant 3 . coarbitrary mp1 . coarbitrary mp2
-    coarbitrary (Modify c mp) = variant 4 . coarbitrary mp -- TODO: Implement CoArbitrary for Control
+    coarbitrary (Modify _ mp) = variant 4 . coarbitrary mp -- TODO: Implement CoArbitrary for Control
 
 instance Arbitrary Control where
     arbitrary = oneof [
