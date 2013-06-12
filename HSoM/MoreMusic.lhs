@@ -122,11 +122,14 @@ lineToList _                  =
 Using this function it is then straightforward to define |invert|:
 \begin{code}
 invert :: Music Pitch -> Music Pitch
-invert m   = 
-  let  l@(Prim (Note _ r) : _)  = lineToList m
-       inv (Prim  (Note d p))    = 
+invert m  =
+  let  l  = lineToList m
+       l' = dropWhile (\x -> case x of (Prim (Rest _)) -> True; _ -> False) l
+       inv r (Prim (Note d p))  =
                   note d (pitch (2 * absPitch r - absPitch p))
-       inv (Prim  (Rest d))      = rest d
+       inv r (Prim (Rest d))    = rest d
+   in  case l' of []                    -> m
+                  (Prim (Note _ p)) : _ -> line (map (inv p) l)
   in line (map inv l)
 \end{code}
 %% invert m     = line (map inv l)
@@ -136,7 +139,7 @@ invert m   =
 %%          inv (Prim (Rest d))      = rest d
 
 \syn{The pattern |l@(Prim (Note _ r) : _)| is called an \emph{as
-    pattern}.  It behaves just like the pattern |Prim (Note _ r) : _|
+    pattern}.  It behaves just like the pattern |Prim (Note _ r) : _| %% There actually isn't an as pattern in invert anymore.
   but additionally binds |l| to the value of a successful match to
   that pattern.  |l| can then be used wherever it is in scope, such as
   in the last line of the function definition.} 

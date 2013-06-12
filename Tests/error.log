@@ -1,144 +1,17 @@
-Test: TimesM_Seq:
-*** Failed! Exception: 'Ratio.%: zero denominator' (after 221 tests): 
+Axiom_11_3_8:
+*** Failed! Falsifiable (after 7 tests and 6 shrinks): 
 <function>
-Context {cTime = 17 % 1, cPlayer = Player Fancy, cInst = Bagpipe, cDur = 0 % 1, cPch = 51, cVol = 23, cKey = (Cf,Major)}
-((Modify (Phrase [Tmp (Accelerando (7 % 200)),Dyn (Accent (50 % 7)),Orn (DiatonicTrans 8),Dyn (Diminuendo (4 % 1)),Orn (Head TremoloHead),Orn (Instruction "[\DEL\DC4\173\139Z\n\v)\DC3N\172\CAN"),Tmp (Ritardando ((-129) % 500)),Art (Legato (27 % 13)),Orn (Head XHead),Orn Turn]) (Prim (Note (11 % 1) (Cf,5))) :+: Prim (Note (55 % 13) (B,3))) :+: Prim (Note (3 % 2) (Df,7))) :=: Modify (Player "8$+\185\&7\SOY\FS\169B-j") (Prim (Rest (54 % 11)))
-460
-987
+Context {cTime = 13 % 4, cPlayer = Player Fancy, cInst = Pad3Polysynth, cDur = 19 % 12, cPch = 45, cVol = 57, cKey = (Cf,Minor)}
+Modify (Tempo (52 % 33)) (Prim (Rest (61 % 9)) :+: (Prim (Rest (22 % 3)) :+: Prim (Note (9 % 2) (E,5))))
+Modify (Tempo (715 % 276)) (Prim (Note (45 % 4) (Es,3)))
+Modify (Phrase [Tmp (Ritardando (58 % 125)),Art (Legato (1 % 1)),Art (Legato (22 % 3))]) (Prim (Rest (61 % 1)) :+: Prim (Rest (3 % 14)))
+(Prim (Rest (5 % 16)) :+: Prim (Rest (29 % 13))) :+: ((Prim (Note (49 % 13) (Fs,0)) :+: Prim (Note (19 % 2) (Dss,9))) :=: (Prim (Note (23 % 12) (As,10)) :+: Prim (Note (21 % 1) (Ass,1))))
 
-Test: revM_SelfInverting:
-*** Failed! Falsifiable (after 56 tests): 
-<function>
-Context {cTime = 31 % 6, cPlayer = Player Fancy, cInst = Harmonica, cDur = 26 % 3, cPch = 125, cVol = 83, cKey = (F,Major)}
-Modify (Player ">\EOT\233\EOTc-ec\\\222Nk]\USP\DLE!\v\173]\197E:\128J\239fPZ\ETX\DC1\NAK_^o") (Modify (Instrument (Custom "\170*z\a")) (Prim (Rest (9 % 5)))) :=: (Modify (Phrase [Art (Staccato (22 % 13)),Art (Staccato (3 % 1)),Art Stopped,Tmp (Accelerando (33 % 250)),Tmp (Accelerando ((-103) % 500)),Orn (Instruction "o\STXj}\250\DC4h\184\150\DC3\ENQrv]!\SIpg)\SIj\193\175K\202\DC1%\221`74[."),Tmp (Ritardando ((-199) % 1000)),Dyn (Crescendo (6 % 1)),Art (Staccato (47 % 8)),Art (Legato (57 % 1))]) (Prim (Note (15 % 16) (Ef,10))) :+: Modify (Phrase [Dyn (Accent (13 % 4)),Dyn (Crescendo (69 % 10)),Art (Slurred (39 % 7)),Dyn (StdLoudness NF),Art (Slurred (23 % 10)),Orn (Head NoHead),Orn (Instruction "-1f\196r"),Art FermataDown,Tmp (Ritardando ((-157) % 500)),Art (Staccato (3 % 1))]) (Modify (Phrase [Tmp (Ritardando ((-289) % 1000)),Art (Slurred (10 % 1)),Orn (Instruction "U"),Art (Slurred (48 % 1)),Dyn (StdLoudness MF),Orn Mordent,Tmp (Accelerando ((-601) % 1000)),Orn Mordent,Tmp (Accelerando ((-521) % 1000)),Tmp (Accelerando ((-27) % 125))]) (Modify (KeySig Ef Major) (Prim (Rest (8 % 1)))) :+: (Modify (Tempo (2 % 7)) (Prim (Note (29 % 6) (As,2))) :+: Modify (Tempo (147 % 292)) (Prim (Note (29 % 4) (Gss,9))))))
 
-Test: Axiom_11_2_1:
-*** Failed! Exception: 'Ratio.%: zero denominator' (after 52 tests): 
+revM_SelfInverting:
+*** Failed! Falsifiable (after 48 tests and 4 shrinks): 
 <function>
-Context {cTime = 30 % 7, cPlayer = Player Fancy, cInst = SynthDrum, cDur = 0 % 1, cPch = 107, cVol = 43, cKey = (Ds,Major)}
-Modify (Transpose 94) ((Prim (Note (14 % 1) (Aff,6)) :=: Modify (Transpose 77) (Prim (Rest (0 % 1)))) :=: Modify (Phrase [Dyn (Diminuendo (70 % 11)),Dyn (StdLoudness PPP),Orn (Head XHead),Orn (Head SquareHead),Tmp (Ritardando (149 % 200)),Dyn (StdLoudness MF),Art Wedge,Tmp (Accelerando ((-19) % 50)),Orn Mordent,Tmp (Accelerando (99 % 1000))]) ((Prim (Rest (23 % 2)) :+: Prim (Rest (2 % 3))) :+: (Prim (Note (59 % 14) (Bf,4)) :+: Prim (Note (8 % 9) (F,4))))) :+: Modify (Player "x\145\CANv>\221f\172\nl\129y\EM#N\230\STX?0'\218\CAN\f\NAK") ((((Prim (Rest (2 % 9)) :+: Prim (Rest (18 % 11))) :+: Modify (Phrase [Tmp (Ritardando ((-309) % 1000)),Dyn (Diminuendo (39 % 5)),Art (Legato (67 % 4)),Orn Arpeggio,Tmp (Ritardando (47 % 250)),Dyn (Diminuendo (68 % 7)),Art (Legato (38 % 7)),Tmp (Accelerando (239 % 250)),Orn (Instruction "\ETX\154[\144^"),Art (Legato (56 % 1))]) (Prim (Note (40 % 11) (Dss,10)))) :=: Prim (Rest (54 % 7))) :=: (((Prim (Rest (16 % 5)) :=: Prim (Note (14 % 3) (Bff,1))) :=: (Prim (Rest (8 % 7)) :+: Prim (Rest (10 % 3)))) :=: ((Prim (Rest (20 % 11)) :+: Prim (Note (5 % 16) (Cff,9))) :+: Prim (Rest (53 % 7)))))
-65 % 74
-13 % 17
+Context {cTime = 47 % 11, cPlayer = Player Fancy, cInst = ChorusedPiano, cDur = 63 % 1, cPch = 92, cVol = 62, cKey = (Ds,Minor)}
+(((Prim (Rest (8 % 9)) :=: Prim (Rest (1 % 1))) :=: (Prim (Rest (49 % 4)) :+: Prim (Note (29 % 16) (G,3)))) :=: Modify (Transpose 103) (Prim (Rest (47 % 5)))) :=: (Modify (Phrase [Dyn (Diminuendo (16 % 15)),Tmp (Ritardando (843 % 1000)),Tmp (Accelerando ((-53) % 250))]) (Modify (Transpose 16) (Prim (Rest (19 % 3)))) :+: (Modify (Phrase [Tmp (Accelerando (467 % 1000)),Dyn (StdLoudness MF),Dyn (Accent (23 % 6)),Art (Slurred (61 % 15)),Dyn (Diminuendo (3 % 1)),Art (Legato (36 % 5))]) (Modify (Tempo (392 % 459)) (Prim (Note (21 % 1) (Fs,2)) :+: Prim (Rest (34 % 11)))) :+: Modify (Tempo (86 % 69)) (Prim (Rest (58 % 9)))))
 
-Test: Axiom_11_2_2:
-*** Failed! Exception: 'Ratio.%: zero denominator' (after 162 tests): 
-<function>
-Context {cTime = 26 % 3, cPlayer = Player Fancy, cInst = Lead5Charang, cDur = 0 % 1, cPch = 36, cVol = 37, cKey = (A,Minor)}
-Modify (Phrase [Art (Slurred (25 % 12)),Orn (Instruction "\a\SOHMMl{\b\154\STX\181jQ\184oK\212\DC2\USX1\CAN\160]\247zDV}Jad\147@\EM\147\197\DEL\189"),Art Breath,Dyn (Crescendo (18 % 1)),Dyn (Crescendo (13 % 2)),Art (Slurred (60 % 11)),Tmp (Ritardando (21 % 250)),Art (Slurred (5 % 3)),Orn (Instruction "A\244\&4\235'@J\ENQ\238\r\198\SUB9\NAKk}<NZ\t\242V\196a\SIM%I53@\n\182\FS'}\EOT\207\217'\245"),Art (Legato (27 % 16))]) ((Prim (Rest (57 % 1)) :+: (Prim (Rest (29 % 1)) :+: Prim (Rest (19 % 14)))) :+: Prim (Note (43 % 14) (D,7)))
-Modify (KeySig Df Major) ((Modify (KeySig As Major) (Prim (Rest (9 % 2)) :+: (Prim (Rest (37 % 14)) :+: Prim (Note (3 % 1) (Cf,6)))) :=: (((Prim (Rest (19 % 8)) :=: Prim (Note (27 % 14) (Bff,0))) :+: Prim (Rest (47 % 9))) :+: (Prim (Rest (49 % 2)) :=: Prim (Rest (27 % 2))))) :=: Modify (Phrase [Orn Mordent,Art (Staccato (25 % 14)),Dyn (Diminuendo (42 % 5)),Tmp (Ritardando ((-119) % 125)),Orn ArpeggioDown,Tmp (Ritardando (557 % 1000)),Tmp (Ritardando (469 % 1000)),Tmp (Ritardando ((-337) % 1000)),Orn (Instruction "2K\147\DLEvw$\DC25\t_\NULO,\"\f\226\228\211v@\EOTe*DU\DEL<5U\194\135*\221\138\140\175\203\240W\152\252\DC1\SOHn;\GS\251I,\253*\181\FSE\SOH\EOT\EOT\137"),Tmp (Ritardando ((-38) % 125))]) (((Prim (Note (7 % 1) (Aff,0)) :=: Prim (Note (13 % 9) (Gff,3))) :=: (Prim (Note (9 % 2) (Fff,6)) :+: Prim (Rest (49 % 5)))) :=: ((Prim (Note (42 % 11) (Ef,3)) :+: Prim (Note (19 % 2) (Ds,7))) :=: Prim (Note (1 % 1) (E,0)))))
-17 % 64
-
-Test: Axiom_11_2_3:
-*** Failed! Exception: 'Ratio.%: zero denominator' (after 37 tests): 
-<function>
-Context {cTime = 20 % 1, cPlayer = Player Fancy, cInst = Violin, cDur = 63 % 13, cPch = 93, cVol = 19, cKey = (Dss,Major)}
-Modify (Transpose 31) ((Prim (Rest (37 % 1)) :+: (((Prim (Rest (51 % 7)) :+: Prim (Note (29 % 10) (Cf,5))) :=: (Prim (Note (7 % 4) (Ess,10)) :+: Prim (Rest (35 % 13)))) :+: ((Prim (Note (29 % 6) (Gs,5)) :+: Prim (Note (6 % 7) (Ds,3))) :=: (Prim (Note (5 % 6) (Fs,3)) :+: Prim (Note (20 % 1) (Bf,7)))))) :=: ((Modify (Phrase [Tmp (Ritardando (373 % 1000)),Tmp (Ritardando ((-83) % 250)),Dyn (Loudness (23 % 1)),Art Wedge,Orn ArpeggioUp,Art DownBow,Tmp (Ritardando (3 % 4)),Orn (Head TremoloHead),Orn (Instruction "\SUB\159\196l5\159IC4>A\144%"),Orn (Head XHead)]) (Prim (Note (0 % 1) (Gff,9))) :+: ((Prim (Rest (9 % 4)) :=: Prim (Note (59 % 14) (As,10))) :+: Modify (Player "q\164e\251h/&") (Prim (Note (21 % 8) (Ess,3))))) :+: Modify (Transpose 35) ((Prim (Rest (3 % 1)) :=: Prim (Rest (1 % 4))) :+: (Prim (Rest (25 % 6)) :=: Prim (Rest (2 % 3))))))
-
-Test: Theorem_11_2_1:
-*** Failed! Exception: 'Ratio.%: zero denominator' (after 27 tests): 
-<function>
-Context {cTime = 3 % 2, cPlayer = Player Fancy, cInst = SteelDrums, cDur = 0 % 1, cPch = 77, cVol = 83, cKey = (Css,Major)}
-Modify (Transpose 124) (Modify (Phrase [Art (Legato (22 % 1)),Tmp (Ritardando (41 % 125)),Art LeftPizz,Tmp (Accelerando ((-99) % 125)),Tmp (Ritardando ((-97) % 500)),Art (Legato (17 % 3)),Tmp (Accelerando (29 % 40)),Orn (Instruction "IAo\180\SYNE\DLE43-'\CAN"),Dyn (StdLoudness MP),Art LeftPizz]) (Prim (Rest (26 % 5)) :=: Prim (Note (9 % 8) (Bf,10))) :=: Modify (Instrument Sitar) (Prim (Rest (2 % 7)) :+: Prim (Note (63 % 4) (Eff,8)))) :+: ((((Prim (Rest (28 % 3)) :=: Prim (Note (4 % 1) (C,5))) :+: (Prim (Note (12 % 5) (Ass,6)) :=: Prim (Note (15 % 2) (Eff,6)))) :=: Modify (Tempo (225 % 352)) (Prim (Rest (8 % 1)) :+: Prim (Note (55 % 14) (Ass,6)))) :=: ((Prim (Note (17 % 3) (Bf,4)) :=: (Prim (Note (24 % 7) (Gff,10)) :=: Prim (Note (27 % 10) (Fff,3)))) :+: Prim (Note (7 % 12) (As,3))))
-Prim (Rest (25 % 12)) :+: Modify (Instrument (Custom "\"\ETB4\DEL\DC4\f\201\ACKb\145\249b\209QB=\179J")) (Modify (Player "S\\/Z") (Prim (Rest (8 % 1)) :+: Prim (Note (14 % 3) (E,9))) :+: ((Prim (Rest (25 % 8)) :+: Prim (Note (11 % 2) (Eff,6))) :=: (Prim (Rest (7 % 2)) :=: Prim (Rest (4 % 1)))))
-32 % 5
-
-Test: Axiom_11_3_1a:
-*** Failed! Exception: 'Ratio.%: zero denominator' (after 545 tests): 
-<function>
-Context {cTime = 23 % 4, cPlayer = Player Fancy, cInst = Custom "I\rGzj[U>", cDur = 0 % 1, cPch = 71, cVol = 2, cKey = (Ass,Major)}
-Modify (Phrase [Tmp (Ritardando (173 % 200)),Art (Staccato (75 % 16)),Art Swell,Art (Slurred (16 % 3)),Dyn (StdLoudness P),Dyn (StdLoudness SF),Orn (Instruction "Sa(\v@\STX\255\STX[\128=\tR/]\ETX\199\r\222\NAK-\154\ESCTFm\NUL1\r\190\215\130\249}\DC29\242"),Art (Slurred (71 % 8)),Tmp (Ritardando (213 % 250)),Art (Slurred (21 % 8))]) (Modify (Tempo (21 % 26)) ((((Prim (Note (58 % 7) (Cff,10)) :=: Prim (Rest (16 % 1))) :=: Modify (Player "y\171CH\USs\196\t\164\&8[^SCOL\235#S\SI\254") (Prim (Note (64 % 15) (Eff,7)))) :+: Modify (Instrument (Custom ")?f\191/c\STX\144\191\&1$\219%-\247\163\254=\ETX\EOT\ETB$i\152r\212\171\&6D\176")) (Prim (Rest (57 % 14)) :=: Prim (Note (13 % 6) (A,2)))) :+: ((Prim (Note (59 % 13) (Bss,0)) :=: (Prim (Rest (32 % 5)) :=: Prim (Note (41 % 14) (Eff,10)))) :=: Modify (Transpose 26) (Prim (Rest (1 % 2))))))
-35 % 128
-9 % 2
-
-Test: Axiom_11_3_2a:
-*** Failed! Exception: 'Ratio.%: zero denominator' (after 41 tests): 
-<function>
-Context {cTime = 14 % 13, cPlayer = Player Fancy, cInst = Gunshot, cDur = 0 % 1, cPch = 117, cVol = 68, cKey = (As,Major)}
-Modify (Phrase [Dyn (Crescendo (12 % 1)),Tmp (Accelerando (37 % 100)),Orn ArpeggioDown,Dyn (Crescendo (71 % 10)),Art Tenuto,Dyn (Accent (17 % 2)),Art (Staccato (61 % 4)),Tmp (Ritardando ((-331) % 1000)),Art (Slurred (46 % 3)),Dyn (Diminuendo (25 % 6))]) (Prim (Note (46 % 5) (Css,3))) :=: Modify (Tempo (299 % 96)) (Modify (Player "M\228\FS\tx/r\205|\STX\192F\137/") (Modify (Tempo (117 % 22)) (Modify (Phrase [Tmp (Accelerando ((-499) % 500)),Tmp (Ritardando ((-839) % 1000)),Dyn (Crescendo (73 % 12)),Dyn (Accent (5 % 1)),Tmp (Ritardando (73 % 500)),Dyn (Loudness (4 % 1)),Dyn (Crescendo (57 % 10)),Orn Mordent,Tmp (Ritardando ((-621) % 1000)),Art (Staccato (2 % 1))]) (Prim (Rest (3 % 1)) :+: Prim (Rest (5 % 1))))))
-124 % 459
-3 % 2
-
-Test: Axiom_11_3_2c:
-*** Failed! Exception: 'Ratio.%: zero denominator' (after 271 tests and 1 shrink): 
-<function>
-Context {cTime = 53 % 2, cPlayer = Player Fancy, cInst = Custom "5\217\172M.\192\SYN;dc S\SIzcS?\174\137qZ2\v\169S\EOT\253Ed\234\218\&5e\SO\US\n\GS;\231\155!y\b*zG", cDur = 0 % 1, cPch = 15, cVol = 118, cKey = (As,Major)}
-0
-((Prim (Note (29 % 2) (Af,7)) :+: Prim (Rest (29 % 6))) :+: ((((Prim (Rest (51 % 8)) :=: (Prim (Rest (29 % 7)) :=: Prim (Rest (5 % 1)))) :=: Prim (Note (11 % 3) (Fff,2))) :+: Modify (Tempo (69 % 32)) (Prim (Note (22 % 7) (Cf,6)))) :+: Modify (Transpose 80) (Modify (Tempo (94 % 69)) (Prim (Rest (12 % 13)) :=: Prim (Note (13 % 1) (Eff,7))) :=: ((Prim (Note (7 % 3) (F,1)) :=: Prim (Note (1 % 1) (C,3))) :+: (Prim (Rest (19 % 1)) :+: Prim (Note (26 % 1) (Dss,7))))))) :+: (((Prim (Note (18 % 11) (Ff,9)) :+: Modify (Phrase [Art Wedge,Tmp (Ritardando ((-849) % 1000)),Tmp (Accelerando ((-247) % 250)),Orn TrilledTurn,Dyn (Diminuendo (65 % 16)),Tmp (Ritardando ((-43) % 200)),Tmp (Accelerando (43 % 500)),Dyn (Accent (5 % 4)),Dyn (StdLoudness P),Tmp (Ritardando (153 % 250))]) (Modify (Transpose 27) (Prim (Note (6 % 11) (Bss,8))) :=: (Prim (Note (23 % 3) (Bff,8)) :=: Prim (Rest (14 % 1))))) :+: (Modify (KeySig D Major) (Prim (Note (35 % 16) (Bss,2))) :+: (Prim (Rest (37 % 6)) :=: (Modify (Transpose 25) (Prim (Rest (34 % 3))) :+: (Prim (Note (18 % 11) (Bff,7)) :=: Prim (Rest (21 % 1))))))) :+: Prim (Rest (9 % 2)))
-320 % 117
-
-Test: Axiom_11_3_3a:
-*** Failed! Exception: 'Ratio.%: zero denominator' (after 53 tests): 
-<function>
-Context {cTime = 34 % 7, cPlayer = Player Fancy, cInst = OverdrivenGuitar, cDur = 0 % 1, cPch = 98, cVol = 69, cKey = (Fff,Minor)}
-Modify (Instrument (Custom "J\SOf\195_\FSo_\203[aY\136u5M\DC2\174\&8d\tMg\177\&2,\244\DC1\199\CAN\DC4\CAN\t\233\FS7\DEL\147qPTa\181\187B\191'\136\130:re")) (((Modify (Transpose 2) (Prim (Note (64 % 5) (Gf,2)) :+: Prim (Note (26 % 3) (Cs,4))) :+: Modify (Phrase [Tmp (Ritardando ((-527) % 1000)),Orn (Head TremoloHead),Art Thumb,Orn Turn,Tmp (Ritardando (123 % 250)),Orn (Instruction "g][\ENQ8N^\rCM\152\FS\NUL\243\DC4\RS\nx\SYN\SYN\135qW\CAN\244=5\212E!\246dJ\EOTuxb;\SOH\US\173+14"),Art (Staccato (3 % 1)),Orn (DiatonicTrans 3),Dyn (Loudness (4 % 1)),Dyn (Crescendo (20 % 9))]) (Modify (Instrument EnglishHorn) (Prim (Note (0 % 1) (C,2))))) :+: Prim (Rest (5 % 4))) :=: (Modify (Transpose 79) (Prim (Rest (19 % 3)) :=: Modify (KeySig Ess Minor) (Prim (Rest (16 % 9)))) :+: Modify (Instrument (Custom "#m\248o\190C\134\245\RSq\DEL|\v\v\142y\149|\225\NAK[y\ACK\140\&9\160\222g\FS\SI\STXR\203\234\DC3\DC3\fg\DLE\199\175\&0S\183\v")) ((Prim (Rest (32 % 1)) :+: Prim (Note (30 % 13) (Ess,2))) :=: Modify (Player "m\SYN_~\223K\229_\251))\236W`") (Prim (Note (31 % 13) (Aff,2))))))
-((((Prim (Note (62 % 3) (Dff,2)) :=: (Prim (Note (14 % 1) (Css,9)) :+: Prim (Rest (29 % 13)))) :=: Prim (Rest (3 % 13))) :+: (Prim (Rest (37 % 13)) :=: Prim (Note (17 % 6) (Dff,4)))) :=: Modify (Player "\220\CAN#\187=\FS=") (Modify (Instrument Lead5Charang) (Modify (Phrase [Art (Slurred (1 % 1)),Orn (Head SquareHead),Art (Legato (47 % 5)),Orn (Head XHead),Dyn (Diminuendo (56 % 1)),Tmp (Accelerando (619 % 1000)),Tmp (Accelerando ((-39) % 250)),Orn Trill,Tmp (Ritardando ((-14) % 25)),Dyn (StdLoudness SF)]) (Prim (Note (49 % 2) (Eff,3))) :=: Modify (Phrase [Art FermataDown,Tmp (Ritardando (623 % 1000)),Dyn (Loudness (20 % 13)),Dyn (StdLoudness NF),Orn InvMordent,Tmp (Ritardando (677 % 1000)),Orn Turn,Tmp (Ritardando ((-171) % 200)),Orn ArpeggioUp,Tmp (Ritardando ((-63) % 200))]) (Prim (Rest (41 % 15)))))) :=: (Modify (KeySig Bf Major) (Prim (Note (43 % 6) (Fss,7))) :=: Prim (Note (55 % 12) (B,6)))
-80 % 77
-
-Test: Axiom_11_3_3b:
-*** Failed! Exception: 'Ratio.%: zero denominator' (after 262 tests): 
-<function>
-Context {cTime = 63 % 16, cPlayer = Player Fancy, cInst = Banjo, cDur = 6 % 1, cPch = 65, cVol = 44, cKey = (Es,Minor)}
-Prim (Rest (37 % 10))
-((Modify (Tempo (32 % 45)) (Modify (Phrase [Tmp (Accelerando ((-777) % 1000)),Tmp (Ritardando ((-23) % 250)),Orn (DiatonicTrans 2),Orn (Head XHead),Orn (Head TremoloHead),Orn (DiatonicTrans 5),Art (Slurred (17 % 7)),Dyn (Loudness (67 % 5)),Tmp (Ritardando ((-289) % 500)),Dyn (Loudness (39 % 16))]) (Prim (Note (0 % 1) (As,0))) :=: (Prim (Rest (8 % 5)) :+: Prim (Rest (9 % 2)))) :+: (((Prim (Rest (11 % 15)) :=: Prim (Note (10 % 3) (Ff,4))) :=: Modify (KeySig Ff Minor) (Prim (Rest (5 % 1)))) :+: Modify (Tempo (57 % 100)) (Modify (Player "=\ESC\SI\230\SOH\191\187\204\222\205WxD\130V$)\156\243e\147?\193\NAK+\DC3\f]\203~") (Prim (Note (7 % 5) (Gs,8)))))) :+: Modify (KeySig Bff Minor) (Prim (Note (41 % 15) (Cs,1)))) :=: Modify (Transpose 53) (Modify (Transpose 63) ((Prim (Rest (3 % 13)) :=: Prim (Rest (36 % 7))) :+: (Prim (Note (4 % 3) (Bss,5)) :=: Prim (Rest (48 % 13)))) :+: (((Prim (Note (11 % 5) (Ess,9)) :=: Prim (Note (11 % 14) (Ds,8))) :+: Modify (Player "I7\136\189\166\&8\202\180\152\NAK\GS\DC1\RS=8\234\200(\245s@\n\189\252ff\SOH\158\143o\193j\232\139F\fY+=\250\RSs4") (Prim (Note (7 % 5) (A,1)))) :+: (Modify (Transpose 104) (Prim (Note (29 % 16) (G,9))) :+: (Prim (Rest (14 % 15)) :+: Prim (Rest (1 % 1))))))
-765 % 868
-
-Test: Axiom_11_3_3c:
-*** Failed! Exception: 'Ratio.%: zero denominator' (after 39 tests and 1 shrink): 
-<function>
-Context {cTime = 53 % 14, cPlayer = Player Fancy, cInst = Custom "(@;\191\b{\248Ff\210\194*\250en\169ub\EOT\203\249\218\STXv\ENQ\DC1M\SI}", cDur = 0 % 1, cPch = 20, cVol = 62, cKey = (Df,Major)}
-0
-((Prim (Rest (22 % 15)) :+: Modify (KeySig Ef Major) (Prim (Rest (37 % 12)) :=: (Prim (Rest (34 % 13)) :=: Prim (Note (6 % 1) (Ass,9))))) :+: Prim (Rest (47 % 16))) :+: Modify (Phrase [Tmp (Ritardando ((-111) % 500)),Dyn (Accent (28 % 1)),Orn (Instruction "4\ns\ENQ{\210Zn>\172\&2l\228\STX\203n9~\CAN\173\153.C$\DLE*\DELC"),Art (Legato (17 % 2)),Art (Slurred (11 % 1)),Orn (Instruction "\132\&1\179\SI0p\129\232'\157\DC2x\183h\254Qsv\\y\240\DLE\175\SOHm"),Art BartokPizz,Tmp (Ritardando (17 % 200)),Art (Legato (10 % 1)),Art Swell]) (Modify (Phrase [Orn (Instruction "/\209W\ETX\SI[iA`&_Z\229j15VR\246C\ENQ8QO\FS"),Tmp (Ritardando (527 % 1000)),Tmp (Accelerando (19 % 20)),Dyn (StdLoudness MF),Dyn (Accent (62 % 9)),Art Wedge,Dyn (StdLoudness PP),Orn (DiatonicTrans 1),Dyn (Diminuendo (37 % 7)),Orn Arpeggio]) ((Prim (Note (59 % 4) (F,3)) :+: Prim (Rest (33 % 8))) :=: Modify (Transpose 73) (Prim (Note (13 % 1) (Ess,10)))) :+: ((Modify (Instrument (Custom "\ESCw\228y\212N\198YL,\132jhv\NAK\n*%T3\204x[\SOH \149\133\177j\SUB9\SYN")) (Prim (Note (4 % 3) (Bff,5))) :=: (Prim (Note (58 % 11) (Aff,1)) :=: Prim (Note (27 % 4) (Bs,7)))) :=: Modify (Tempo (638 % 189)) (Prim (Rest (21 % 13)) :+: Prim (Note (47 % 1) (E,3)))))
-Prim (Note (40 % 7) (Gs,9))
-
-Test: Axiom_11_3_3d:
-*** Failed! Exception: 'Ratio.%: zero denominator' (after 167 tests and 2 shrinks): 
-<function>
-Context {cTime = 10 % 3, cPlayer = Player Fancy, cInst = Lead4Chiff, cDur = 11 % 5, cPch = 43, cVol = 97, cKey = (Gf,Major)}
-0
-(Prim (Rest (41 % 5)) :=: (((Modify (KeySig F Minor) (Prim (Note (3 % 2) (Cf,0)) :+: Prim (Rest (28 % 5))) :=: ((Prim (Rest (15 % 14)) :+: Prim (Note (37 % 6) (Df,1))) :+: Prim (Note (16 % 1) (Fss,5)))) :+: Modify (Instrument (Custom "aM\143\&3\DC4*\US\SImg\145e\DC3g*\214\ETX\n$\FS")) (Modify (Phrase [Dyn (StdLoudness MP),Dyn (Diminuendo (19 % 1)),Orn ArpeggioDown,Tmp (Ritardando ((-497) % 500)),Orn (Instruction "\n\205\ACK\189\&0"),Art (Staccato (16 % 3)),Art (Staccato (11 % 8)),Tmp (Ritardando ((-1) % 1)),Art (Slurred (5 % 1)),Dyn (Accent (53 % 12))]) (Prim (Note (25 % 4) (Fff,10))) :+: Prim (Rest (1 % 8)))) :=: Prim (Rest (9 % 2)))) :+: Modify (Instrument TaikoDrum) (Modify (KeySig Fff Major) (Modify (Tempo (533 % 216)) (((Prim (Note (54 % 1) (Df,9)) :=: Prim (Note (4 % 1) (Cs,7))) :+: Prim (Rest (17 % 13))) :+: (Prim (Rest (7 % 1)) :+: (Prim (Rest (3 % 1)) :=: Prim (Note (8 % 9) (Fs,10)))))))
-((Modify (Instrument (Custom "o\n:\199\225\238\224\&6\tQ\RSH|+1[YS\247\&2\t0\ENQ\r\DLE\ESCqJi\141\\m\149")) (Modify (Instrument EnglishHorn) (Modify (KeySig Ass Major) (Prim (Note (10 % 3) (Gss,3)))) :=: (Modify (Transpose 58) (Prim (Note (59 % 5) (Fss,8))) :=: Prim (Rest (28 % 13)))) :=: ((Modify (KeySig Bs Major) (Prim (Rest (60 % 7)) :+: Prim (Note (56 % 11) (Fff,10))) :=: ((Prim (Note (39 % 4) (Cs,7)) :+: Prim (Rest (0 % 1))) :=: (Prim (Rest (49 % 10)) :+: Prim (Rest (21 % 5))))) :=: (((Prim (Rest (35 % 1)) :+: Prim (Note (39 % 10) (Cs,3))) :+: Modify (KeySig Ff Major) (Prim (Note (35 % 1) (A,8)))) :=: (Modify (Transpose 103) (Prim (Note (3 % 2) (G,4))) :+: Modify (Phrase [Orn (Head SquareHead),Orn (Head TremoloHead),Art (Staccato (59 % 5)),Art (Staccato (53 % 1)),Tmp (Accelerando (73 % 1000)),Tmp (Accelerando (857 % 1000)),Tmp (Ritardando (597 % 1000)),Art (Legato (10 % 3)),Art Marcato,Tmp (Accelerando (99 % 125))]) (Prim (Note (14 % 1) (Bs,9))))))) :=: Modify (Player "\255eK\174\233d\148\231P\NUL\ENQI\252\223\RS") ((Prim (Note (14 % 1) (Ff,0)) :+: ((Prim (Note (27 % 4) (Es,0)) :=: Prim (Note (51 % 7) (Aff,9))) :=: Modify (Tempo (104 % 21)) (Prim (Rest (15 % 4))))) :+: Prim (Note (50 % 11) (Dff,8)))) :=: Modify (Instrument (Custom "\vV\CANHy\a\210\EMkx\FS\198+\202\GSVy\ACK\DC4nc\240r\NAK!y'\CANM\SOH")) (Modify (KeySig D Major) (((Prim (Rest (63 % 4)) :=: Prim (Rest (1 % 5))) :=: Prim (Note (5 % 1) (Bff,7))) :=: (Prim (Rest (17 % 12)) :=: Modify (Player "\nf") (Prim (Note (59 % 6) (Fs,4))))) :=: ((Prim (Note (5 % 13) (Gf,7)) :+: (Prim (Note (11 % 3) (Cff,6)) :=: Prim (Rest (53 % 8)))) :+: (((Prim (Rest (41 % 4)) :=: Prim (Note (0 % 1) (Gff,6))) :+: Prim (Note (51 % 10) (Aff,6))) :=: Prim (Rest (8 % 1)))))
-
-Test: Axiom_11_3_4a:
-*** Failed! Exception: 'Ratio.%: zero denominator' (after 132 tests): 
-<function>
-Context {cTime = 29 % 10, cPlayer = Player Fancy, cInst = Gunshot, cDur = 0 % 1, cPch = 5, cVol = 84, cKey = (Fff,Minor)}
-Prim (Rest (3 % 1))
-Modify (Phrase [Tmp (Ritardando ((-39) % 100)),Art (Slurred (47 % 14)),Orn (Instruction "\DLEJ\150\v\NAK\SUB8S3|cM\146\134\168\247\223"),Orn (Instruction "t\DEL\220\ETB\252,?\133F0z\132wr\133\174G\235"),Dyn (Diminuendo (1 % 1)),Orn (DiatonicTrans 1),Art Stopped,Dyn (Diminuendo (29 % 13)),Orn ArpeggioDown,Dyn (StdLoudness PPP)]) (Modify (Player "*\ETX\229") (Prim (Rest (53 % 16))) :=: (Prim (Rest (13 % 8)) :+: (Prim (Rest (4 % 1)) :+: Prim (Note (4 % 3) (Fff,0))))) :+: Prim (Note (23 % 1) (Dss,1))
-(Modify (Transpose 54) (Prim (Note (8 % 1) (Css,4))) :+: (Prim (Note (59 % 12) (Ef,2)) :=: (Modify (Tempo (14 % 37)) (Prim (Rest (10 % 1))) :=: Prim (Note (55 % 3) (Cff,0))))) :+: (((Modify (Transpose 114) (Prim (Note (35 % 8) (Dss,4))) :+: (Prim (Note (13 % 4) (As,5)) :+: Prim (Rest (19 % 4)))) :=: ((Prim (Rest (31 % 10)) :+: Prim (Note (11 % 2) (Bs,7))) :+: (Prim (Note (50 % 11) (Es,10)) :=: Prim (Note (21 % 2) (Fs,3))))) :=: (Modify (Player "\226\236\158\SUB`\160\r") (Prim (Note (25 % 9) (Dss,6)) :+: Prim (Rest (35 % 2))) :=: ((Prim (Note (37 % 2) (Fff,1)) :+: Prim (Rest (11 % 3))) :=: (Prim (Note (14 % 1) (F,8)) :+: Prim (Rest (33 % 7))))))
-
-Test: Axiom_11_3_4b:
-*** Failed! Exception: 'Ratio.%: zero denominator' (after 134 tests): 
-<function>
-Context {cTime = 31 % 3, cPlayer = Player Fancy, cInst = Lead6Voice, cDur = 0 % 1, cPch = 36, cVol = 63, cKey = (Bf,Minor)}
-Prim (Note (4 % 5) (Css,0)) :=: Modify (Phrase [Art (Staccato (47 % 1)),Art Tenuto,Orn (Instruction "\152:eV>\ENQD>}l\236oI\229m\186\182\&8\248\214n\DLE\EOTR8"),Tmp (Accelerando (763 % 1000)),Art (Staccato (22 % 1)),Dyn (StdLoudness MP),Tmp (Accelerando ((-1) % 2)),Tmp (Accelerando ((-863) % 1000)),Tmp (Ritardando (403 % 1000)),Tmp (Ritardando (313 % 1000))]) (Prim (Note (6 % 13) (Ass,7)))
-Prim (Rest (0 % 1)) :=: Prim (Note (35 % 13) (Bf,2))
-(Prim (Note (53 % 5) (Dss,7)) :=: Prim (Note (7 % 5) (Af,7))) :+: Prim (Rest (15 % 7))
-
-Test: Axiom_11_3_5:
-*** Failed! Exception: 'Ratio.%: zero denominator' (after 134 tests): 
-<function>
-Context {cTime = 10 % 1, cPlayer = Player Fancy, cInst = Lead4Chiff, cDur = 0 % 1, cPch = 75, cVol = 36, cKey = (Cff,Minor)}
-Modify (Instrument (Custom "?-}\GSH?#7\RS$-BF,\204M")) (Modify (Player "\165") (Modify (Instrument (Custom "#u1\253u\n\STX\vL~\\L/H\246z2t\185!\186\232\DC3Pv\168\DEL\212\at6^\EOT")) (Modify (Transpose 72) (Modify (Player "\DEL]f\SO\205Tht\NUL\ETXZ\130Zl\GSY)") (Prim (Note (12 % 5) (Gss,3)) :=: Prim (Rest (37 % 11)))))))
-Modify (KeySig Bs Minor) ((((Modify (KeySig Aff Major) (Prim (Rest (13 % 4))) :+: Modify (Transpose 86) (Prim (Rest (57 % 4)))) :+: Prim (Rest (1 % 7))) :+: Modify (Tempo (35 % 18)) ((Prim (Note (2 % 5) (Gf,8)) :=: Prim (Note (25 % 4) (Css,7))) :+: Modify (Phrase [Art (Staccato (56 % 11)),Dyn (Diminuendo (23 % 2)),Dyn (Crescendo (36 % 5)),Orn (Head NoHead),Art (Staccato (52 % 9)),Art (Slurred (68 % 9)),Orn Mordent,Tmp (Accelerando ((-11) % 1000)),Tmp (Ritardando ((-297) % 1000)),Tmp (Accelerando ((-193) % 200))]) (Prim (Note (25 % 16) (Es,9))))) :=: Modify (Transpose 85) (Modify (Player "\DC1fK\232~Y~W\STX\SOHZ\131!^.\194\aKFS\"\174ti") (Modify (Instrument (Custom "+$")) (Prim (Note (2 % 1) (Eff,6)) :+: Prim (Rest (37 % 7))))))
-
-Test: Axiom_11_3_6c:
-*** Failed! Exception: 'Ratio.%: zero denominator' (after 209 tests): 
-<function>
-Context {cTime = 9 % 5, cPlayer = Player Fancy, cInst = Clarinet, cDur = 38 % 3, cPch = 55, cVol = 10, cKey = (Fs,Minor)}
-(Modify (Transpose 108) (Prim (Rest (3 % 7)) :=: Prim (Note (3 % 4) (B,3))) :+: ((Prim (Rest (47 % 10)) :+: Prim (Note (5 % 3) (A,10))) :=: Modify (KeySig G Major) (Prim (Rest (14 % 5))))) :=: ((Modify (Phrase [Art (Staccato (31 % 16)),Art Fermata,Tmp (Accelerando (479 % 500)),Dyn (StdLoudness P),Orn (DiatonicTrans 6),Dyn (Loudness (27 % 7)),Dyn (Loudness (4 % 1)),Tmp (Ritardando (227 % 1000)),Art (Slurred (34 % 7)),Art Tenuto]) (Prim (Note (0 % 1) (Dss,6))) :=: Prim (Rest (25 % 6))) :=: (Prim (Rest (19 % 15)) :+: Prim (Rest (28 % 3))))
-
-Test: Axiom_11_3_6d:
-*** Failed! Exception: 'Ratio.%: zero denominator' (after 392 tests): 
-<function>
-Context {cTime = 25 % 6, cPlayer = Player Fancy, cInst = ChorusedPiano, cDur = 4 % 1, cPch = 13, cVol = 66, cKey = (Ef,Minor)}
-(Prim (Note (59 % 15) (Bss,2)) :=: (((Modify (Tempo (48 % 85)) (Prim (Note (5 % 6) (Fff,5)) :=: Prim (Note (47 % 16) (Bss,2))) :+: ((Prim (Rest (11 % 4)) :=: Prim (Rest (56 % 1))) :+: (Prim (Rest (41 % 15)) :+: Prim (Note (21 % 4) (Cf,3))))) :+: Prim (Rest (24 % 13))) :+: Prim (Note (28 % 5) (Dff,0)))) :+: (((((Modify (Phrase [Tmp (Ritardando (161 % 500)),Tmp (Accelerando (1 % 1)),Dyn (Loudness (15 % 4)),Tmp (Accelerando ((-77) % 125)),Art (Slurred (70 % 9)),Dyn (Loudness (20 % 3)),Art (Slurred (12 % 7)),Dyn (Diminuendo (25 % 13)),Art (Legato (27 % 1)),Art Marcato]) (Prim (Note (43 % 15) (Ff,7))) :+: (Prim (Rest (60 % 7)) :=: Prim (Rest (34 % 13)))) :+: ((Prim (Note (7 % 1) (E,2)) :=: Prim (Note (11 % 7) (Fs,5))) :=: Modify (Player "") (Prim (Note (43 % 2) (Gs,0))))) :=: Prim (Note (19 % 8) (Eff,1))) :+: (Prim (Note (21 % 5) (Bss,1)) :=: Modify (KeySig Df Major) (Prim (Note (4 % 1) (E,6))))) :=: Prim (Note (19 % 16) (A,10)))
-
-Test: Axiom_11_3_8:
-*** Failed! Falsifiable (after 5 tests): 
-<function>
-Context {cTime = 46 % 15, cPlayer = Player Fancy, cInst = TremoloStrings, cDur = 39 % 14, cPch = 19, cVol = 89, cKey = (F,Major)}
-Modify (Phrase [Art (Legato (53 % 5)),Orn Arpeggio,Orn TrilledTurn,Tmp (Accelerando ((-339) % 500)),Orn (DiatonicTrans 0),Dyn (StdLoudness PP),Orn (Instruction "\135"),Dyn (Loudness (45 % 13)),Art (Legato (45 % 11)),Orn Turn]) ((Prim (Rest (22 % 7)) :+: Prim (Rest (41 % 1))) :+: Modify (Tempo (910 % 513)) (Prim (Rest (37 % 10))))
-Modify (Phrase [Art Tenuto,Tmp (Ritardando ((-893) % 1000)),Art (Slurred (4 % 1)),Tmp (Ritardando (9 % 50)),Dyn (StdLoudness FFF),Orn (DiatonicTrans 0),Dyn (Accent (1 % 1)),Tmp (Ritardando ((-461) % 1000)),Dyn (Crescendo (29 % 2)),Dyn (StdLoudness PP)]) (Prim (Note (4 % 1) (Css,4))) :+: (Prim (Note (24 % 7) (Ef,8)) :=: Modify (Phrase [Art (Staccato (7 % 4)),Art (Legato (22 % 15)),Art (Legato (33 % 2)),Dyn (Accent (65 % 16)),Orn (Instruction "=y-"),Art (Slurred (21 % 2)),Dyn (StdLoudness NF),Tmp (Ritardando (41 % 100)),Art Stopped,Tmp (Accelerando ((-291) % 500))]) (Prim (Note (48 % 1) (Gs,3))))
-((Prim (Note (20 % 7) (D,0)) :+: Prim (Rest (3 % 4))) :+: (Prim (Note (29 % 11) (Fff,2)) :=: Prim (Note (8 % 15) (Cs,0)))) :+: ((Prim (Rest (32 % 1)) :+: Prim (Note (58 % 3) (A,5))) :+: Prim (Rest (2 % 1)))
-Modify (Phrase [Dyn (Loudness (73 % 9)),Tmp (Accelerando ((-631) % 1000)),Tmp (Accelerando (527 % 1000)),Tmp (Ritardando (371 % 1000)),Art (Slurred (5 % 2)),Tmp (Ritardando ((-79) % 500)),Art (Legato (6 % 1)),Art (Legato (23 % 14)),Orn (Head SquareHead),Orn (Instruction "L<\SUB")]) (Prim (Rest (14 % 3)) :=: (Prim (Note (24 % 1) (Ass,3)) :=: Prim (Rest (19 % 15))))
 

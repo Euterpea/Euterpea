@@ -61,7 +61,7 @@ perf pm
      Modify  (KeySig pc mo)  m  -> perf pm (c {cKey  = (pc,mo)})  m
      Modify  (Player pn)     m  -> perf pm (c {cPlayer = pm pn})  m
      Modify  (Phrase pas)    m  -> interpPhrase pl pm c pas       m
-  where scaleDur dt r = if r == 0 then 0 else dt / r
+  where scaleDur dt r = if r <= 0 then 0 else dt / r
 type Note1   = (Pitch, [NoteAttribute])
 type Music1  = Music Note1
 
@@ -105,8 +105,8 @@ defNasHandler _            _   ev = ev
 
 defInterpPhrase :: 
    (PhraseAttribute -> Performance -> Performance) -> 
-   (  PMap a -> Context a -> [PhraseAttribute] ->  --PhraseFun
-      Music a -> (Performance, DurT) )
+      PMap a -> Context a -> [PhraseAttribute] ->  --PhraseFun
+      Music a -> (Performance, DurT)
 defInterpPhrase pasHandler pm context pas m =
        let (pf,dur) = perf pm context m
        in (foldr pasHandler pf pas, dur)
@@ -148,20 +148,26 @@ fancyInterpPhrase pm
   (pa:pas) m =
   let  pfd@(pf,dur)  =  fancyInterpPhrase pm c pas m
        loud x        =  fancyInterpPhrase pm c (Dyn (Loudness x) : pas) m
-       stretch x     =  let  t0 = eTime (head pf);  r  = x/dur
+       stretch x     =  let  t0 = eTime (head pf);
                              upd (e@Event {eTime = t, eDur = d}) = 
-                               let  dt  = t-t0
+                               let  r   = x/dur
+                                    dt  = t-t0
                                     t'  = (1+dt*r)*dt + t0
                                     d'  = (1+(2*dt+d)*r)*d
-                               in e {eTime = t', eDur = d'}
-                        in (map upd pf, (1+x)*dur)
+                               in if t' < t0 || d' <= 0 || dur <= 0 -- sanity check
+                                  then Event 0 AcousticGrandPiano 0 0 0 []
+                                  else e {eTime = t', eDur = d'}
+                        in if (1+x)*dur <= 0 then ([], 0)
+                           else (map upd pf, (1+x)*dur)
        inflate x     =  let  t0  = eTime (head pf);  
                              r   = x/dur
                              upd (e@Event {eTime = t, eVol = v}) = 
                                  e {eVol =  round ( (1+(t-t0)*r) * 
                                             fromIntegral v)}
-                        in (map upd pf, dur)
-  in case pa of
+                        in if dur <= 0 
+                           then ([],0)
+                           else (map upd pf, dur)
+  in if dt <= 0 then ([], 0) else case pa of
     Dyn (Accent x) ->
         ( map (\e-> e {eVol = round (x * fromIntegral (eVol e))}) pf, dur)
     Dyn (StdLoudness l) -> 
@@ -171,10 +177,11 @@ fancyInterpPhrase pm
            NF   -> loud 100;      FF -> loud 110;  FFF  -> loud 120
     Dyn (Loudness x)     ->  fancyInterpPhrase pm
                              c{cVol = (round . fromRational) x} pas m
-    Dyn (Crescendo x)    ->  inflate   x ; Dyn (Diminuendo x)  -> inflate (-x)
-    Tmp (Ritardando x)   ->  stretch   x ; Tmp (Accelerando x) -> stretch (-x)
-    Art (Staccato x)     ->  (map (\e-> e {eDur = x * eDur e}) pf, dur)
-    Art (Legato x)       ->  (map (\e-> e {eDur = x * eDur e}) pf, dur)
+    Dyn (Crescendo x)    ->  inflate   x; Dyn (Diminuendo x)   ->  inflate (-x)
+    Tmp (Ritardando x)   ->  if x == 0 then pfd else stretch   x;
+    Tmp (Accelerando x)  ->  if x == 0 then pfd else stretch (-x)
+    Art (Staccato x)     ->  if x == 0 then pfd else (map (\e-> e {eDur = x * eDur e}) pf, dur)
+    Art (Legato x)       ->  if x == 0 then pfd else (map (\e-> e {eDur = x * eDur e}) pf, dur)
     Art (Slurred x)      -> 
         let  lastStartTime  = foldr (\e t -> max (eTime e) t) 0 pf
              setDur e       =   if eTime e < lastStartTime
@@ -183,11 +190,12 @@ fancyInterpPhrase pm
         in (map setDur pf, dur) 
     Art _                -> pfd
     Orn _                -> pfd
+
 class Performable a where
   perfDur :: PMap Note1 -> Context Note1 -> Music a -> (Performance, DurT)
 
 instance Performable Note1 where
-  perfDur pm c m = perf pm c m
+  perfDur = perf
 
 instance Performable Pitch where
   perfDur pm c = perfDur pm c . toMusic1

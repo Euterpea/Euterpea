@@ -1,9 +1,13 @@
 module EuterpeaTests where
 import Control.Monad
+import System.Console.ANSI
+import System.IO
+import Data.IORef
 import Text.Show.Functions
 import Test.QuickCheck
+import Text.Printf
 import EuterpeaInstances
-import Euterpea
+import Euterpea  hiding (Color, Red, Black, White, Green)
 import Data.List hiding (transpose)
 
 {- Currently, perf returns the event lists such that for any given time, the set of events
@@ -21,28 +25,11 @@ import Data.List hiding (transpose)
    Incompatible accelerandos/ritardandos are not properly handled by fancyPlayer
    If a ritardando would bring the tempo below zero, properties break and we encounter
    divide by zero errors.
-   
-   Output from ./testAll.py 1000:
-   
-   Testing TimesM_Seq...         Failure: "Exception: 'Ratio.%: zero denominator'"
-   Testing revM_SelfInverting... Failure: "Falsifiable"
-   Testing Axiom_11_2_1...       Failure: "Exception: 'Ratio.%: zero denominator'"
-   Testing Axiom_11_2_2...       Failure: "Exception: 'Ratio.%: zero denominator'"
-   Testing Axiom_11_2_3...       Failure: "Exception: 'Ratio.%: zero denominator'"
-   Testing Theorem_11_2_1...     Failure: "Exception: 'Ratio.%: zero denominator'"
-   Testing Axiom_11_3_1a...      Failure: "Exception: 'Ratio.%: zero denominator'"
-   Testing Axiom_11_3_2a...      Failure: "Exception: 'Ratio.%: zero denominator'"
-   Testing Axiom_11_3_2c...      Failure: "Exception: 'Ratio.%: zero denominator'"
-   Testing Axiom_11_3_3a...      Failure: "Exception: 'Ratio.%: zero denominator'"
-   Testing Axiom_11_3_3b...      Failure: "Exception: 'Ratio.%: zero denominator'"
-   Testing Axiom_11_3_3c...      Failure: "Exception: 'Ratio.%: zero denominator'"
-   Testing Axiom_11_3_3d...      Failure: "Exception: 'Ratio.%: zero denominator'"
-   Testing Axiom_11_3_4a...      Failure: "Exception: 'Ratio.%: zero denominator'"
-   Testing Axiom_11_3_4b...      Failure: "Exception: 'Ratio.%: zero denominator'"
-   Testing Axiom_11_3_5...       Failure: "Exception: 'Ratio.%: zero denominator'"
-   Testing Axiom_11_3_6c...      Failure: "Exception: 'Ratio.%: zero denominator'"
-   Testing Axiom_11_3_6d...      Failure: "Exception: 'Ratio.%: zero denominator'"
-   Testing Axiom_11_3_8...       Failure: "Falsifiable"
+
+   Here's a succinct failure for revM_selfInverting:
+
+   Context {cTime = 3 % 1, cPlayer = Player Fancy, cInst = Custom "\203\151\171", cDur = 7 % 1, cPch = 108, cVol = 15, cKey = (Ef,Major)}
+   Prim (Rest (27 % 1)) :=: Modify (Phrase [Tmp (Ritardando (77 % 100)),Art (Slurred (39 % 5)),Tmp (Ritardando ((-9) % 50)),Art (Slurred (7 % 4)),Tmp (Ritardando ((-251) % 1000))]) (Prim (Rest (43 % 3)))
 
 -}
 

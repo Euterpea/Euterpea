@@ -1,10 +1,16 @@
-import os, shutil, subprocess, sys
+import os, shutil, subprocess, sys, multiprocessing
 
 totalTrials = 0
 try:
     totalTrials = int(sys.argv[1])
 except:
-    totalTrials = 100
+    totalTrials = 1000
+
+num_threads = 1
+try:
+    num_threads = int(sys.argv[2])
+except:
+    num_threads = multiprocessing.cpu_count() + 1
 
 content = open("EuterpeaTests.hs").readlines()
 tests = []
@@ -21,18 +27,22 @@ print "Generating test script..."
 
 hs = open('RunAllTests.hs','w')
 
-hs.write("module Main where\n")
-hs.write("import System.IO\n")
-hs.write("import Data.IORef\n")
-hs.write("import Text.Show.Functions\n")
-hs.write("import Test.QuickCheck\n")
-hs.write("import Control.Monad\n")
-hs.write("import EuterpeaInstances\n")
-hs.write("import EuterpeaTests\n")
-hs.write("import System.Console.ANSI\n")
-hs.write("import Euterpea hiding (Color, Red, Black, White, Green)\n")
-hs.write("\n")
-hs.write("""
+hs.write("""module Main where
+import Control.Monad
+import System.Console.ANSI
+import System.IO
+import Data.IORef
+import Text.Show.Functions
+import Test.QuickCheck
+import Text.Printf
+import EuterpeaInstances
+import EuterpeaTests
+import Euterpea  hiding (Color, Red, Black, White, Green, Yellow)
+import Data.List hiding (transpose)
+import Control.Concurrent
+
+totalTests = {}
+
 -- Thank you, Rosetta Code!
 colorStrLn :: ColorIntensity -> Color -> ColorIntensity -> Color -> String -> IO ()
 colorStrLn fgi fg bgi bg str = do
@@ -40,36 +50,51 @@ colorStrLn fgi fg bgi bg str = do
     putStr str
     setSGR [SetColor Foreground Vivid White, SetColor Background Dull Black]
     putStrLn ""
-""")
-hs.write("main = do\n")
-hs.write("    log <- openFile \"error.log\" WriteMode\n")
-hs.write("    failsR <- newIORef 0\n")
-for test in tests:
-    hs.write("    putStr \"Testing " + test + "... " + getSpacing(test) + "\"\n")
-    hs.write("    r_" + test + " <- quickCheckWithResult (stdArgs { chatty = False, maxSuccess = " + str(totalTrials) + " }) prop_" + test + "\n")
-    hs.write("    case r_" + test + " of\n")
-    hs.write("        Failure _ _ _ _ r _ o -> do\n")
-    hs.write("            hPutStrLn log \"Test: " + test + ":\"\n")
-    hs.write("            hPutStr   log o\n")
-    hs.write("            hPutStrLn log \"\"\n")
-    hs.write("            colorStrLn Vivid Red Dull Black $ \"Failure: \" ++ show r\n")
-    hs.write("            modifyIORef failsR (+1)\n")
-    hs.write("        otherwise -> colorStrLn Vivid Green Dull Black \"Success: Completed " + str(totalTrials) + " trials!\"\n\n")
-hs.write("    fails <- readIORef failsR\n")
-hs.write("    case fails of\n")
-hs.write("        0 -> putStrLn \"*** All tests passed!\"\n")
-hs.write("        _ -> putStrLn $ \"+++ \" ++ show fails ++ \" of " + str(len(tests)) + " tests failed. See error.log for details.\"\n")
-hs.write("    hClose log\n")
-hs.write("    return ()\n")
 
-hs.write("\n")
+runTest :: MVar (String, Result) -> (String, IO Result) -> IO ()
+runTest result (s, a) = do
+    res <- a
+    putMVar result (s, res)
+
+printResults :: Int -> MVar (String, Result) -> Handle -> IORef Int -> IO ()
+printResults n result log failsR = replicateM_ n $ do
+    (s, res) <- takeMVar result
+    printf ("%-" ++ show (1 + (maximum $ map length ((fst.unzip) tests))) ++ "s ") s
+    case res of
+        Failure _ _ _ _ _ True _ _ -> do
+            colorStrLn Vivid Yellow Dull Black "Interrupted"
+        Failure _ _ _ _ r _ _ o -> do
+            hPutStrLn log $ s ++ ":\\n" ++ o ++ "\\n"
+            colorStrLn Vivid Red Dull Black r
+            atomicModifyIORef failsR (\\x -> (x+1, ()))
+        otherwise -> colorStrLn Vivid Green Dull Black $ "Passed " ++ show totalTests ++ " trials"
+
+main :: IO ()
+main = do
+    log <- openFile "error.log" WriteMode
+    failsR <- newIORef 0
+    result <- newEmptyMVar
+
+    mapM_ (forkIO . runTest result) tests
+    printResults (length tests) result log failsR 
+
+    fails <- readIORef failsR
+    case fails of
+        0 -> putStrLn $ "*** All tests passed!"
+        _ -> putStrLn $ "+++ " ++ show fails ++ " of " ++ show (length tests) ++ " tests failed. See error.log for details."
+    hClose log
+    return ()
+
+tests = [""".format(totalTrials))
+
+testsStr = ""
+
+for test in tests:
+    testsStr += "         (\"" + test + "\", " + getSpacing(test) + "quickCheckWithResult (stdArgs { chatty = False, maxSuccess = totalTests }) prop_" + test + "),\n"
+
+hs.write(testsStr[len("tests = ["):-2] + "]\n\n")
 hs.close()
 
-print "Compiling test script..."
+print "Running tests on {} thread(s)...".format(num_threads)
 
-subprocess.call(["ghc", "-outputdir", "tmp", "RunAllTests.hs"])
-shutil.rmtree("tmp")
-
-print "Running tests..."
-
-subprocess.call(["RunAllTests.exe"])
+subprocess.call(["ghc", "-e", "main", "RunAllTests.hs", "+RTS", "-N" + str(num_threads)])
