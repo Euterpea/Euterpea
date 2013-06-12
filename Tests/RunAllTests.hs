@@ -3,13 +3,9 @@ import Control.Monad
 import System.Console.ANSI
 import System.IO
 import Data.IORef
-import Text.Show.Functions
 import Test.QuickCheck
 import Text.Printf
-import EuterpeaInstances
 import EuterpeaTests
-import Euterpea  hiding (Color, Red, Black, White, Green, Yellow)
-import Data.List hiding (transpose)
 import Control.Concurrent
 
 totalTests = 1000
@@ -30,15 +26,14 @@ runTest result (s, a) = do
 printResults :: Int -> MVar (String, Result) -> Handle -> IORef Int -> IO ()
 printResults n result log failsR = replicateM_ n $ do
     (s, res) <- takeMVar result
-    printf ("%-" ++ show (1 + (maximum $ map length ((fst.unzip) tests))) ++ "s ") s
+    printf ("%-" ++ show (1 + maximum (map length ((fst . unzip) tests))) ++ "s ") s
     case res of
-        Failure _ _ _ _ _ True _ _ -> do
-            colorStrLn Vivid Yellow Dull Black "Interrupted"
+        Failure _ _ _ _ _ True _ _ -> colorStrLn Vivid Yellow Dull Black "Interrupted"
         Failure _ _ _ _ r _ _ o -> do
             hPutStrLn log $ s ++ ":\n" ++ o ++ "\n"
             colorStrLn Vivid Red Dull Black r
             atomicModifyIORef failsR (\x -> (x+1, ()))
-        otherwise -> colorStrLn Vivid Green Dull Black $ "Passed " ++ show totalTests ++ " trials"
+        _ -> colorStrLn Vivid Green Dull Black $ "Passed " ++ show totalTests ++ " trials"
 
 main :: IO ()
 main = do
@@ -51,7 +46,7 @@ main = do
 
     fails <- readIORef failsR
     case fails of
-        0 -> putStrLn $ "*** All tests passed!"
+        0 -> putStrLn "*** All tests passed!"
         _ -> putStrLn $ "+++ " ++ show fails ++ " of " ++ show (length tests) ++ " tests failed. See error.log for details."
     hClose log
     return ()

@@ -1,17 +1,17 @@
 Axiom_11_3_8:
-*** Failed! Falsifiable (after 7 tests and 6 shrinks): 
+*** Failed! Falsifiable (after 2 tests and 6 shrinks): 
 <function>
-Context {cTime = 13 % 4, cPlayer = Player Fancy, cInst = Pad3Polysynth, cDur = 19 % 12, cPch = 45, cVol = 57, cKey = (Cf,Minor)}
-Modify (Tempo (52 % 33)) (Prim (Rest (61 % 9)) :+: (Prim (Rest (22 % 3)) :+: Prim (Note (9 % 2) (E,5))))
-Modify (Tempo (715 % 276)) (Prim (Note (45 % 4) (Es,3)))
-Modify (Phrase [Tmp (Ritardando (58 % 125)),Art (Legato (1 % 1)),Art (Legato (22 % 3))]) (Prim (Rest (61 % 1)) :+: Prim (Rest (3 % 14)))
-(Prim (Rest (5 % 16)) :+: Prim (Rest (29 % 13))) :+: ((Prim (Note (49 % 13) (Fs,0)) :+: Prim (Note (19 % 2) (Dss,9))) :=: (Prim (Note (23 % 12) (As,10)) :+: Prim (Note (21 % 1) (Ass,1))))
+Context {cTime = 77 % 16, cPlayer = Player Fancy, cInst = FX3Crystal, cDur = 57 % 1, cPch = 26, cVol = 96, cKey = (Ess,Major)}
+Prim (Rest (53 % 15)) :+: Prim (Rest (51 % 7))
+Prim (Rest (21 % 2)) :+: Prim (Rest (1 % 8))
+Modify (Phrase [Tmp (Ritardando ((-447) % 500)),Dyn (Accent (69 % 10)),Art (Legato (29 % 11))]) (Prim (Note (27 % 2) (As,7)))
+Prim (Note (45 % 1) (Af,7))
 
 
 revM_SelfInverting:
-*** Failed! Falsifiable (after 48 tests and 4 shrinks): 
+*** Failed! Falsifiable (after 60 tests and 6 shrinks): 
 <function>
-Context {cTime = 47 % 11, cPlayer = Player Fancy, cInst = ChorusedPiano, cDur = 63 % 1, cPch = 92, cVol = 62, cKey = (Ds,Minor)}
-(((Prim (Rest (8 % 9)) :=: Prim (Rest (1 % 1))) :=: (Prim (Rest (49 % 4)) :+: Prim (Note (29 % 16) (G,3)))) :=: Modify (Transpose 103) (Prim (Rest (47 % 5)))) :=: (Modify (Phrase [Dyn (Diminuendo (16 % 15)),Tmp (Ritardando (843 % 1000)),Tmp (Accelerando ((-53) % 250))]) (Modify (Transpose 16) (Prim (Rest (19 % 3)))) :+: (Modify (Phrase [Tmp (Accelerando (467 % 1000)),Dyn (StdLoudness MF),Dyn (Accent (23 % 6)),Art (Slurred (61 % 15)),Dyn (Diminuendo (3 % 1)),Art (Legato (36 % 5))]) (Modify (Tempo (392 % 459)) (Prim (Note (21 % 1) (Fs,2)) :+: Prim (Rest (34 % 11)))) :+: Modify (Tempo (86 % 69)) (Prim (Rest (58 % 9)))))
+Context {cTime = 39 % 1, cPlayer = Player Fancy, cInst = ElectricGuitarJazz, cDur = 4 % 1, cPch = 114, cVol = 26, cKey = (Dff,Minor)}
+((((Prim (Rest (11 % 3)) :=: Prim (Rest (22 % 3))) :+: (Prim (Note (28 % 1) (Fss,1)) :+: Prim (Note (18 % 1) (Css,4)))) :+: Modify (Phrase []) (Prim (Note (10 % 13) (Css,6)))) :=: Modify (Phrase [Tmp (Ritardando (157 % 200))]) (Modify (Transpose 48) (Prim (Rest (9 % 4))))) :+: Prim (Rest (4 % 1))
 
 
