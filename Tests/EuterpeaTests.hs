@@ -10,28 +10,38 @@ import EuterpeaInstances
 import Euterpea  hiding (Color, Red, Black, White, Green)
 import Data.List hiding (transpose)
 
-{- Currently, perf returns the event lists such that for any given time, the set of events
-   set to fire at that exact time appear in an arbitrary order.
-   Consequently, for now, musical equivalence will be tested only after sorting the event list.
+{-  Currently, perf returns the event lists such that for any given time, the set of events
+    set to fire at that exact time appear in an arbitrary order.
+    Consequently, for now, musical equivalence will be tested only after sorting the event list.
 
-   Additionally, none of the performance functions are set to handle tempos <= 0.
-   A tempo of 0 has been defined to mean "do not play" in Euterpea, rather than 
-   "play infinitely", as both achieve the same effect.
-   
-   At this point, everything breaks down when we add fancyPlayer to the tests. Specifically,
-   over half the tests fail, most of which simply break down. Two of the tests fare better,
-   simply becoming untrue.
-   
-   Incompatible accelerandos/ritardandos are not properly handled by fancyPlayer
-   If a ritardando would bring the tempo below zero, properties break and we encounter
-   divide by zero errors.
-
-   Here's a succinct failure for revM_selfInverting:
-
-   Context {cTime = 3 % 1, cPlayer = Player Fancy, cInst = Custom "\203\151\171", cDur = 7 % 1, cPch = 108, cVol = 15, cKey = (Ef,Major)}
-   Prim (Rest (27 % 1)) :=: Modify (Phrase [Tmp (Ritardando (77 % 100)),Art (Slurred (39 % 5)),Tmp (Ritardando ((-9) % 50)),Art (Slurred (7 % 4)),Tmp (Ritardando ((-251) % 1000))]) (Prim (Rest (43 % 3)))
+    Additionally, none of the performance functions are set to handle tempos <= 0.
+    A tempo of 0 has been defined to mean "do not play" in Euterpea, rather than 
+    "play infinitely", as both achieve the same effect.
+    
+    At this point, everything breaks down when we add fancyPlayer to the tests. Specifically,
+    over half the tests fail, most of which simply break down. Two of the tests fare better,
+    simply becoming untrue.
+    
+    Incompatible accelerandos/ritardandos are not properly handled by fancyPlayer
+    If a ritardando would bring the tempo below zero, properties break and we encounter
+    divide by zero errors.
 
 -}
+
+-- Here's a succinct failure for revM_selfInverting:
+
+revM_Context = Context { cTime = 3, cPlayer = fancyPlayer, cInst = Custom "\203\151\171", cDur = 7, cPch = 108, cVol = 15, cKey = (Ef, Major) }
+revM_Input   = rest 27 :=: phrase [Tmp (Ritardando (77 / 100))] (rest (43/3))
+
+-- Here's a succinct failure for Axiom_11_3_8:
+
+axiom_Context = Context { cTime = 3, cPlayer = fancyPlayer, cInst = Custom "\203\151\171", cDur = 7, cPch = 108, cVol = 15, cKey = (Ef, Major) }
+axiom_m0      = rest (35/16) :+: transpose 32 (phrase [Tmp (Ritardando (73 / 125))] (bss 8 (23/3) :+: rest 3)) :+: rest (14/9)
+axiom_m1      = df 10 (10/7)
+axiom_m2      = c 1 (45/14)
+axiom_m3      = rest (7/2)
+axiom_m0'     = takeM (max 0 $ dur axiom_m0) (repeatM axiom_m0)
+axiom_m2'     = takeM (max 0 $ dur axiom_m0) (repeatM axiom_m2)
 
 -- Musical equivalence for Pitches, taken from a modification of the definition from Chapter 11 of HSoM.
 
@@ -86,7 +96,7 @@ prop_TimesM_Seq p c m =
 prop_Mfold_Identity m = mFold Prim (:+:) (:=:) Modify m == m
     where types = m :: Music Pitch
 
-prop_revM_SelfInverting p c m = musEquiv p c (revM (revM m)) m
+prop_revM_SelfInverting p c m = musEquiv p c ((revM.revM) m) m
     where types = (p :: PMap Note1, c :: Context Note1, m :: Music Pitch)
     
 prop_revM_DurationPreserving m = dur ((revM.revM) m) == dur m
