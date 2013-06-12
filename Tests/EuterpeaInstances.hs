@@ -68,7 +68,7 @@ instance Arbitrary a => Arbitrary (Primitive a) where
         liftM2 Note arbitrary arbitrary,
         liftM  Rest arbitrary]
 
-instance Arbitrary a => Arbitrary (Music a) where
+instance (Arbitrary a, Eq a) => Arbitrary (Music a) where
     arbitrary = song
         where song = sized song'
               song' 0 = liftM Prim arbitrary
@@ -77,6 +77,35 @@ instance Arbitrary a => Arbitrary (Music a) where
                                     liftM2 (:+:) submp submp,
                                     liftM2 (:=:) submp submp,
                                     liftM2 Modify arbitrary submp]
+
+    shrink m = if m /= m' then [shrink' m] else []
+        where m' = shrink' m
+
+              isUseful (Orn _) = False
+              isUseful _ = True
+
+              shrink' (mp1 :+: mp2)
+                | dur mp1 == 0 && dur mp2 == 0 = rest 0
+                | dur mp1 == 0 = shrink' mp2
+                | dur mp2 == 0 = shrink' mp1
+                | otherwise    = shrink' mp1 :+: shrink' mp2
+              shrink' (mp1 :=: mp2)
+                | dur mp1 == 0 && dur mp2 == 0 = rest 0
+                | dur mp1 == 0 = shrink' mp2
+                | dur mp2 == 0 = shrink' mp1
+                | otherwise    = shrink' mp1 :=: shrink' mp2
+              shrink' (Modify (Phrase (c:cs)) mp) = if dur mp == 0
+                                                    then (Modify (Phrase (filter isUseful cs)) (rest 0))
+                                                    else (Modify (Phrase (filter isUseful cs)) (shrink' mp))
+              shrink' (Modify (Transpose 0) mp) = if dur mp == 0 then rest 0 else shrink' mp
+              shrink' (Modify (Instrument _) mp) = if dur mp == 0 then rest 0 else shrink' mp
+              shrink' (Modify (Player pl) mp) = if dur mp == 0 then rest 0 else
+                                                if pl == "Fancy" then Modify (Player pl) (shrink' mp)
+                                                else (shrink' mp)
+              shrink' (Modify (KeySig _ _) mp) = if dur mp == 0 then rest 0 else shrink' mp
+              shrink' (Modify p mp) = if dur mp == 0 then (Modify p (rest 0)) else (Modify p (shrink' mp))
+              shrink' p             = p
+
 
 instance CoArbitrary (Music Pitch) where
     coarbitrary (Prim (Note d p)) = variant 0 . coarbitrary d . coarbitrary p
