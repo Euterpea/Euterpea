@@ -44,7 +44,7 @@ colorStrLn :: ColorIntensity -> Color -> ColorIntensity -> Color -> String -> IO
 colorStrLn fgi fg bgi bg str = do
     setSGR [SetColor Foreground fgi fg, SetColor Background bgi bg]
     putStr str
-    setSGR [SetColor Foreground Vivid White, SetColor Background Dull Black]
+    setSGR [SetColor Foreground Dull White, SetColor Background Dull Black]
     putStrLn ""
 
 runTest :: MVar (String, Result) -> (String, IO Result) -> IO ()

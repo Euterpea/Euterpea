@@ -13,35 +13,12 @@ import Data.List hiding (transpose)
 {-  Currently, perf returns the event lists such that for any given time, the set of events
     set to fire at that exact time appear in an arbitrary order.
     Consequently, for now, musical equivalence will be tested only after sorting the event list.
-
-    Additionally, none of the performance functions are set to handle tempos <= 0.
-    A tempo of 0 has been defined to mean "do not play" in Euterpea, rather than 
-    "play infinitely", as both achieve the same effect.
     
-    At this point, everything breaks down when we add fancyPlayer to the tests. Specifically,
-    over half the tests fail, most of which simply break down. Two of the tests fare better,
-    simply becoming untrue.
-    
-    Incompatible accelerandos/ritardandos are not properly handled by fancyPlayer
-    If a ritardando would bring the tempo below zero, properties break and we encounter
-    divide by zero errors.
-
+    The main problem at this point is that dur :: Music a -> Dur does not always return the 
+    correct duration. This breaks tests revM_SelfInverting and Axiom_11_3_8. Tests
+    revM_SelfInverting_weak and Axiom_11_3_8_weak attempt to compensate for this error by
+    testing a related case.
 -}
-
--- Here's a succinct failure for revM_selfInverting:
-
-revM_Context = Context { cTime = 3, cPlayer = fancyPlayer, cInst = Custom "\203\151\171", cDur = 7, cPch = 108, cVol = 15, cKey = (Ef, Major) }
-revM_Input   = rest 27 :=: phrase [Tmp (Ritardando (77 / 100))] (rest (43/3))
-
--- Here's a succinct failure for Axiom_11_3_8:
-
-axiom_Context = Context { cTime = 3, cPlayer = fancyPlayer, cInst = Custom "\203\151\171", cDur = 7, cPch = 108, cVol = 15, cKey = (Ef, Major) }
-axiom_m0      = rest (35/16) :+: transpose 32 (phrase [Tmp (Ritardando (73 / 125))] (bss 8 (23/3) :+: rest 3)) :+: rest (14/9)
-axiom_m1      = df 10 (10/7)
-axiom_m2      = c 1 (45/14)
-axiom_m3      = rest (7/2)
-axiom_m0'     = takeM (max 0 $ dur axiom_m0) (repeatM axiom_m0)
-axiom_m2'     = takeM (max 0 $ dur axiom_m0) (repeatM axiom_m2)
 
 -- Musical equivalence for Pitches, taken from a modification of the definition from Chapter 11 of HSoM.
 
@@ -80,6 +57,10 @@ prop_Dur_Take_Composition m = forAll (liftM toRational (choose (0.0, fromRationa
     dur (takeM d m) == d
     where types = m :: Music Pitch
 
+prop_Take_Repeat_Id p c m = musEquiv p c (takeM d (repeatM m)) m
+    where types = (p :: PMap Note1, c :: Context Note1, m :: Music Pitch)
+          d = dur m
+    
 prop_Mmap_Id m = mMap id m == m
     where types = m :: Music Pitch
 
@@ -97,6 +78,9 @@ prop_Mfold_Identity m = mFold Prim (:+:) (:=:) Modify m == m
     where types = m :: Music Pitch
 
 prop_revM_SelfInverting p c m = musEquiv p c ((revM.revM) m) m
+    where types = (p :: PMap Note1, c :: Context Note1, m :: Music Pitch)
+    
+prop_revM_SelfInverting_weak p c m = musEquiv p c ((revM.revM.revM) m) (revM m)
     where types = (p :: PMap Note1, c :: Context Note1, m :: Music Pitch)
     
 prop_revM_DurationPreserving m = dur ((revM.revM) m) == dur m
@@ -147,7 +131,6 @@ prop_Axiom_11_3_2b p1 p2 m = (trans p1 . trans p2) m == (trans p2 . trans p1) m
     where types = (p1 :: Int, p2 :: Int, m :: Pitch)
 
 {- tempo and trans are incompatible. I assume you meant transpose? -}
-
 prop_Axiom_11_3_2c p c t m = 
     forAll tempos $ \r1 ->
         musEquiv p c ((tempo r1 . transpose t) m) ((transpose t . tempo r1) m)
@@ -199,5 +182,12 @@ prop_Axiom_11_3_8 p c m0 m1 m2 m3 =
     musEquiv p c ((m0' :+: m1) :=: (m2' :+: m3)) ((m0' :=: m2') :+: (m1 :=: m3))
     where types = (p :: PMap Note1, c :: Context Note1, m0 :: Music Pitch, 
                    m1 :: Music Pitch, m2 :: Music Pitch, m3 :: Music Pitch)
-          m0' = takeM (max 0 $ dur m0) (repeatM m0)
-          m2' = takeM (max 0 $ dur m0) (repeatM m2)
+          d'  = min ((abs.dur) m0) ((abs.dur) m2)
+          m0' = takeM d' (repeatM m0)
+          m2' = takeM d' (repeatM m2)
+
+prop_Axiom_11_3_8_weak p c m0 m1 m3 =
+    musEquiv p c ((m0 :+: m1) :=: (m2 :+: m3)) ((m0 :=: m2) :+: (m1 :=: m3))
+    where types = (p :: PMap Note1, c :: Context Note1, m0 :: Music Pitch, 
+                   m1 :: Music Pitch, m2 :: Music Pitch, m3 :: Music Pitch)
+          m2 = m0 -- Until dur is fixed, this is the only way to guarantee that dur m0 == dur m2.

@@ -15,7 +15,7 @@ colorStrLn :: ColorIntensity -> Color -> ColorIntensity -> Color -> String -> IO
 colorStrLn fgi fg bgi bg str = do
     setSGR [SetColor Foreground fgi fg, SetColor Background bgi bg]
     putStr str
-    setSGR [SetColor Foreground Vivid White, SetColor Background Dull Black]
+    setSGR [SetColor Foreground Dull White, SetColor Background Dull Black]
     putStrLn ""
 
 runTest :: MVar (String, Result) -> (String, IO Result) -> IO ()
@@ -58,11 +58,13 @@ tests = [("AbsPitch_Pitch",            quickCheckWithResult (stdArgs { chatty = 
          ("RetroInvert_Composition",   quickCheckWithResult (stdArgs { chatty = False, maxSuccess = totalTests }) prop_RetroInvert_Composition),
          ("Dur_Times_Composition",     quickCheckWithResult (stdArgs { chatty = False, maxSuccess = totalTests }) prop_Dur_Times_Composition),
          ("Dur_Take_Composition",      quickCheckWithResult (stdArgs { chatty = False, maxSuccess = totalTests }) prop_Dur_Take_Composition),
+         ("Take_Repeat_Id",            quickCheckWithResult (stdArgs { chatty = False, maxSuccess = totalTests }) prop_Take_Repeat_Id),
          ("Mmap_Id",                   quickCheckWithResult (stdArgs { chatty = False, maxSuccess = totalTests }) prop_Mmap_Id),
          ("Mmap_Function_Composition", quickCheckWithResult (stdArgs { chatty = False, maxSuccess = totalTests }) prop_Mmap_Function_Composition),
          ("TimesM_Seq",                quickCheckWithResult (stdArgs { chatty = False, maxSuccess = totalTests }) prop_TimesM_Seq),
          ("Mfold_Identity",            quickCheckWithResult (stdArgs { chatty = False, maxSuccess = totalTests }) prop_Mfold_Identity),
          ("revM_SelfInverting",        quickCheckWithResult (stdArgs { chatty = False, maxSuccess = totalTests }) prop_revM_SelfInverting),
+         ("revM_SelfInverting_weak",   quickCheckWithResult (stdArgs { chatty = False, maxSuccess = totalTests }) prop_revM_SelfInverting_weak),
          ("revM_DurationPreserving",   quickCheckWithResult (stdArgs { chatty = False, maxSuccess = totalTests }) prop_revM_DurationPreserving),
          ("Perf_Id",                   quickCheckWithResult (stdArgs { chatty = False, maxSuccess = totalTests }) prop_Perf_Id),
          ("Axiom_11_2_1",              quickCheckWithResult (stdArgs { chatty = False, maxSuccess = totalTests }) prop_Axiom_11_2_1),
@@ -85,5 +87,6 @@ tests = [("AbsPitch_Pitch",            quickCheckWithResult (stdArgs { chatty = 
          ("Axiom_11_3_6b",             quickCheckWithResult (stdArgs { chatty = False, maxSuccess = totalTests }) prop_Axiom_11_3_6b),
          ("Axiom_11_3_6c",             quickCheckWithResult (stdArgs { chatty = False, maxSuccess = totalTests }) prop_Axiom_11_3_6c),
          ("Axiom_11_3_6d",             quickCheckWithResult (stdArgs { chatty = False, maxSuccess = totalTests }) prop_Axiom_11_3_6d),
-         ("Axiom_11_3_8",              quickCheckWithResult (stdArgs { chatty = False, maxSuccess = totalTests }) prop_Axiom_11_3_8)]
+         ("Axiom_11_3_8",              quickCheckWithResult (stdArgs { chatty = False, maxSuccess = totalTests }) prop_Axiom_11_3_8),
+         ("Axiom_11_3_8_weak",         quickCheckWithResult (stdArgs { chatty = False, maxSuccess = totalTests }) prop_Axiom_11_3_8_weak)]
 
