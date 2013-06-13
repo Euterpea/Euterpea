@@ -10,7 +10,7 @@ positiveIntegers :: Gen Int
 positiveIntegers = liftM abs (arbitrary :: Gen Int)
 
 smallIntegers :: Gen Int
-smallIntegers = choose (0,500)
+smallIntegers = choose (0,50)
 
 positiveRationals :: Gen Rational
 positiveRationals = liftM ((+1).abs) (arbitrary :: Gen Rational)

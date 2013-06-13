@@ -96,7 +96,7 @@ defPlayNote nasHandler
                           eDur     = d * cDur,  eVol = cVol,
                           ePitch   = absPitch p + cPch,
                           eParams  = [] }
-    in [ foldr (nasHandler c) initEv nas ]
+    in if d == 0 then [] else [ foldr (nasHandler c) initEv nas ]
 
 defNasHandler :: Context a -> NoteAttribute -> Event -> Event
 defNasHandler c (Volume v)     ev = ev {eVol = v}
@@ -154,11 +154,11 @@ fancyInterpPhrase pm
                                     dt  = t-t0
                                     t'  = (1+dt*r)*dt + t0
                                     d'  = (1+(2*dt+d)*r)*d
-                               in if t' < t0 || d' <= 0 || dur <= 0 -- sanity check
-                                  then Event 0 AcousticGrandPiano 0 0 0 []
-                                  else e {eTime = t', eDur = d'}
-                        in if (1+x)*dur <= 0 then ([], 0)
-                           else (map upd pf, (1+x)*dur)
+                               in e {eTime = t', eDur = d'}
+                             out = map upd pf
+                        in if (1+x)*dur <= 0 || null out || eTime (last out) < t0
+                           then ([], 0)
+                           else (out, (1+x)*dur)
        inflate x     =  let  t0  = eTime (head pf);  
                              r   = x/dur
                              upd (e@Event {eTime = t, eVol = v}) = 
@@ -176,9 +176,10 @@ fancyInterpPhrase pm
            MP   -> loud 70;       SF -> loud 80;   MF   -> loud 90
            NF   -> loud 100;      FF -> loud 110;  FFF  -> loud 120
     Dyn (Loudness x)     ->  fancyInterpPhrase pm
-                             c{cVol = (round . fromRational) x} pas m
-    Dyn (Crescendo x)    ->  inflate   x; Dyn (Diminuendo x)   ->  inflate (-x)
-    Tmp (Ritardando x)   ->  if x == 0 then pfd else stretch   x;
+                             c { cVol = (round . fromRational) x } pas m
+    Dyn (Crescendo x)    ->  if x == 0 then pfd else inflate   x
+    Dyn (Diminuendo x)   ->  if x == 0 then pfd else inflate (-x)
+    Tmp (Ritardando x)   ->  if x == 0 then pfd else stretch   x
     Tmp (Accelerando x)  ->  if x == 0 then pfd else stretch (-x)
     Art (Staccato x)     ->  if x == 0 then pfd else (map (\e-> e {eDur = x * eDur e}) pf, dur)
     Art (Legato x)       ->  if x == 0 then pfd else (map (\e-> e {eDur = x * eDur e}) pf, dur)
