@@ -56,9 +56,9 @@ perf pm
                   (pf2,d2)  = perf pm c m2
              in (merge pf1 pf2, max d1 d2)
      Modify  (Tempo r)       m  -> perf pm (c {cDur  = scaleDur dt r})   m
-     Modify  (Transpose p)   m  -> perf pm (c {cPch  = k + p})    m
+     Modify  (Transpose p)   m  -> perf pm (c {cPch = k + p})     m
      Modify  (Instrument i)  m  -> perf pm (c {cInst = i})        m
-     Modify  (KeySig pc mo)  m  -> perf pm (c {cKey  = (pc,mo)})  m
+     Modify  (KeySig pc mo)  m  -> perf pm (c {cKey = (pc,mo)})   m
      Modify  (Player pn)     m  -> perf pm (c {cPlayer = pm pn})  m
      Modify  (Phrase pas)    m  -> interpPhrase pl pm c pas       m
   where scaleDur dt r = if r <= 0 then 0 else dt / r
@@ -105,8 +105,8 @@ defNasHandler _            _   ev = ev
 
 defInterpPhrase :: 
    (PhraseAttribute -> Performance -> Performance) -> 
-      PMap a -> Context a -> [PhraseAttribute] ->  --PhraseFun
-      Music a -> (Performance, DurT)
+   (  PMap a -> Context a -> [PhraseAttribute] ->  --PhraseFun
+      Music a -> (Performance, DurT) )
 defInterpPhrase pasHandler pm context pas m =
        let (pf,dur) = perf pm context m
        in (foldr pasHandler pf pas, dur)
@@ -154,7 +154,7 @@ fancyInterpPhrase pm
                                     dt  = t-t0
                                     t'  = (1+dt*r)*dt + t0
                                     d'  = (1+(2*dt+d)*r)*d
-                               in e {eTime = t', eDur = d'}
+                                 in e {eTime = t', eDur = d'}
                              out = map upd pf
                         in if (1+x)*dur <= 0 || null out || eTime (last out) < t0
                            then ([], 0)
@@ -191,7 +191,6 @@ fancyInterpPhrase pm
         in (map setDur pf, dur) 
     Art _                -> pfd
     Orn _                -> pfd
-
 class Performable a where
   perfDur :: PMap Note1 -> Context Note1 -> Music a -> (Performance, DurT)
 
