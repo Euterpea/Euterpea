@@ -12,9 +12,11 @@ module Euterpea.IO.MIDI
   , DeviceInfo(..)        -- data DeviceInfo        (from Sound.PortMidi)
   , DeviceID              -- type DeviceID = Int    (from Sound.PortMidi)
   , module Euterpea.IO.MIDI.ToMidi
+  , module Euterpea.IO.MIDI.ExportMidiFile
   ) where
 
 import Euterpea.IO.MIDI.FromMidi
 import Euterpea.IO.MIDI.GeneralMidi
 import Euterpea.IO.MIDI.MidiIO
 import Euterpea.IO.MIDI.ToMidi
+import Euterpea.IO.MIDI.ExportMidiFile
