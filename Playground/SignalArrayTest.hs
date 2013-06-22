@@ -54,16 +54,16 @@ vibrato vibFreq depth sigIn =
     let vib = osc tab1 0 (lift vibFreq)
      in osc tab2 0 (sigIn + vib * lift depth)
 
-signalToFile :: Int -> Signal Double -> IO ()
+signalToFile :: Double -> Signal Double -> IO ()
 signalToFile n sig = do
-    let samps  = map doubleToSample (take (n*sampleRate) (runSignal sig))
+    let samps  = map doubleToSample (take (round n*sampleRate) (runSignal sig))
         frames = map (\x -> [x]) samps
         header = WAVEHeader 1 sampleRate 16 (Just (length frames))
      in putWAVEFile "out.wav" (WAVE header frames)
 
 main = do
     t1 <- getCPUTime
-    signalToFile 30 (vibrato 5 20 (lift 440))
+    signalToFile 120.0 (vibrato 5 20 (lift 440))
     t2 <- getCPUTime
     let t = fromIntegral (t2-t1) * 1e-12 :: Double
     printf "Took %6.2fs\n" t
