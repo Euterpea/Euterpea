@@ -46,18 +46,17 @@ When we reach milestones, we will release stable versions to Hackage.
 ======= Installation =======
 ============================
 
-Currently not recommended!
-    If using the Hackage version (not currently recommended), one can 
-    install with:
+Installing from source RECOMMENDED (updated 6/23/2013)
 
-        cabal install Euterpea
+  1) Clone the source from github `git clone https://github.com/dwincort/Euterpea`
 
+  2) cd into the Euterpea directory `cd Euterpea`
 
-If the source is downloaded (as in from GitHub), Euterpea can be installed 
-in the usual cabal way.  From the Euterpea directory (where this file 
-is located):
+  3) install Euterpea with cabal `cabal install`
 
-    cabal install
+Note: If you get errors about pacakges not being installed make sure that cabal binaries are in your `$PATH`.
+To add cabal binaries to your path first add `export PATH=$HOME/.cabal/bin:$PATH` to your .bashrc then run `source ~/.bashrc`.
+Now you should be able to successfully `cabal install`
 
 This will install Euterpea locally for GHC.  As noted on the Haskell wiki:
 
@@ -79,6 +78,8 @@ This will install Euterpea locally for GHC.  As noted on the Haskell wiki:
 
 (http://www.haskell.org/haskellwiki/Cabal-Install - Accessed on 12/15/2012)
 
+Installing From Hackage CURRENTLY NOT RECOMMENDED!  
+    cabal install Euterpea
 
 ============================
 ======= Building HSoM ======
