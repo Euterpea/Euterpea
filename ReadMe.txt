@@ -48,15 +48,21 @@ When we reach milestones, we will release stable versions to Hackage.
 
 Installing from source RECOMMENDED (updated 6/23/2013)
 
-  1) Clone the source from github `git clone https://github.com/dwincort/Euterpea`
+  1) Clone the source from github
+     git clone https://github.com/dwincort/Euterpea
 
-  2) cd into the Euterpea directory `cd Euterpea`
+  2) cd into the Euterpea directory
+     cd Euterpea
 
-  3) install Euterpea with cabal `cabal install`
+  3) install Euterpea with cabal
+     cabal install
 
 Note: If you get errors about pacakges not being installed make sure that cabal binaries are in your `$PATH`.
-To add cabal binaries to your path first add `export PATH=$HOME/.cabal/bin:$PATH` to your .bashrc then run `source ~/.bashrc`.
-Now you should be able to successfully `cabal install`
+To add cabal binaries to your path first add 
+export PATH=$HOME/.cabal/bin:$PATH to your .bashrc
+then run 
+source ~/.bashrc.
+Now you should be able to successfully cabal install
 
 This will install Euterpea locally for GHC.  As noted on the Haskell wiki:
 
