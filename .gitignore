@@ -7,6 +7,14 @@ cabal-dev
 *.o
 *.hi
 
+############
+## Playground Binary files
+############
+Playground/*.exe
+Playground/*.wav
+Playground/*.hp
+Playground/*.perf
+Playground/*.aux
 
 ############
 ## File Editor temp files
