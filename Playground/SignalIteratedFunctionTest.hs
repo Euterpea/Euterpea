@@ -14,7 +14,7 @@ runSignal :: Signal a -> [a]
 runSignal (x ::: sig) = x : runSignal sig
 
 instance Show a => Show (Signal a) where
-    show = show . runSignal
+    show (x ::: sig) = show x ++ ", " ++ show sig
 
 instance Num a => Num (Signal a) where
     (+) (s1 ::: sig1) (s2 ::: sig2) = (s1 + s2) ::: (sig1 + sig2)
@@ -67,6 +67,9 @@ signalToFile n sig = do
         frames = map (\x -> [x]) samps
         header = WAVEHeader 1 sampleRate 16 (Just (length frames))
      in putWAVEFile "out.wav" (WAVE header frames)
+
+integralC :: Double -> Signal Double -> Signal Double
+integralC i (x ::: xs) = (i + x / fromIntegral sampleRate) ::: integralC i xs
 
 main = do
     t1 <- getCPUTime
