@@ -1,5 +1,6 @@
 module Main where
 import Euterpea hiding (Table, tableSinesN, osc, oscFixed, exportFile)
+import Euterpea.Examples.Interlude
 import Codec.Wav
 import Data.Audio
 import Data.Array.Unboxed hiding (accum)
@@ -12,7 +13,7 @@ import RenderSigS
 -- Example from "Plugging a Space Leak with an Arrow"
 
 integralS :: Double -> SigS Double -> SigS Double
-integralS i sig = SigS (scanl (+) i (map (/ fromIntegral sr) (runSigS sig)))
+integralS i sig = SigS (scanl (+) i (map (/ sr) (runSigS sig)))
 
 recursiveIntegral :: SigS Double
 recursiveIntegral = integralS 1 recursiveIntegral
@@ -61,7 +62,7 @@ myInstrName :: InstrumentName
 myInstrName = Custom "signal-test"
 
 myInstrMap :: InstrMap (SigS Double)
-myInstrMap = [(myInstrName, myInstr)]
+myInstrMap = [(myInstrName, myInstr), (RhodesPiano, myInstr)]
 
 -- Main program. Benchmarks s1..s5.
 
@@ -73,6 +74,13 @@ runTest fname test = do
     t2 <- getCPUTime
     printf "Calculating %s took %4.2fs\n" fname (fromIntegral (t2-t1) * 1e-12 :: Double)
 
+runTestI fname mus = do
+    t1 <- getCPUTime
+    let (ds,sf) = renderSigS mus myInstrMap
+    signalToFile (fname ++ ".wav") ds sf
+    t2 <- getCPUTime
+    printf "Calculating %s took %4.2fs\n" fname (fromIntegral (t2-t1) * 1e-12 :: Double)
+
 main = do
     t1 <- getCPUTime
     runTest "s1" s1
@@ -80,7 +88,8 @@ main = do
     runTest "s3" s3
     runTest "s4" s4
     runTest "s5" s5
-    runTest "instr" (snd $ renderSigS mel myInstrMap)
+    runTestI "cs6" childSong6
+    runTestI "mel" mel
     t2 <- getCPUTime
 
     printf "Total time was:     %4.2fs\n" (fromIntegral (t2-t1) * 1e-12 :: Double)
@@ -96,4 +105,4 @@ mel = let m = Euterpea.line [na1 (c 4 en),na1 (ef 4 en),na1 (f 4 en),
           na1 (Prim (Note d p)) = Prim (Note d (p,[Params [0,0]]))
           na2 (Prim (Note d p)) = Prim (Note d (p,[Params [5,10]]))
           na3 (Prim (Note d p)) = Prim (Note d (p,[Params [5,20]]))
-       in instrument myInstrName m :=: (rest 1 :+: instrument myInstrName m)
+       in instrument myInstrName m

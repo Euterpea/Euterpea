@@ -5,13 +5,14 @@ import Euterpea hiding (Table, tableSinesN, osc, oscFixed, exportFile)
 import Euterpea.Music.Signal.SigFuns (AudSF)
 import Codec.Wav
 import Data.Audio
-import Data.Array.Unboxed hiding (accum)
+import Data.Array.Unboxed
+import Data.List
 import Data.Int
 import System.CPUTime
 import Text.Printf
 
-sr :: Int
-sr = 44100
+sr :: Double
+sr = rate (undefined :: AudRate)
 
 -- SigS Definition
 
@@ -25,19 +26,17 @@ runSigS (SigS s) = s
 sMap :: (a -> a) -> SigS a -> SigS a
 sMap f (SigS s) = SigS (map f s)
 
+sZipWith :: (a -> b -> c) -> SigS a -> SigS b -> SigS c
+sZipWith f (SigS s1) (SigS s2) = SigS (zipWith f s1 s2)
+
 sZipWith3 :: (a -> b -> c -> d) -> SigS a -> SigS b -> SigS c -> SigS d
 sZipWith3 f (SigS s1) (SigS s2) (SigS s3) = SigS (zipWith3 f s1 s2 s3)
 
 sSample :: Double -> SigS a -> SigS a
-sSample sec (SigS sig) = SigS (take (truncate $ sec * fromIntegral sr) sig)
+sSample sec (SigS sig) = SigS (take (truncate $ sec * sr) sig)
 
 sDelay :: AudioSample a => Double -> SigS a -> SigS a
-sDelay t (SigS sig) = SigS ((replicate (truncate $ t * fromIntegral sr) zero) ++ sig)
-
-normalize :: SigS Double -> SigS Double
-normalize (SigS sig) =
-    let sig' = map (/ (maximum sig)) sig
-     in (SigS sig')
+sDelay t (SigS sig) = SigS (replicate (truncate $ t * sr) zero ++ sig)
 
 lift :: a -> SigS a
 lift x = SigS (repeat x)
@@ -77,32 +76,28 @@ tab2 = tableSinesN 4096 [1.0,0.5,0.33]
 osc :: Table -> Double -> SigS Double -> SigS Double
 osc table _ sig = 
     let (_,size) = bounds table
-        rate     = fromIntegral size / fromIntegral sr
+        rate     = fromIntegral size / sr
         deltas   = scanl1 (+) (runSigS sig)
      in SigS (map ((table !).(`mod` size).round.(*rate)) deltas)
 
 oscFixed :: Table -> Double -> Double -> SigS Double
 oscFixed table _ freq = 
     let (_,size) = bounds table
-        deltas   = [0,(freq * fromIntegral size / fromIntegral sr)..]
+        deltas   = [0,(freq * fromIntegral size / sr)..]
      in SigS (map ((table !).(`mod` size).round) deltas)
 
 sineWave :: Double -> SigS Double
-sineWave n = oscFixed tab1 0 n
+sineWave = oscFixed tab1 0
 
 -- Write a signal to a file.
 
 signalToFile :: String -> Double -> SigS Double -> IO ()
-signalToFile filepath dur sf = 
-  let numSamples  = truncate (dur * fromIntegral sr)
-      dat         = map (fromSample . (*0.999)) (runSigS sf) :: [Int32]
-      array       = listArray (0, numSamples-1) dat
-      aud = Audio { sampleRate    = sr,
-                    channelNumber = 1,
-                    sampleData    = array }
-  in exportFile filepath aud
+signalToFile filePath dur sig =
+    let numSamples = truncate (dur * sr)
+        dat = listArray (0,numSamples-1) (map (fromSample.(*0.999)) (runSigS sig)) :: UArray Int Int32
+     in exportFile filePath Audio { sampleRate = truncate sr, channelNumber = 1, sampleData = dat }
 
--- Workaround for rendering. Only works when the sampling rate is 44100, which it is.
+-- Current 
 
 liftSF :: SigS Double -> AudSF () Double
 liftSF (SigS sig) = proc () -> do
