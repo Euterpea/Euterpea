@@ -64,16 +64,20 @@ myInstrName = Custom "signal-test"
 myInstrMap :: InstrMap (SigS Double)
 myInstrMap = [(myInstrName, myInstr), (RhodesPiano, myInstr)]
 
--- Main program. Benchmarks s1..s5.
-
+-- Number of seconds to sample in each test.
+-- Higher values often expose space leaks.
 numSeconds = 120.0
 
+-- Samples numSeconds from test and saves the result to fname.wav
+-- Reports time spent to stdout.
 runTest fname test = do
     t1 <- getCPUTime
     signalToFile (fname ++ ".wav") numSeconds test
     t2 <- getCPUTime
     printf "Calculating %s took %4.2fs\n" fname (fromIntegral (t2-t1) * 1e-12 :: Double)
 
+-- Renders mus using myInstrMap and saves the result to fname.wav
+-- Reports time spent to stdout.
 runTestI fname mus = do
     t1 <- getCPUTime
     let (ds,sf) = renderSigS mus myInstrMap
