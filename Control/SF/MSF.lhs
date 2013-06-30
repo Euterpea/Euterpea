@@ -73,16 +73,16 @@
 >                      return (y, MSF (h f'))
 
 > instance Monad m => ArrowChoice (MSF m) where
->   left (MSF f) = MSF (h f)
->     where h f x = case x of
->                     Left x' -> do (y, MSF f') <- f x'
->                                   return (Left y, MSF (h f'))
->                     Right y -> return (Right y, MSF (h f))
->   (MSF f) ||| (MSF g) = MSF (h f g)
+>   left msf = MSF (h msf)
+>     where h msf x = case x of
+>                       Left x' -> do (y, msf') <- msfFun msf x'
+>                                     return (Left y, MSF (h msf'))
+>                       Right y -> return (Right y, MSF (h msf))
+>   f ||| g = MSF (h f g)
 >     where h f g x = case x of
->                       Left  b -> do (d, MSF f') <- f b
+>                       Left  b -> do (d, f') <- msfFun f b
 >                                     return (d, MSF (h f' g))
->                       Right c -> do (d, MSF g') <- g c
+>                       Right c -> do (d, g') <- msfFun g c
 >                                     return (d, MSF (h f g'))
 
 > 
@@ -113,18 +113,18 @@
 >   msfFun (f x) a
 
 > stepMSF :: Monad m => MSF m a b -> [a] -> m [b]
+> stepMSF _ [] = return []
 > stepMSF (MSF f) (x:xs) = do 
 >   (y, f') <- f x
 >   ys <- stepMSF f' xs
 >   return (y:ys)
-> stepMSF _ [] = return []
 
 > stepMSF' :: Monad m => MSF m a b -> [a] -> m ([b], MSF m a b)
+> stepMSF' g [] = return ([], g)
 > stepMSF' (MSF f) (x:xs) = do 
 >   (y, f') <- f x
 >   (ys, g) <- stepMSF' f' xs
 >   return (y:ys, g)
-> stepMSF' g [] = return ([], g)
 
 > data Stream m b = Stream { stream :: m (b, Stream m b) }
 > streamMSF :: Monad m => MSF m a b -> [a] -> Stream m b
