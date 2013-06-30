@@ -38,6 +38,8 @@ sSample sec (SigS sig) = SigS (take (truncate $ sec * sr) sig)
 sDelay :: AudioSample a => Double -> SigS a -> SigS a
 sDelay t (SigS sig) = SigS (replicate (truncate $ t * sr) zero ++ sig)
 
+
+-- Use this to lift a constant value to the SigS level.
 lift :: a -> SigS a
 lift x = SigS (repeat x)
 
@@ -55,7 +57,8 @@ instance Num a => Num (SigS a) where
 
 type Table = UArray Int Double
 
--- Sine table generator
+-- Sine table generator. Takes an integer representing the number of samples to generate
+-- and a list of relative intensities for the overtones of the sine wave.
 
 tableSinesN :: Int -> [Double] -> Table
 tableSinesN size amps = 
@@ -68,10 +71,12 @@ tableSinesN size amps =
 -- Two example sine tables.
 
 tab1, tab2 :: Table
-tab1 = tableSinesN 4096 [1]
+tab1 = tableSinesN 4096 [1] -- Basic sine wave
 tab2 = tableSinesN 4096 [1.0,0.5,0.33]
 
--- Simple oscillators
+-- Table-driven oscillator. The second index should represent an offset into the table,
+-- but hasn't been implemented yet. The signal is a signal of frequencies for the
+-- oscillator (lift 440 would give an A, for example)
 
 osc :: Table -> Double -> SigS Double -> SigS Double
 osc table _ sig = 
@@ -80,16 +85,23 @@ osc table _ sig =
         deltas   = scanl1 (+) (runSigS sig)
      in SigS (map ((table !).(`mod` size).round.(*rate)) deltas)
 
+-- More efficient specialization of osc for constant frequencies.
+
 oscFixed :: Table -> Double -> Double -> SigS Double
 oscFixed table _ freq = 
     let (_,size) = bounds table
         deltas   = [0,(freq * fromIntegral size / sr)..]
      in SigS (map ((table !).(`mod` size).round) deltas)
 
+-- TODO: Reimplement Euterpea's envelope functions in the SigS paradigm.
+
+-- Convenient synonym for oscFixed tab1 0.
+
 sineWave :: Double -> SigS Double
 sineWave = oscFixed tab1 0
 
 -- Write a signal to a file.
+-- Uses Codec.Wav
 
 signalToFile :: String -> Double -> SigS Double -> IO ()
 signalToFile filePath dur sig =
@@ -97,9 +109,9 @@ signalToFile filePath dur sig =
         dat = listArray (0,numSamples-1) (map (fromSample.(*0.999)) (runSigS sig)) :: UArray Int Int32
      in exportFile filePath Audio { sampleRate = truncate sr, channelNumber = 1, sampleData = dat }
 
--- Current 
+-- Lifts SigS a's to the AudSF level for compatibility with the current arrow-based library.
 
-liftSF :: SigS Double -> AudSF () Double
+liftSF :: AudioSample a => SigS a -> AudSF () a
 liftSF (SigS sig) = proc () -> do
     rec (s:sig') <- hold sig -< Just sig'
     returnA -< s
