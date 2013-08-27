@@ -8,7 +8,7 @@
 > import Euterpea.IO.MUI.UISF
 > import Euterpea.IO.MUI.Widget
 > import Euterpea.IO.MIDI.MidiIO
-> import Control.SF.AuxFunctions (SEvent, DeltaT, constA, (~++),
+> import Control.SF.AuxFunctions (SEvent, DeltaT, constA, (~++), delay, 
 >                                 eventBuffer, BufferControl, BufferEvent(..))
 
 > import Control.Arrow
@@ -61,11 +61,12 @@ can easily apply (map fst . filter snd) to make the conversion.
 That said, perhaps checkGroup should just return the list of true values ...
 
 > midiInM' :: UISF [DeviceID] (SEvent [MidiMessage])
-> midiInM' = proc bs -> case bs of
+> midiInM' = delay [] >>> helper where
+>  helper = proc bs -> case bs of
 >   [] -> returnA -< Nothing
 >   d:ds -> do
->       m  <- midiIn   -< d
->       ms <- midiInM' -< ds
+>       m  <- midiIn -< d
+>       ms <- helper -< ds
 >       returnA -< m ~++ ms
 >
 > midiInM :: UISF [(DeviceID, Bool)] (SEvent [MidiMessage])
@@ -83,11 +84,12 @@ Perhaps it is, but this still seems odd.  Also, I apply the same type
 changes here.
 
 > midiOutM' :: UISF ([DeviceID], SEvent [MidiMessage]) ()
-> midiOutM' = proc (bs, e) -> case bs of
+> midiOutM' = delay [] >>> helper where
+>  helper = proc (bs, e) -> case bs of
 >   [] -> returnA -< ()
 >   d:ds -> do
->       midiOut   -< (d,  e)
->       midiOutM' -< (ds, e)
+>       midiOut -< (d,  e)
+>       helper  -< (ds, e)
 
 > midiOutM :: UISF ([(DeviceID, Bool)], SEvent [MidiMessage]) ()
 > midiOutM = first (arr (map fst . filter snd)) >>> midiOutM'
