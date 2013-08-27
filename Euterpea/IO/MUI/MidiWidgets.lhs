@@ -84,7 +84,7 @@ Perhaps it is, but this still seems odd.  Also, I apply the same type
 changes here.
 
 > midiOutM' :: UISF ([DeviceID], SEvent [MidiMessage]) ()
-> midiOutM' = delay [] >>> helper where
+> midiOutM' = delay ([], Nothing) >>> helper where
 >  helper = proc (bs, e) -> case bs of
 >   [] -> returnA -< ()
 >   d:ds -> do
