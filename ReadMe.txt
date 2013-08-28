@@ -34,7 +34,7 @@ Homepage: http://haskell.cs.yale.edu/
 Currently (12/15/2012), the most up-to-date version of Euterpea is 
 available through GitHub at:
 
-    https://github.com/dwincort/Euterpea
+    https://github.com/Euterpea/Euterpea
 
 We recommend using GitHub for Windows (http://windows.github.com/) to 
 clone the repository on Windows and git on Linux or Mac.
@@ -46,18 +46,23 @@ When we reach milestones, we will release stable versions to Hackage.
 ======= Installation =======
 ============================
 
-Currently not recommended!
-    If using the Hackage version (not currently recommended), one can 
-    install with:
+Installing from source RECOMMENDED (updated 6/23/2013)
 
-        cabal install Euterpea
+  1) Clone the source from github
+     git clone https://github.com/Euterpea/Euterpea
 
+  2) cd into the Euterpea directory
+     cd Euterpea
 
-If the source is downloaded (as in from GitHub), Euterpea can be installed 
-in the usual cabal way.  From the Euterpea directory (where this file 
-is located):
+  3) install Euterpea with cabal
+     cabal install
 
-    cabal install
+Note: If you get errors about pacakges not being installed make sure that cabal binaries are in your `$PATH`.
+To add cabal binaries to your path first add 
+export PATH=$HOME/.cabal/bin:$PATH to your .bashrc
+then run 
+source ~/.bashrc.
+Now you should be able to successfully cabal install
 
 This will install Euterpea locally for GHC.  As noted on the Haskell wiki:
 
@@ -79,6 +84,8 @@ This will install Euterpea locally for GHC.  As noted on the Haskell wiki:
 
 (http://www.haskell.org/haskellwiki/Cabal-Install - Accessed on 12/15/2012)
 
+Installing From Hackage CURRENTLY NOT RECOMMENDED!  
+    cabal install Euterpea
 
 ============================
 ======= Building HSoM ======
@@ -147,5 +154,5 @@ and is currently maintained by
     Donya Quick <donya.quick@yale.edu>,
     Dan Winograd-Cort <daniel.winograd-cort@yale.edu>
 
-This file was last modified on 12/15/2012
+This file was last modified on 8/27/2013
 by Daniel Winograd-Cort
