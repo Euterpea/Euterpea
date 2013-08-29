@@ -34,10 +34,12 @@ module Euterpea.IO.MUI
   , listbox             -- :: (Eq a, Show a) => UISF ([a], Int) Int
   , midiIn              -- :: UISF DeviceID (Event [MidiMessage])
   , midiInM             -- :: UISF [(DeviceID, Bool)] (Event [MidiMessage])
+  , midiInM'			-- :: UISF [DeviceID] (SEvent [MidiMessage])
   , midiOut             -- :: UISF (DeviceID, Event [MidiMessage]) ()
   , midiOutB            -- :: UISF (DeviceID, Event [(Time, MidiMessage)]) Bool
   , midiOutB'           -- :: UISF (DeviceID, Event BufferControl MidiMessage) Bool
   , midiOutM            -- :: UISF ([(DeviceID, Bool)], Event [MisiMessage]) ()
+  , midiOutM' 			-- :: UISF ([DeviceID], SEvent [MidiMessage]) ()
   , musicToMsgs         -- :: Bool -> [InstrumentName] -> Music1 -> [(Time, MidiMessage)]
   , selectInput, selectOutput    -- :: UISF () DeviceID
   , selectInputM, selectOutputM  -- :: UISF () [(DeviceID, Bool)]
