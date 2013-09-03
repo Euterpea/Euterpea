@@ -11,6 +11,9 @@ module Euterpea.IO.MIDI
   , Message(..)           -- data Message           (from Codec.Midi)
   , DeviceInfo(..)        -- data DeviceInfo        (from Sound.PortMidi)
   , DeviceID              -- type DeviceID = Int    (from Sound.PortMidi)
+  , exportMidiFile -- :: FilePath -> Midi -> IO ()
+  , writeMidi -- :: (Performable a) => FilePath -> Music a -> IO ()
+  , writeMidiA -- :: (Performable a) => FilePath -> PMap Note1 -> Context Note1 -> Music a -> IO ()
   , module Euterpea.IO.MIDI.ToMidi
   , module Euterpea.IO.MIDI.ExportMidiFile
   ) where
