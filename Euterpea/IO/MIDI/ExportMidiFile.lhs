@@ -20,13 +20,7 @@ of supported messages is limited to those that can be produced by
 Euterpea.
 
 > module Euterpea.IO.MIDI.ExportMidiFile
->     (exportMidiFile, writeMidi, writeMidiA)  where
-> import Euterpea.Music.Note.Music
-> import Euterpea.Music.Note.MoreMusic
-> import Euterpea.Music.Note.Performance
-> import Euterpea.IO.MIDI.GeneralMidi
-> import Euterpea.IO.MIDI.MidiIO
-> import Euterpea.IO.MIDI.ToMidi
+>     (exportMidiFile)  where
 > import Codec.Midi
 > import Numeric
 > import Data.Char
@@ -264,22 +258,21 @@ Fix a tempo value to be exactly 3 bytes:
 > fixTempo = Byte.pack . map (fromIntegral . binStrToNum . reverse) . 
 >            breakBinStrs 8 . pad (4*6) '0' . numToBinStr
 
+> exportMidiFile :: FilePath -> Midi -> IO ()
+> exportMidiFile fn = Byte.writeFile fn . makeFile
 
 
 =================
 
-NEW FILE OUTPUT VERSIONS
+USAGE
 
-> exportMidiFile :: FilePath -> Midi -> IO ()
-> exportMidiFile fn = Byte.writeFile fn . makeFile
+The exportMidiFile can now be used as follows in place of Codec.Midi's exportFile:
 
-> writeMidi :: (Performable a) => FilePath -> Music a -> IO ()
-> writeMidi fn = exportMidiFile fn . testMidi
+ writeMidi :: (Performable a) => FilePath -> Music a -> IO ()
+ writeMidi fn = exportMidiFile fn . testMidi
 
-> writeMidiA :: (Performable a) => FilePath -> PMap Note1 -> Context Note1 -> Music a -> IO ()
-> writeMidiA fn pm con m = exportMidiFile fn $ testMidiA pm con m
-
-The functions test and testA should be rewritten with exportMidiFile as follows:
+ writeMidiA :: (Performable a) => FilePath -> PMap Note1 -> Context Note1 -> Music a -> IO ()
+ writeMidiA fn pm con m = exportMidiFile fn $ testMidiA pm con m
 
  test :: (Performable a) => Music a -> IO ()
  test = exportMidiFile "test.mid" . testMidi

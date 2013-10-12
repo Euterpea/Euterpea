@@ -26,6 +26,7 @@ module Euterpea.IO.MUI
   , button              -- :: String -> UISF () Bool
   , stickyButton        -- :: String -> UISF () Bool
   , checkbox            -- :: String -> Bool -> UISF () Bool
+  , checkGroup			-- :: 
   , radio               -- :: [String] -> Int -> UISF () Int
   , hSlider, vSlider    -- :: RealFrac a => (a, a) -> a -> UISF () a
   , hiSlider, viSlider  -- :: Integral a => a -> (a, a) -> a -> UISF () a
