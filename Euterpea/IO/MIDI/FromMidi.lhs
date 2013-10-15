@@ -11,9 +11,10 @@
 Donya Quick
 Last updated 15-Oct-2013.
 
-Changes since 15-Jan-2013:
-- makeUPM: (is !! i, 10) changed to (is !! i, 9) for Percussion since
-  channels index from zero.
+Changes since last major version (15-Jan-2013):
+- makeUPM: (is !! i, 10) changed to (is !! i, 9) for Percussion.
+- Instrument numbers <0 are interpreted as Percussion.
+- ProgChange 10 x is now assigned (-1) as an instrument number.
 
 KNOWN ISSUES:
 - Tempo changes occuring between matching note on/off events may not be 
@@ -45,7 +46,7 @@ are represented by tuples of:
 - exact onset time, Rational
 - absolute pitch, AbsPitch
 - volume from 0-127, Volume
-- instrument number, Int
+- instrument number, Int. The value (-1) is used for Percussion.
 - on/off type, NEvent
 
 > data NEvent = On | Off
@@ -103,7 +104,7 @@ list represents a track in the original Midi.
 >                   SE (fromIntegral t, p, v, icur, On) : simplifyTrack icur ts
 >               (NoteOff c p v) -> 
 >                   SE (fromIntegral t, p, v, icur, Off) : simplifyTrack icur ts
->               (ProgramChange c p) -> simplifyTrack p ts 
+>               (ProgramChange c p) -> simplifyTrack (if c==9 then (-1) else p) ts 
 >               (TempoChange x) -> T (fromIntegral t, fromIntegral x) : simplifyTrack icur ts
 >               _ -> simplifyTrack icur ts 
 
@@ -153,14 +154,17 @@ structure would be:
     (instrument i1 m1) :=: (instrument i2 m1)
 	
 Tempo changes are processed within each instrument.
-	
 
 > eventsToMusic :: [[SimpleMsg]] -> Music (Pitch, Volume)
 > eventsToMusic tracks = 
 >     let tracks' = splitByInstruments tracks -- handle any mid-track program changes
->         is = map toEnum $ map getInstrument $ filter (not.null) tracks' -- instruments
+>         is = map toInstr $ map getInstrument $ filter (not.null) tracks' -- instruments
 >         tDef = 500000 -- current tempo, 120bpm as microseconds per qn
 >     in  chord $ zipWith instrument is $ map (seToMusic tDef) tracks' where
+>   
+>   toInstr :: Int -> InstrumentName
+>   toInstr i = if i<0 then Percussion else toEnum i 
+>
 >   seToMusic :: Rational -> [SimpleMsg] -> Music (Pitch, Volume)
 >   seToMusic tCurr [] = rest 0
 >   seToMusic tCurr (e1@(SE(t,p,v,ins,On)):es) = 
@@ -263,3 +267,4 @@ in this representation, so channel 1 is 0, channel 10 is 9, etc.
 >         Nothing -> zip is ([0..8]++[10..]) -- no percussion
 >         Just i -> (is !! i, 9) : 
 >                   zip (take i is ++ drop (i+1) is) ([0..8]++[10..])
+
