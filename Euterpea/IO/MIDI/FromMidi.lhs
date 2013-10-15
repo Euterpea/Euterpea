@@ -9,7 +9,11 @@
 
 
 Donya Quick
-Last updated 15-Jan-2013.
+Last updated 15-Oct-2013.
+
+Changes since 15-Jan-2013:
+- makeUPM: (is !! i, 10) changed to (is !! i, 9) for Percussion since
+  channels index from zero.
 
 KNOWN ISSUES:
 - Tempo changes occuring between matching note on/off events may not be 
@@ -250,13 +254,12 @@ eventsToMusic and performs the final conversion to Music1.
 
 This function is to correct for the fact that channel 10 is
 traditionally reserved for percussion. If there is no percussion,
-then channel 10 must remain empty. The patch map returns empty
-if >16 instruments are in use. Channels are indexed from zero in
-this representation, so channel 1 is 0, channel 10 is 9, etc.
+then channel 10 must remain empty. Channels are indexed from zero 
+in this representation, so channel 1 is 0, channel 10 is 9, etc.
 
 > makeUPM :: [InstrumentName] -> UserPatchMap
 > makeUPM is = 
 >     case findIndex (==Percussion) is of 
 >         Nothing -> zip is ([0..8]++[10..]) -- no percussion
->         Just i -> (is !! i, 10) : 
+>         Just i -> (is !! i, 9) : 
 >                   zip (take i is ++ drop (i+1) is) ([0..8]++[10..])
