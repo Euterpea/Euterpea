@@ -67,6 +67,7 @@ Library
   ghc-options: -O2 -funbox-strict-fields -fexcess-precision
   exposed-modules: 
         Euterpea,
+        Euterpea.Experimental,
         Control.CCA.ArrowP,
         Control.SF.SF,
         Control.SF.AuxFunctions,
@@ -74,6 +75,7 @@ Library
         Euterpea.Examples.EuterpeaExamples
         Euterpea.Examples.Interlude,
         Euterpea.Examples.Instruments,
+        Euterpea.Examples.IntervalTrainer,
         Euterpea.Examples.LSystems,
         Euterpea.Examples.MUIExamples,
         Euterpea.Examples.MUI,

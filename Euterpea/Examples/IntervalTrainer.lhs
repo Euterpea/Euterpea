@@ -5,9 +5,9 @@
 > import Control.Arrow
 
 > import Euterpea
-> import System.IO.Unsafe (unsafePerformIO)
+> import Euterpea.Experimental (uisfPipeE)
 > import System.Random (randomRIO)
-> import qualified Codec.Midi as Midi
+> import Codec.Midi (Message(ProgramChange))
 
 > import Control.SF.AuxFunctions ((=>>), (->>), (.|.), snapshot, snapshot_, concatA)
 
@@ -113,7 +113,7 @@ The main UI:
 >         e `whileIn` s = if s == state then e else Nothing
 >  
 >     -- Random intervals:
->     let randIntE = snapshot_ nextE (maxInt, lowOct, range) =>> mkRandInt
+>     randIntE <- uisfPipeE mkRandInt -< snapshot_ nextE (maxInt, lowOct, range)
 >     interval <- hold (0,0)  -< randIntE
 >     let trigger  = snapshot randIntE (dur, instr) .|.
 >                    snapshot_ repeatE (interval, (dur, instr))
@@ -136,7 +136,7 @@ The main UI:
 >     note1 <- vdelay -< (del1, (trigger =>> mkNote 1))
 >     nowE <- now -< ()
 >     let progChan = nowE ->> (map Std $
->                     zipWith Midi.ProgramChange [0,1,2,3,4] [0,4,40,66,73])
+>                     zipWith ProgramChange [0,1,2,3,4] [0,4,40,66,73])
 >         midiMsgs = progChan .|. mergeE (++) note0 note1
 >     -- Display results:
 >     (| leftRight (do
@@ -162,9 +162,9 @@ Auxilliary Functions:
 > showScore c t = show c ++ "/" ++ show t ++ " = " ++ 
 >                 take 5 (show (100 * fromIntegral c / fromIntegral t)) ++ "%"
 
-> mkRandInt :: (Int,Int,Int) -> (Int,Int)
+> mkRandInt :: (Int,Int,Int) -> IO (Int,Int)
 > mkRandInt (maxInt,lowOct,range) = 
->   unsafePerformIO $ do
+>   do
 >     let low = lowOct*12
 >     int  <- randomRIO (0,maxInt) :: IO Int
 >     root <- randomRIO (low, low + range*6 - int) :: IO Int

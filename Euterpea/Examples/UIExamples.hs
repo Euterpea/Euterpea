@@ -9,10 +9,9 @@
 module Euterpea.Examples.UIExamples where
 
 import Euterpea
+import Euterpea.Experimental (fftA)
 import Euterpea.IO.MUI.SOE (withColor', rgb, polygon)
-
 import Control.Arrow
-import Control.SF.AuxFunctions (fftA)
 
 import Numeric (showHex)
 import Data.Maybe (listToMaybe, catMaybes)
