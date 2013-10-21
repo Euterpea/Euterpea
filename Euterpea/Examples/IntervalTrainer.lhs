@@ -57,8 +57,6 @@ The main UI:
 
 > intervalTrainer :: UISF () ()
 > intervalTrainer = proc _ -> do
->     -- get running time
->     t <- time -< ()
 >     -- MIDI output select:
 >     mo <- setSize (600,90) $ selectOutput -< ()
 >     -- Play note:
@@ -134,8 +132,8 @@ The main UI:
 >         del0 = f 2 pns dur -- lo note delay only when "hi then lo"
 >         del1 = f 1 pns dur -- hi note delay only when "lo then hi"
 >     -- Random interval & Midi signals:
->     note0 <- vdelay -< (t, del0, (trigger =>> mkNote 0))
->     note1 <- vdelay -< (t, del1, (trigger =>> mkNote 1))
+>     note0 <- vdelay -< (del0, (trigger =>> mkNote 0))
+>     note1 <- vdelay -< (del1, (trigger =>> mkNote 1))
 >     nowE <- now -< ()
 >     let progChan = nowE ->> (map Std $
 >                     zipWith Midi.ProgramChange [0,1,2,3,4] [0,4,40,66,73])

@@ -42,13 +42,11 @@ of MidiMessages and sends the MidiMessages to the device.
 >   return $ fmap (\(_t, ms) -> map Std ms) m
  
 > midiOut :: UISF (DeviceID, SEvent [MidiMessage]) ()
-> midiOut = arr eventizeInput >>> uisfSinkE f >>> constA () where
->   eventizeInput (_, Nothing) = Nothing
->   eventizeInput (dev, Just ms) = Just (dev, ms)
+> midiOut = arr Just >>> uisfSinkE f >>> constA () where
 >   f (dev, ms) = do
 >       valid <- isValidOutputDevice dev 
->       when valid $ outputMidi dev >>
->                    mapM_ (\m -> deliverMidiEvent dev (0, m)) ms
+>       when valid $ outputMidi dev >> maybe (return ()) 
+>                    (mapM_ $ \m -> deliverMidiEvent dev (0, m)) ms
 
  
 The midiInM widget takes input from multiple devices and combines 
