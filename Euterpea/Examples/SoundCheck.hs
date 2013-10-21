@@ -2,11 +2,7 @@
 
 module Euterpea.Examples.SoundCheck where
 
--- import Arrow.Signal 
--- import Euterpea.IO.Audio.BasicSigFuns
--- import Euterpea.IO.Audio.Types
--- import Euterpea.IO.Audio.IO
-import Euterpea -- .IO.Audio
+import Euterpea
 
 type AudSF a b = Signal AudRate a b
 type CtrSF a b = Signal CtrRate a b

@@ -11,22 +11,18 @@ module Euterpea.IO.MUI
   , runUI               -- :: String -> UISF () () -> IO ()
   , runUIEx             -- :: Dimension -> String -> UISF () () -> IO ()
   , getTime             -- :: UISF () Time
-    -- UISF builders (DWC Note: I don't feel comfortable with how generic these are)
-  , uisfSourceE         -- :: IO c ->         UISF (SEvent ()) (SEvent c)
-  , uisfSinkE           -- :: (b -> IO ()) -> UISF (SEvent b)  (SEvent ())
-  , uisfPipeE           -- :: (b -> IO c) ->  UISF (SEvent b)  (SEvent c)
     -- Widgets
   , label               -- :: String -> UISF a a
   , displayStr          -- :: UISF String ()
   , display             -- :: Show a => UISF a ()
   , withDisplay         -- :: Show b => UISF a b -> UISF a b
-  , textboxE            -- :: String -> UISF (Sevent String) String
+  , textboxE            -- :: String -> UISF (SEvent String) String
   , textbox             -- :: UISF String String
   , title               -- :: String -> UISF a b -> UISF a b
   , button              -- :: String -> UISF () Bool
   , stickyButton        -- :: String -> UISF () Bool
   , checkbox            -- :: String -> Bool -> UISF () Bool
-  , checkGroup			-- :: 
+  , checkGroup			-- :: [String] -> UISF () [Bool]
   , radio               -- :: [String] -> Int -> UISF () Int
   , hSlider, vSlider    -- :: RealFrac a => (a, a) -> a -> UISF () a
   , hiSlider, viSlider  -- :: Integral a => a -> (a, a) -> a -> UISF () a
@@ -50,13 +46,6 @@ module Euterpea.IO.MUI
   , makeLayout          -- :: LayoutType -> LayoutType -> Layout
   , LayoutType (..)     -- data LayoutType = Stretchy { minSize :: Int } | Fixed { fixedSize :: Int }
   , Color (..)          -- data Color = Black | Blue | Green | Cyan | Red | Magenta | Yellow | White
-  -- Instrument Widgets
-  , PianoKeyMap, GuitarKeyMap,
-  KeyData, KeyState, InstrumentData,
-  defaultInstrumentData, defaultKeyLayout, defaultMap0, defaultMap1, defaultMap2,
-  addNotation, addTranspose, addPedal, addEcho,
-  selectInstrument, songPlayer,
-  piano, guitar, sixString
   ) where
 
 import Euterpea.IO.MUI.UIMonad
@@ -64,4 +53,3 @@ import Euterpea.IO.MUI.UISF
 import Euterpea.IO.MUI.Widget
 import Euterpea.IO.MUI.MidiWidgets
 import Euterpea.IO.MUI.SOE (Color (..))
-import Euterpea.IO.MUI.InstrumentWidgets

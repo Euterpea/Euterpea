@@ -1,11 +1,9 @@
-> {-# LANGUAGE Arrows, TupleSections #-}
+> {-# LANGUAGE Arrows #-}
 
 > module Euterpea.Examples.MUIExamples where
 
 > import Euterpea
 > import Control.Arrow
-> import qualified Codec.Midi as Midi
-
 > import Data.Maybe (mapMaybe)
 
 
@@ -43,8 +41,8 @@ process the head of the message list and ignore everything else.
 > toChord :: Int -> [MidiMessage] -> [MidiMessage]
 > toChord i (ms@(m:_)) = 
 >   case m of 
->     Std (Midi.NoteOn c k v) -> f Midi.NoteOn c k v
->     Std (Midi.NoteOff c k v) -> f Midi.NoteOff c k v
+>     Std (NoteOn c k v) -> f NoteOn c k v
+>     Std (NoteOff c k v) -> f NoteOff c k v
 >     _ -> ms
 >   where f g c k v = map (\k -> Std (g c k v)) 
 >                         (scanl (+) k (snd (chordIntervals !! i)))
@@ -175,6 +173,6 @@ which is given by the other slider f).
 >                   else Nothing
 >   in case m of
 >     ANote c k v d -> f c k v d
->     Std (Midi.NoteOn c k v) -> f c k v dur
+>     Std (NoteOn c k v) -> f c k v dur
 >     _ -> Nothing
 

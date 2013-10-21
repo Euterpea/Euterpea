@@ -5,12 +5,7 @@ using the Render module.
 
 > module Euterpea.Examples.MusicToSignal where
 
-> import Euterpea -- hiding (line,delay)
-> -- import Euterpea.IO.Audio.Basics
-> -- import Euterpea.IO.Audio.BasicSigFuns
-> -- import Euterpea.IO.Audio.Types
-> -- import Euterpea.IO.Audio.IO
-> -- import Euterpea.IO.Audio.Render
+> import Euterpea
 
 First, define some instruments.
 

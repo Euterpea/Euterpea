@@ -1,7 +1,8 @@
 {-# LANGUAGE Arrows #-}
 module Euterpea.Examples.Instruments where
-import Control.SF.AuxFunctions -- for ~++
 import Euterpea
+import Euterpea.Experimental
+import Control.SF.AuxFunctions ((~++))
 
 -- Here is a demonstration of the guitar and piano widgets available in Euterpea.
 
