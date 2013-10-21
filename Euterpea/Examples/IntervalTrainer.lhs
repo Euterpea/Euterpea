@@ -9,7 +9,7 @@
 > import System.Random (randomRIO)
 > import qualified Codec.Midi as Midi
 
-> import Control.SF.AuxFunctions ((=>>), (->>), (.|.), snapshot, snapshot_)
+> import Control.SF.AuxFunctions ((=>>), (->>), (.|.), snapshot, snapshot_, concatA)
 
 
 > main = runUIEx (600,700) "Interval Trainer" intervalTrainer
@@ -93,10 +93,10 @@ The main UI:
 >     -- User Input:
 >     guesses <- (| (setSize (600,90) . title "Guess the interval") (do
 >         g1 <- leftRight $
->                 mapA $ map (\s -> edge <<< button s) 
+>                 concatA $ map (\s -> edge <<< button s) 
 >                            ["uni","min2","Maj2","min3","Maj3","4th","aug4"] -< repeat ()
 >         g2 <- leftRight $
->                 mapA $ map (\s -> edge <<< button s)
+>                 concatA $ map (\s -> edge <<< button s)
 >                            ["5th","min6","Maj6","min7","Maj7","oct"] -< repeat ()
 >         returnA -< g1++g2) |)
 >     -- edge-detect pushbuttons:
@@ -184,15 +184,4 @@ Auxilliary Functions:
 at 60 BPM a whole note is 1 sec
 
 ANote :: Channel -> Key -> Velocity -> Time -> MidiMessage
-
-
-> mapA :: Arrow a => [a b c] -> a [b] [c]
-> mapA [] = arr $ const []
-> mapA (sf:sfs) = proc (b:bs) -> do
->     c <- sf -< b
->     cs <- mapA sfs -< bs
->     returnA -< (c:cs)
-
-
-
 
