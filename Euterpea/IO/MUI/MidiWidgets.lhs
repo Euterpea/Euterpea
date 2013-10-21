@@ -8,7 +8,7 @@
 > import Euterpea.IO.MUI.UISF
 > import Euterpea.IO.MUI.Widget
 > import Euterpea.IO.MIDI.MidiIO
-> import Control.SF.AuxFunctions (SEvent, DeltaT, constA, (~++), delay, 
+> import Control.SF.AuxFunctions (SEvent, DeltaT, constA, (~++), delay, foldA, 
 >                                 eventBuffer, BufferControl, BufferEvent(..))
 
 > import Control.Arrow
@@ -59,14 +59,8 @@ can easily apply (map fst . filter snd) to make the conversion.
 That said, perhaps checkGroup should just return the list of true values ...
 
 > midiInM' :: UISF [DeviceID] (SEvent [MidiMessage])
-> midiInM' = delay [] >>> helper where
->  helper = proc bs -> case bs of
->   [] -> returnA -< Nothing
->   d:ds -> do
->       m  <- midiIn -< d
->       ms <- helper -< ds
->       returnA -< m ~++ ms
->
+> midiInM' = delay [] >>> foldA (~++) Nothing midiIn
+
 > midiInM :: UISF [(DeviceID, Bool)] (SEvent [MidiMessage])
 > midiInM = arr (map fst . filter snd) >>> midiInM'
 
@@ -81,16 +75,12 @@ Is it common to want to send the same messages to many output devices?
 Perhaps it is, but this still seems odd.  Also, I apply the same type 
 changes here.
 
-> midiOutM' :: UISF ([DeviceID], SEvent [MidiMessage]) ()
-> midiOutM' = delay ([], Nothing) >>> helper where
->  helper = proc (bs, e) -> case bs of
->   [] -> returnA -< ()
->   d:ds -> do
->       midiOut -< (d,  e)
->       helper  -< (ds, e)
+> midiOutM' :: UISF [(DeviceID, SEvent [MidiMessage])] ()
+> midiOutM' = delay [] >>> foldA const () midiOut
 
 > midiOutM :: UISF ([(DeviceID, Bool)], SEvent [MidiMessage]) ()
-> midiOutM = first (arr (map fst . filter snd)) >>> midiOutM'
+> midiOutM = arr fixData >>> midiOutM' where
+>   fixData (lst, mmsgs) = map ((,mmsgs) . fst) $ filter snd lst
 
 A midiOutB widget wraps the regular midiOut widget with a buffer. 
 This allows for a timed series of messages to be prepared and sent
@@ -119,6 +109,14 @@ if the buffer is full (meaning that items are still being played).
 >   midiOut -< (devID, extraMsgs ~++ out)
 >   returnA -< b
 >  where clearMsgs = map (\c -> Std (ControlChange c 123 0)) [0..15]
+
+> midiOutMB' :: UISF [(DeviceID, BufferControl MidiMessage)] Bool
+> midiOutMB' = delay [] >>> foldA (&&) True midiOutB'
+
+> midiOutMB :: UISF ([(DeviceID, Bool)], SEvent [(DeltaT, MidiMessage)]) Bool
+> midiOutMB = arr fixData >>> midiOutMB' where
+>   fixData (lst, mmsgs) = map ((,fixMsgs mmsgs) . fst) $ filter snd lst
+>   fixMsgs e = (fmap AddDataToEnd e, True, 1)
 
 
 The musicToMsgs function bridges the gap between a Music1 value and

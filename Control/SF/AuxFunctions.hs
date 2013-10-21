@@ -8,7 +8,7 @@ module Control.SF.AuxFunctions (
     accum, unique, 
     hold, now, 
     mergeE, (~++), 
-    concatA, 
+    concatA, foldA, 
     delay, vdelay, fdelay, 
     vdelayC, fdelayC, 
     timer, genEvents, 
@@ -137,6 +137,15 @@ concatA (sf:sfs) = proc (b:bs) -> do
     c <- sf -< b
     cs <- concatA sfs -< bs
     returnA -< (c:cs)
+
+foldA :: ArrowChoice a => (c -> d -> d) -> d -> a b c -> a [b] d
+foldA merge i sf = h where 
+  h = proc inp -> case inp of
+    [] -> returnA -< i
+    b:bs -> do
+        c <- sf -< b
+        d <- h  -< bs
+        returnA -< merge c d
 
 --------------------------------------
 -- Delays and Timers
