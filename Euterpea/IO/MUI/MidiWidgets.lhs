@@ -187,17 +187,14 @@ The selectInputM and selectOutputM widgets use checkboxes instead of
 radio buttons to allow the user to select multiple inputs and outputs.
 These widgets should be used with midiInM and midiOutM respectively.
 
-> selectInputM, selectOutputM :: UISF () [(DeviceID, Bool)]
+> selectInputM, selectOutputM :: UISF () [DeviceID]
 > selectInputM = selectDevM "Input devices" input
 > selectOutputM = selectDevM "Output devices" output
 
-> selectDevM :: String -> (DeviceInfo -> Bool) -> UISF () [(DeviceID, Bool)]
+> selectDevM :: String -> (DeviceInfo -> Bool) -> UISF () [DeviceID]
 > selectDevM t f = initialIOAction getAllDevices $ \devices ->
 >   let devs = filter (\(i,d) -> f d && name d /= "Microsoft MIDI Mapper") devices
->       (devIDs, devNames) = unzip devs
->   in  title t $ proc _ -> do
->       cs <- checkGroup (map name devNames) -< ()
->       returnA -< zip devIDs cs
+>   in  title t $ checkGroup $ map (\(i,d) -> (name d, i)) devs
 
 
 

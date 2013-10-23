@@ -312,9 +312,18 @@ The checkGroup widget creates a group of check boxes that all send
 their outputs to the same output stream. It takes a static list of 
 labels for the check boxes and assumes they all start unchecked.
 
-> checkGroup :: [String] -> UISF () [Bool]
-> checkGroup ss = constA (repeat ()) >>> 
->                 concatA (zipWith checkbox ss (repeat False))
+The output stream is a list of each a value that was paired with a 
+String value for which the check box is checked.
+
+checkGroup :: [String] -> UISF () [Bool]
+checkGroup ss = constA (repeat ()) >>> 
+                concatA (zipWith checkbox ss (repeat False))
+
+> checkGroup :: [(String, a)] -> UISF () [a]
+> checkGroup sas = let (s, a) = unzip sas in
+>   constA (repeat ()) >>> 
+>   concatA (zipWith checkbox s (repeat False)) >>>
+>   arr (map fst . filter snd . zip a)
 
 
 -------------------
