@@ -29,17 +29,9 @@ module Euterpea.IO.MUI
   , realtimeGraph       -- :: RealFrac a => Layout -> Time -> Color -> UISF (Time, [(a,Time)]) ()
   , histogram           -- :: RealFrac a => Layout -> UISF (Event [a]) ()
   , listbox             -- :: (Eq a, Show a) => UISF ([a], Int) Int
-  , midiIn              -- :: UISF DeviceID (Event [MidiMessage])
-  , midiInM             -- :: UISF [(DeviceID, Bool)] (Event [MidiMessage])
-  , midiInM'			-- :: UISF [DeviceID] (SEvent [MidiMessage])
-  , midiOut             -- :: UISF (DeviceID, Event [MidiMessage]) ()
-  , midiOutB            -- :: UISF (DeviceID, Event [(Time, MidiMessage)]) Bool
-  , midiOutB'           -- :: UISF (DeviceID, Event BufferControl MidiMessage) Bool
-  , midiOutM            -- :: UISF ([(DeviceID, Bool)], Event [MisiMessage]) ()
-  , midiOutM' 			-- :: UISF ([DeviceID], SEvent [MidiMessage]) ()
-  , musicToMsgs         -- :: Bool -> [InstrumentName] -> Music1 -> [(Time, MidiMessage)]
+  , midiIn              -- :: UISF DeviceID (SEvent [MidiMessage])
+  , midiOut             -- :: UISF (DeviceID, SEvent [MidiMessage]) ()
   , selectInput, selectOutput    -- :: UISF () DeviceID
-  , selectInputM, selectOutputM  -- :: UISF () [(DeviceID, Bool)]
   , canvas              -- :: Dimension -> UISF (Event Graphic) ()
   , canvas'             -- :: Layout -> (a -> Dimension -> Graphic) -> UISF (Event a) ()
   -- Widget Utilities
