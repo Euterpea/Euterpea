@@ -1,7 +1,16 @@
-
 > {-# LANGUAGE DoRec, Arrows, TupleSections #-}
 
-> module Euterpea.IO.MUI.MidiWidgets where
+> module Euterpea.IO.MUI.MidiWidgets (
+>   midiIn
+> , midiOut
+> , midiInM
+> , midiOutMB
+> , musicToMsgs
+> , musicToBCMsgs
+> , selectInput,  selectOutput
+> , selectInputM, selectOutputM
+> , BufferEvent(..) -- Reexported for use with midiOutMB
+> ) where
 
 > import Euterpea.IO.MUI.SOE
 > import Euterpea.IO.MUI.UIMonad
@@ -52,17 +61,11 @@ of MidiMessages and sends the MidiMessages to the device.
 The midiInM widget takes input from multiple devices and combines 
 it into a single stream. 
 
-DWC Notes:
-Although the streaming input [(DeviceID, Bool)] seems nice as it fits with 
-a checkGroup, it seems cleaner to have simply [DeviceID].  The programmer 
-can easily apply (map fst . filter snd) to make the conversion.
-That said, perhaps checkGroup should just return the list of true values ...
+> midiInM :: UISF [DeviceID] (SEvent [MidiMessage])
+> midiInM = delay [] >>> foldA (~++) Nothing midiIn
 
-> midiInM' :: UISF [DeviceID] (SEvent [MidiMessage])
-> midiInM' = delay [] >>> foldA (~++) Nothing midiIn
-
-> midiInM :: UISF [(DeviceID, Bool)] (SEvent [MidiMessage])
-> midiInM = arr (map fst . filter snd) >>> midiInM'
+> midiInM' :: UISF [(DeviceID, Bool)] (SEvent [MidiMessage])
+> midiInM' = arr (map fst . filter snd) >>> midiInM
 
 
 A midiOutM widget sends output to multiple MIDI devices by sequencing
@@ -70,17 +73,13 @@ the events through a single midiOut. The same messages are sent to
 each device. The midiOutM is designed to be hooked up to a stream like
 that from a checkGroup.
 
-DWC Notes:
-Is it common to want to send the same messages to many output devices?
-Perhaps it is, but this still seems odd.  Also, I apply the same type 
-changes here.
+> midiOutM :: UISF [(DeviceID, SEvent [MidiMessage])] ()
+> midiOutM = delay [] >>> foldA const () midiOut
 
-> midiOutM' :: UISF [(DeviceID, SEvent [MidiMessage])] ()
-> midiOutM' = delay [] >>> foldA const () midiOut
-
-> midiOutM :: UISF ([(DeviceID, Bool)], SEvent [MidiMessage]) ()
-> midiOutM = arr fixData >>> midiOutM' where
+> midiOutM' :: UISF ([(DeviceID, Bool)], SEvent [MidiMessage]) ()
+> midiOutM' = arr fixData >>> midiOutM where
 >   fixData (lst, mmsgs) = map ((,mmsgs) . fst) $ filter snd lst
+
 
 A midiOutB widget wraps the regular midiOut widget with a buffer. 
 This allows for a timed series of messages to be prepared and sent
@@ -95,12 +94,8 @@ events are handed to midiOut at the same timestep. Finally, the
 widget returns a flat that is True if the buffer is empty and False
 if the buffer is full (meaning that items are still being played).
 
-> midiOutB :: UISF (DeviceID, SEvent [(DeltaT, MidiMessage)]) Bool
-> midiOutB = second (arr $ \e -> (fmap AddDataToEnd e, True, 1)) >>> midiOutB'
-
-
-> midiOutB' :: UISF (DeviceID, BufferControl MidiMessage) Bool
-> midiOutB' = proc (devID, bc) -> do
+> midiOutB :: UISF (DeviceID, BufferControl MidiMessage) Bool
+> midiOutB = proc (devID, bc) -> do
 >   (out, b) <- eventBuffer -< bc
 >   let extraMsgs = case bc of
 >           (Just Clear, _, _) -> Just clearMsgs
@@ -110,11 +105,20 @@ if the buffer is full (meaning that items are still being played).
 >   returnA -< b
 >  where clearMsgs = map (\c -> Std (ControlChange c 123 0)) [0..15]
 
-> midiOutMB' :: UISF [(DeviceID, BufferControl MidiMessage)] Bool
-> midiOutMB' = delay [] >>> foldA (&&) True midiOutB'
+> midiOutB' :: UISF (DeviceID, SEvent [(DeltaT, MidiMessage)]) Bool
+> midiOutB' = second (arr $ \e -> (fmap AddDataToEnd e, True, 1)) >>> midiOutB
 
-> midiOutMB :: UISF ([(DeviceID, Bool)], SEvent [(DeltaT, MidiMessage)]) Bool
-> midiOutMB = arr fixData >>> midiOutMB' where
+
+The midiOutMB widget combines the power of midiOutM with midiOutB, allowing 
+multiple sets of buffer controlled midi messages to be sent to different 
+devices.  The Bool output is True if every buffer is empty (that is, no device 
+has any pending music to be played) and False otherwise.
+
+> midiOutMB :: UISF [(DeviceID, BufferControl MidiMessage)] Bool
+> midiOutMB = delay [] >>> foldA (&&) True midiOutB
+
+> midiOutMB' :: UISF ([(DeviceID, Bool)], SEvent [(DeltaT, MidiMessage)]) Bool
+> midiOutMB' = arr fixData >>> midiOutMB where
 >   fixData (lst, mmsgs) = map ((,fixMsgs mmsgs) . fst) $ filter snd lst
 >   fixMsgs e = (fmap AddDataToEnd e, True, 1)
 
@@ -154,6 +158,8 @@ since the last event. The arguments are as follows:
 >         else progChanges ++ zip newTimes (map snd evs) where
 >     mOrder (t1,m1) (t2,m2) = compare t1 t2
 
+> musicToBCMsgs :: Bool -> [InstrumentName] -> Music1 -> BufferControl MidiMessage
+> musicToBCMsgs inf is m = (Just $ AddDataToEnd $ musicToMsgs inf is m, True, 1)
  
  
 ----------------------
