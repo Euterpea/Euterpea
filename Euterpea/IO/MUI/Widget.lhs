@@ -485,14 +485,15 @@ of the list (simply indicating no choice selected).
 >     process (lst,i) olds bbx e = (i', (lst, i'), olds /= (lst, i'))
 >         where
 >         i' = case e of
->           Button pt True True -> pt2index pt
+>           Button pt True True -> boundCheck $ pt2index pt
 >           Key (SpecialKey DOWN) True _ -> min (i+1) (length lst - 1)
 >           Key (SpecialKey UP)   True _ -> max (i-1) 0
 >           Key (SpecialKey HOME) True _ -> 0
 >           Key (SpecialKey END)  True _ -> length lst - 1
->           _ -> i
+>           _ -> boundCheck i
 >         ((_,y),_) = bbx
 >         pt2index (_px,py) = (py-y) `div` lineheight
+>         boundCheck j = if j >= length lst then -1 else j
 
 
 ============================================================
