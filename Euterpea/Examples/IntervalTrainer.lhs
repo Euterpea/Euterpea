@@ -2,8 +2,6 @@
 
 > module Euterpea.Examples.IntervalTrainer where
 
-> import Control.Arrow
-
 > import Euterpea
 > import Euterpea.Experimental (uisfPipeE)
 > import System.Random (randomRIO)

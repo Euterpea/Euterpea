@@ -1,6 +1,5 @@
 {-# LANGUAGE Arrows #-}
 module SigS where
-import Control.Arrow
 import Euterpea hiding (Table, tableSinesN, osc, oscFixed, exportFile)
 import Euterpea.Music.Signal.SigFuns (AudSF)
 import Codec.Wav
@@ -46,12 +45,12 @@ lift x = SigS (repeat x)
 -- SigS instances
 
 instance Num a => Num (SigS a) where
-    (+) (SigS s1) (SigS s2) = SigS (zipWith (+) s1 s2)
-    (-) (SigS s1) (SigS s2) = SigS (zipWith (-) s1 s2)
-    (*) (SigS s1) (SigS s2) = SigS (zipWith (*) s1 s2)
-    abs _ = error "abs unimplemented"
-    signum _ = error "signum unimplemented"
-    fromInteger _ = error "fromInteger unimplemented"
+    (+) = sZipWith (+)
+    (-) = sZipWith (-)
+    (*) = sZipWith (*)
+    abs = sMap abs
+    signum = sMap signum
+    fromInteger = lift . fromInteger
 
 -- Table definition
 

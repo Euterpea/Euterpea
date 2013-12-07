@@ -1,11 +1,10 @@
 {-# LANGUAGE Arrows #-}
-module Main where
-import Control.Arrow
+module SigC where
 import Euterpea hiding (Table, tableSinesN, osc, oscFixed, exportFile)
 import Euterpea.Music.Signal.SigFuns (AudSF)
 import Codec.Wav
 import Data.Audio
-import Data.Array.Unboxed hiding (accum)
+import Data.Array.Unboxed
 import Data.Int
 import System.CPUTime
 import Text.Printf
@@ -25,6 +24,9 @@ runSigC (x ::: sig) = x : runSigC sig
 sMap :: (a -> a) -> SigC a -> SigC a
 sMap f (x ::: sig) = f x ::: sMap f sig
 
+sZipWith :: (a -> b -> c) -> SigC a -> SigC b -> SigC c
+sZipWith f (s1 ::: sig1) (s2 ::: sig2) = f s1 s2 ::: sZipWith f sig1 sig2
+
 sZipWith3 :: (a -> b -> c -> d) -> SigC a -> SigC b -> SigC c -> SigC d
 sZipWith3 f (s1 ::: sig1) (s2 ::: sig2) (s3 ::: sig3) = f s1 s2 s3 ::: sZipWith3 f sig1 sig2 sig3
 
@@ -34,15 +36,15 @@ lift x = x ::: lift x
 -- SigC instances
 
 instance Show a => Show (SigC a) where
-    show = show.runSignal
+    show = show.runSigC
 
 instance Num a => Num (SigC a) where
-    (+) (s1 ::: sig1) (s2 ::: sig2) = (s1 + s2) ::: (sig1 + sig2)
-    (-) (s1 ::: sig1) (s2 ::: sig2) = (s1 - s2) ::: (sig1 - sig2)
-    (*) (s1 ::: sig1) (s2 ::: sig2) = (s1 * s2) ::: (sig1 * sig2)
-    abs _ = error "abs unimplemented"
-    signum _ = error "signum unimplemented"
-    fromInteger _ = error "fromInteger unimplemented"
+    (+) = sZipWith (+)
+    (-) = sZipWith (-)
+    (*) = sZipWith (*)
+    abs = sMap abs
+    signum = signum
+    fromInteger = lift . fromInteger
 
 -- Table definition
 
