@@ -22,7 +22,9 @@ mkTyVarBind (TyVar x) = UnkindedVar x
 
 parseMode fn = ParseMode 
      { parseFilename         = fn,
-       extensions            = [ MultiParamTypeClasses,
+       baseLanguage          = Haskell2010,
+       extensions            = fmap EnableExtension [ 
+                                 MultiParamTypeClasses,
                                  FlexibleContexts,
                                  TemplateHaskell,
                                  ExistentialQuantification,
@@ -47,8 +49,9 @@ parseArrowPOutput filename str =
                         "Parse error: " ++ show loc ++ ": " ++ show err
 
 mkPragma exts = "{-# LANGUAGE " ++ 
-                concat (intersperse "," (map show exts)) ++
+                intercalate "," (map (show . enabled) exts) ++
                 " #-}"
+  where enabled (EnableExtension ext) = ext
 
 {-
 Run arrowp, parse result (since haskell-src-exts doesn't handle 
@@ -59,7 +62,7 @@ Insert "forall" into type signatures; prettyprint result
 runArrowP arrowp inFile outFile = do
   result <- readProcess arrowp [inFile] []
   orig   <- readFile inFile
-  let exts   = fromJust (readExtensions orig)
+  let (_, exts) = fromJust (readExtensions orig)
       parse  = parseArrowPOutput inFile result
       pragma = mkPragma exts
   writeFile outFile $ pragma ++ "\n" ++ prettyPrintWithMode ppMode parse

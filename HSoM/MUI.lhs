@@ -996,10 +996,10 @@ growth function is given by the equation:
 
 Mathematically, we start with an initial population $x_0$ and
 iteratively apply the growth function to it, where $r$ is the growth
-rate.  For certain values of $r$, the population stablizes to a certain
-value, but as $r$ increases, the period doubles, quadruples, and
-eventually leads to chaos.  It is one of the classic examples in chaos
-theory.
+rate.  For certain values of $r$, the population stablizes to a
+certain value, but as $r$ increases, the period doubles, quadruples,
+and eventually leads to chaos.  It is one of the classic examples of
+chaotic behavior.
 
 First we define the growth function in Haskell, which, given a rate
 |r| and current population |x|, generates the next population.
@@ -1126,6 +1126,63 @@ decay dur r m =
        Std (NoteOn c k v)  -> f c k v dur
        _                   -> Nothing
 \end{code}
+
+\section{General I/O From Within a MUI}
+\label{sec:mui-general-io}
+
+[This section needs further elaboration]
+
+Euterpea has sources, sinks, and pipes for UISFs as well as a general
+event buffer and a hook into it for MIDI out.
+
+The following six functions:
+\begin{spec}
+uisfSource   :: IO c          -> UISF () c
+uisfSink     :: (b -> IO ())  -> UISF b ()
+uisfPipe     :: (b -> IO c)   -> UISF b c
+uisfSourceE  :: IO c          -> UISF (SEvent ())  (SEvent c)
+uisfSinkE    :: (b -> IO ())  -> UISF (SEvent b)   (SEvent ())
+uisfPipeE    :: (b -> IO c)   -> UISF (SEvent b)   (SEvent c)
+\end{spec}
+work as expected.  Without resource types, these functions are unsafe
+and should be used with caution.
+
+Here are four examples:
+\begin{spec}
+uisfPipeE    randomRIO  :: Random c => UISF (SEvent (c,c))  (SEvent c)
+uisfSourceE  randomIO   :: Random c => UISF (SEvent ())     (SEvent c)
+uisfPipeE    readFile   :: UISF (SEvent FilePath)  (SEvent String)
+uisfSinkE $ uncurry writeFile ::
+  UISF (SEvent (FilePath, String)) (SEvent ())
+\end{spec} % $
+
+Euterpea also has an event buffer:
+\begin{spec}
+data BufferControl b = Play | Pause | Clear | AddData [(DeltaT, b)]
+eventBuffer ::  UISF (SEvent (BufferControl a), Time) (SEvent [a], Bool)
+\end{spec}
+|Pause| and |Play| are states that determine whether time continues or
+not, |Clear| empties the buffer, and |AddData| adds new data,
+merging as necessary.  Infinite data streams are supported.  The
+output includes an event of values that are ready and a |Bool|
+indicating if there are values left in the buffer.
+
+|eventBuffer| can be used directly, but it also hooks directly into
+|midiOut| with:
+\begin{spec}
+midiOutB :: UISF (DeviceID, SEvent [(DeltaT, MidiMessage)]) Bool
+midiOutB' :: UISF (DeviceID, SEvent (BufferControl MidiMessage)) Bool
+\end{spec}
+There is also a function that converts |Music| values into the event
+structure used above:
+\begin{spec}
+musicToMsgs :: Bool -> [InstrumentName] -> Music1 -> [(DeltaT, MidiMessage)]
+\end{spec}
+in which the |Bool| argument tells whether the |Music1| value is
+infinite, and the list is for instrument channels in the infinite case.
+
+(Perhaps this should just be one argument of type |Maybe
+[InstrumentName]|?)
 
 \vspace{.1in}\hrule
 

@@ -106,6 +106,7 @@
 %format mb2
 %format c1
 %format c2
+%format s0
 %format s1
 %format s2
 %format s3
@@ -194,4 +195,14 @@
 %format reverse1
 %format reverse2
 %format op1
-%format op2
+%format a1
+%format a2
+%format fsm1
+%format sm0
+%format sm1
+%format t'1
+%format t'2
+%format lt0
+%format lt1
+%format flt1
+

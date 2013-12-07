@@ -16,6 +16,7 @@ lhs2tex --poly QualifiedTypes.lhs > QualifiedTypes.tex
 lhs2tex --poly RandomMusic.lhs > RandomMusic.tex
 lhs2tex --poly ToMidi.lhs > ToMidi.tex
 lhs2tex --poly IO.lhs > IO.tex
+lhs2tex --poly Monads.lhs > Monads.tex
 lhs2tex --poly MUI.lhs > MUI.tex
 lhs2tex --poly Signals.lhs > Signals.tex
 lhs2tex --poly SigFuns.lhs > SigFuns.tex

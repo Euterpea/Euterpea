@@ -11,13 +11,13 @@
 \end{code}
 
 So far the only input/output (IO) that we have seen in Euterpea is the
-use of the |play| function to generate the Midi output corresponding
-to a |Music| value.  But we've said very little about the |play|
+use of the |play| function to generate the MIDI output corresponding
+to a |Music| value.  But we have said very little about the |play|
 function itself.  What is its type?  How does it work?  How does one
 do IO in a purely functional language such as Haskell?  Our goal in
-this chapter is to answer these questions.  Then in the next chapter
-we will describe an elegant way to do IO involving a ``musical user
-interface,'' or \emph{MUI}.
+this chapter is to answer these questions.  Then in
+Chapter~\ref{ch:MUI} we will describe an elegant way to do IO
+involving a ``musical user interface,'' or \emph{MUI}.
 
 %% In doing so we will introduce a key idea in Haskell, namely
 %% \emph{monads}.
@@ -29,7 +29,7 @@ interface,'' or \emph{MUI}.
 The Haskell Report defines the result of a program to be the value of
 the variable \indexwdhs{main} in the module \indexwdhs{Main}.  This is
 a mere technicality, however, only having relevance when you compile a
-program as a stone-alone executable (see the GHC documentation for a
+program as a stand-alone executable (see the GHC documentation for a
 discussion of how to do that).
 
 The way most people run Haskell programs, especially during program
@@ -52,10 +52,10 @@ another.
 
 But what if a program is intended to write to a file?  Or print a file
 on a printer?  Or, the main topic of this book, to play some music
-through the computer's sound card, or an external Midi device?  These
+through the computer's sound card, or an external MIDI device?  These
 are examples of {\em output}, and there are related questions about
 {\em input}: for example, how does a program receive input from the
-computer keyboard or mouse, or receive input from a Midi keyboard?
+computer keyboard or mouse, or receive input from a MIDI keyboard?
 
 In general, how does Haskell's ``expression-oriented'' notion of
 ``computation by calculation'' accommodate these various kinds of
@@ -66,7 +66,7 @@ value called an {\em action}.  When a Haskell system evaluates an
 expression that yields an action, it knows not to try to display the
 result in the standard output area, but rather to ``take the
 appropriate action.''  There are primitive actions---such as writing a
-single character to a file or receiving a single character from a Midi
+single character to a file or receiving a single character from a MIDI
 keyboard---as well as compound actions---such as printing an entire
 string to a file or playing an entire piece of music.  Haskell
 expressions that evaluate to actions are commonly called {\em
@@ -173,19 +173,16 @@ do  s <- readFile "testFile.txt"
 \syn{Any type that is an instance of the |Monad| type class can be
   used with the |do| syntax to sequence actions.  The |Monad| class is
   discussed in detail in Chapter \ref{ch:monads}.  It suffices to say
-  for now that the |IO| type is an instance of the |Monad| class, as
-  is the |UI| type to be described in the next chapter, which is part
-  of Eutperpea's MUI design.}
+  for now that the |IO| type is an instance of the |Monad| class.}
 
 \section{Actions are Just Values}
+\label{sec:actions-are-value}
 
 There are many other commands available for file, system, and user IO,
-some in the Standard Prelude, and some in various libararies (such as
-|IO|, |Directory|, |System|, and |Time|).  We will not discuss any of
-these here; rather, in the next chapter will concentrate on Midi input
-and output as well as a collection of graphical input widgets (such as
-sliders and pushbuttons) that we collectively refer to as Euterpea's
-musical user interface (MUI).
+some in the Standard Prelude, and some in various libraries (such as
+|IO|, |Directory|, |System|, and |Time|).  We will not discuss many of
+these here, other than the MIDI IO commands described in
+Section~\ref{sec:midi-io}.
 
 Before that, however, we wish to emphasize that, despite the special
 |do| syntax, Haskell's IO commands are no different in status from
@@ -196,15 +193,15 @@ actionList = [  putStr "Hello World\n",
                 writeFile "testFile.txt" "Hello File System",
                 putStr "File successfully written." ]
 \end{spec}
-However, a list of actions is just a list of values: they actually
-don't {\em do} anything until they are sequenced appropriately using a
+However, a list of actions is just a list of values: they actually do
+not {\em do} anything until they are sequenced appropriately using a
 |do| expression, and then returned as the value of the overall program
 (either as the variable |main| in the module |Main|, or typed at the
 GHCi prompt).  Still, it is often convenient to place actions into a
-list as above, and the Haskell Report and Libraries have some useful
-functions for turning them into single commands.  In particular, the
-function \indexhs{sequence\_} |sequence_| in the Standard Prelude,
-when used with IO, has type:
+list as above, and the Haskell provides some useful functions for
+turning them into single commands.  In particular, the function
+\indexhs{sequence\_} |sequence_| in the Standard Prelude, when used
+with IO, has type:
 \begin{spec}
 sequence_ :: [IO a] -> IO ()
 \end{spec}
@@ -279,10 +276,8 @@ that a |do| expression is just syntax for a more primitive way of
 combining actions using functions, namely a \emph{monad}, to be
 revealed in full in Chapter \ref{ch:monads}.
 
-% We will partially uncover these secrets in Chapter \ref{ch:poly}, and
-% reveal them more deeply in
+\section{Reading and Writing MIDI Files}
+\label{sec:midi-io}
 
-\section{Reading and Writing Midi Files}
-
-[TODO: Explain Midi-file IO functions defined in |Codec.Midi|,
-as well as the Euterpea functions for writing Midi files.]
+[TODO: Explain MIDI-file IO functions defined in |Codec.Midi|,
+as well as the Euterpea functions for writing MIDI files.]
