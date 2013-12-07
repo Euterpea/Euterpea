@@ -3,7 +3,6 @@
 > module Euterpea.Examples.MUIExamples where
 
 > import Euterpea
-> import Control.Arrow
 > import Data.Maybe (mapMaybe)
 
 

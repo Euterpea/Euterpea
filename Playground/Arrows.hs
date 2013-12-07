@@ -3,14 +3,13 @@ import Euterpea
 import Euterpea.Music.Signal.SigFuns hiding (main)
 import System.CPUTime
 import Text.Printf
-import Control.Arrow
 
 s1SF, s2SF, s3SF, s4SF, s5SF :: AudSF () Double
-s1SF = constA () >>> s1
-s2SF = constA () >>> s2
-s3SF = constA () >>> s3
-s4SF = constA () >>> s4
-s5SF = constA () >>> s5
+s1SF = s1
+s2SF = s2
+s3SF = s3
+s4SF = s4
+s5SF = s5
 
 numSeconds = 120.0
 

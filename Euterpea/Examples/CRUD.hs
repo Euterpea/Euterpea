@@ -16,7 +16,6 @@
 {-# LANGUAGE Arrows, DoRec #-}
 module Crud where
 import Euterpea
-import Control.Arrow
 
 import Data.List (isInfixOf)
 import Data.Char (toLower)

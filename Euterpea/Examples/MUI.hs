@@ -5,7 +5,6 @@
 
 module Euterpea.Examples.MUI where
 import Euterpea
-import Control.Arrow
 import Data.Maybe (mapMaybe)
 
 ui0  ::  UISF () ()

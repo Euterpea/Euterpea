@@ -8,6 +8,7 @@
 >   module Euterpea.IO.Audio,
 >   module Euterpea.IO.MIDI,
 >   module Euterpea.IO.MUI,
+>   module Control.Arrow,
 >   -- These 4 lines are from Control.SF.AuxFunctions
 >   SEvent, edge, accum, constA, foldA, 
 >   unique, hold, now, mergeE, 
@@ -23,6 +24,8 @@
 > import Euterpea.IO.Audio
 > import Euterpea.IO.MIDI
 > import Euterpea.IO.MUI
+
+> import Control.Arrow
 
 > import Control.SF.AuxFunctions
 
