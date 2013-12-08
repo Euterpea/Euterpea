@@ -2,7 +2,7 @@
 module EuterpeaInstances where
 import Control.Monad
 import Test.QuickCheck
-import Euterpea hiding (run)
+import Euterpea hiding (run, den, as, cs, d)
 
 -- Specialized generators for tests that must work under particular constraints.
 
@@ -121,18 +121,8 @@ instance Arbitrary Control where
         liftM Player arbitrary,
         liftM2 KeySig arbitrary arbitrary]
 
-instance Enum Mode where
-    toEnum 0 = Major
-    toEnum 1 = Minor
-    fromEnum Major = 0
-    fromEnum Minor = 1
-
-instance Bounded Mode where
-    minBound = Major
-    maxBound = Minor
-
 instance Arbitrary Mode where
-    arbitrary = arbitraryBoundedEnum
+    arbitrary = elements [Major, Minor]
 
 instance Arbitrary InstrumentName where
     arbitrary = oneof [
