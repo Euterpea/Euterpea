@@ -3,7 +3,8 @@
 
 module Euterpea.IO.MIDI.ToMidi(toMidi, UserPatchMap, defST,
   defUpm, testMidi, testMidiA,
-  test, testA, play, playM, playA,
+  test, testA, writeMidi, writeMidiA,
+  play, playM, playA,
   makeMidi, mToMF, gmUpm, gmTest)  where
 
 import Euterpea.Music.Note.Music
@@ -11,8 +12,8 @@ import Euterpea.Music.Note.MoreMusic
 import Euterpea.Music.Note.Performance
 import Euterpea.IO.MIDI.GeneralMidi
 import Euterpea.IO.MIDI.MidiIO
+import Euterpea.IO.MIDI.ExportMidiFile
 import Sound.PortMidi
-
 import Data.List(partition)
 import Data.Char(toLower,toUpper)
 import Codec.Midi
@@ -104,10 +105,17 @@ testMidiA :: Performable a => PMap Note1 -> Context Note1 -> Music a -> Midi
 testMidiA pm con m = toMidi (toPerf pm con m) defUpm
  
 test :: Performable a => Music a -> IO ()
-test     m = exportFile "test.mid" (testMidi m)
+test     m = exportMidiFile "test.mid" (testMidi m)
 
 testA :: Performable a => PMap Note1 -> Context Note1 -> Music a -> IO ()
-testA pm con m = exportFile "test.mid" (testMidiA pm con m)
+testA pm con m = exportMidiFile "test.mid" (testMidiA pm con m)
+
+writeMidi :: Performable a => FilePath -> Music a -> IO ()
+writeMidi fn = exportMidiFile fn . testMidi
+
+writeMidiA :: Performable a => 
+              FilePath -> PMap Note1 -> Context Note1 -> Music a -> IO ()
+writeMidiA fn pm con m = exportMidiFile fn (testMidiA pm con m)
  
 play :: Performable a => Music a -> IO ()
 play = playM . testMidi 
@@ -131,7 +139,7 @@ mToMF :: PMap a -> Context a -> UserPatchMap -> FilePath -> Music a -> IO ()
 mToMF pmap c upm fn m =
       let pf = perform pmap c m
           mf = toMidi pf upm
-      in exportFile fn mf
+      in exportMidiFile fn mf
  
 gmUpm :: UserPatchMap
 gmUpm = map (\n -> (toEnum n, mod n 16 + 1)) [0..127]

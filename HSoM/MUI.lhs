@@ -19,6 +19,7 @@
 
 module Euterpea.Examples.MUI where
 import Euterpea
+import Control.Arrow
 import Data.Maybe (mapMaybe)
 
 \end{code}
@@ -779,7 +780,7 @@ getDeviceIDs = topDown $
     mo    <- selectOutput  -< ()
     outA  -< (mi,mo)
 
-\end{code} % $
+\end{code} %% $
 
 \subsection{Timers and Delays}
 \label{sec:timers}
@@ -794,51 +795,49 @@ getDeviceIDs = topDown $
 %% \end{spec}
 %% where |Time| is a type synonym for |Double|.
 
-Time can be accessed directly in Euterpea with:
+The Euterpea MUI has an implicit notion of elapsed time.  The current
+elapsed time can be accessed explicitly by this signal source:
 \begin{spec}
-time :: UISF () Time
+getTime :: UISF () Time
 \end{spec}
-where |Time| is a type synonym for |Double|.  However, this is often not 
-as useful as the timers and delays that will use time to meaningfully 
-affect a program.
+where |Time| is a type synonym for |Double|.  
 
-For instance, the following pre-defined signal function creates 
-a \emph{timer}:
+But some MUI widgets depend on the time implicitly.  For example, the
+following pre-defined signal function creates a \emph{timer}:
 \begin{spec}
 timer :: UISF Double (SEvent ())
 \end{spec}
-For example, |timer -< i| takes a signal
-|i| that represents the timer interval (in seconds) and generates an
-event stream, with each pair of consecutive events separated by the
-timer interval.  Note that the timer interval is itself a signal, so
-the timer output can have varying frequency.
+For example, |timer -< i| takes a signal |i| that represents the timer
+interval (in seconds), and generates an event stream, where each pair
+of consecutive events is separated by the timer interval.  Note that
+the timer interval is itself a signal, so the timer output can have
+varying frequency.
 
 %% Note also that, since |timer| does not have any graphical or audio
 %% representation, it is not actually of type |UISF|.  Rather, it is a
 %% generic |ArrowInit|.  However, as |UISF| is an instance of
 %% |ArrowInit|, we can use |timer| in our MUIs.
 
-As an example of this, let's modify our previous MUI so that, instead
-of playing a note every time the absolute pitch changes, we will output
-a note continuously, at a rate controlled by a second slider:
+To see how a timer might be used, let's modify our previous MUI so
+that, instead of playing a note every time the absolute pitch changes,
+we will output a note continuously, at a rate controlled by a second
+slider:
 \begin{code}
 ui6   ::  UISF () ()
 ui6   =   proc _ -> do
-    devid  <- selectOutput -< ()
-    ap     <- title "Absolute Pitch" (hiSlider 1 (0,100) 0) -< ()
+    devid   <- selectOutput -< ()
+    ap      <- title "Absolute Pitch" (hiSlider 1 (0,100) 0) -< ()
     title "Pitch" display -< pitch ap
-    f      <- title "Tempo" (hSlider (1,10) 1) -< ()
-    tick   <- timer -< 1/f
+    f       <- title "Tempo" (hSlider (1,10) 1) -< ()
+    tick    <- timer -< 1/f
     midiOut -< (devid, fmap (const [ANote 0 ap 100 0.1]) tick)
 
 mui6  = runUI "Pitch Player with Timer" ui6
 
 \end{code}
-Note that we don't need to worry about the time because the timer takes 
-care of this for us.  Also, the
-rate of |tick|s is controlled by the second slider---a higher slider
-value causes a lower time between ticks, and thus a higher frequency,
-or tempo.
+Note that the rate of |tick|s is controlled by the second slider---a
+larger slider value causes a smaller time between ticks, and thus a
+higher frequency, or tempo.
 
 %% \item |snapshot_| uses the timer output to control the sample rate of
 %%   the absolute pitch.
@@ -847,14 +846,15 @@ or tempo.
 %%   message.
 %% \item Those messages are then sent to the selected output MIDI device.
 
-Finally, an event stream can be delayed by a given (variable) amount
-of time using the following function:
+As another example of a widget that uses time implicitly, an event
+stream can be delayed by a given (variable) amount of time using the
+following signal function:
 \begin{spec}
 vdelay :: UISF (Double, Event b) (Event b)
 \end{spec}
-The first element of the input pair specifies the amount of delay to be
-applied to the third element.  ``|vdelay|'' can be read ``variable
-delay.''
+The first element of the input pair specifies the amount of delay (in
+seconds) to be applied to the second element.  ``|vdelay|'' can be
+read ``variable delay.''
 
 If a variable delay is not needed, the more efficient |fdelay|
 (``fixed delay'') can be used:
@@ -990,8 +990,8 @@ Lee Nelson's composition ``Bifurcate Me, Baby!''
 
 The basic idea is to evaluate a formula called the \emph{logistic
   growth function}, from a branch of mathematics called chaos theory,
-at different points and convert the value to a musical note.  The
-growth function is given by the equation:
+at different points and convert the values to musical notes.  The
+growth function is given by the recurrence equation:
 \[ x_{n+1} = r x_n (1 - x_n) \]
 
 Mathematically, we start with an initial population $x_0$ and
@@ -1001,34 +1001,39 @@ certain value, but as $r$ increases, the period doubles, quadruples,
 and eventually leads to chaos.  It is one of the classic examples of
 chaotic behavior.
 
-First we define the growth function in Haskell, which, given a rate
-|r| and current population |x|, generates the next population.
+We can capture the growth rate equation above in Haskell by defining a
+function that, given a rate |r| and current population |x|, generates
+the next population:
 \begin{code}
 grow      :: Double -> Double -> Double
 grow r x  = r * x * (1-x)
 
 \end{code}
 
-Then we define a signal |ticks| that pulsates at a given frequency
-specified by slider |f|.  This is the signal that will drive the
-simulation.  
+To generate a time-varying population, the |accum| signal function
+comes in handy.  |accum| takes an initial value and an event signal
+carrying a modifying function, and updates the current value by
+applying the function to it.
+\begin{spec}
+    ...
+    r     <- title "Growth rate" $ withDisplay (hSlider (2.4, 4.0) 2.4) -< ()
+    pop   <- accum 0.1 -< fmap (const (grow r)) tick
+    ...
+\end{spec} %% $
 
-The next thing we need is a time-varying population.  This is where
-|accum| comes in handy.  |accum| takes an initial value and an event
-signal carrying a modifying function, and updates the current value by
-applying the function to it.  
-%% Since we want the growth rate to be
-%% time-varying, we lift the growth function to the signal level and pass
-%% in the growth rate signal |r|.  This gives us a value of type |Signal
-%% (Double -> Double)|, that is, a signal of functions that will update a
-%% population at the current growth rate.  Then, at every tick, we take a
-%% snapshot of this signal, producing values of type |EventS
-%% (Double->Double)|.  This is given to |accum| with an initial value of
-%% 0.1, and we get back our population signal |pop| driven by the clock
-%% ticks.
+The |tick| above is the ``clock tick'' that drives the simulation.
+We wish to define a signal |tick| that pulsates at a given frequency
+specified by a slider.
+\begin{spec}
+    ...
+    f     <- title "Frequency" $ withDisplay (hSlider (1, 10) 1) -< ()
+    tick  <- timer -< 1/f
+    ...
+\end{spec} %% $
 
-We can now write a simple function that maps a population value to a
-musical note:
+We also need a simple function that maps a population value to a
+musical note.  As usual, this can be done in a variety of ways---here
+is one way:
 \begin{code}
 popToNote :: Double -> [MidiMessage]
 popToNote x =  [ANote 0 n 64 0.05] 
@@ -1036,22 +1041,18 @@ popToNote x =  [ANote 0 n 64 0.05]
 
 \end{code}
 
-%% Finally, to play the note at every tick, we again take a snapshot of
-%% the current population at every tick and send the result to
-%% |popToNote|.  The resulting event signal is played through the
-%% selected MIDI output device.
-
+Finally, to play the note at every tick, we simply apply |popToNote|
+to every value in the time-varying population |pop|.  |fmap| makes
+this straightforward.  Putting it all together, we arrive at:
 \begin{code}
 bifurcateUI :: UISF () ()
 bifurcateUI = proc _ -> do
-    mo <- selectOutput -< ()
-    f  <- title "Frequency" $ withDisplay (hSlider (1, 10) 1) -< ()
-    r  <- title "Growth rate" $ withDisplay (hSlider (2.4, 4.0) 2.4) -< ()
-
-    tick <- timer -< 1.0 / f
-    pop <- accum 0.1 -< fmap (const (grow r)) tick
-
-    _ <- title "Population" $ display -< pop
+    mo    <- selectOutput -< ()
+    f     <- title "Frequency" $ withDisplay (hSlider (1, 10) 1) -< ()
+    tick  <- timer -< 1/f
+    r     <- title "Growth rate" $ withDisplay (hSlider (2.4, 4.0) 2.4) -< ()
+    pop   <- accum 0.1 -< fmap (const (grow r)) tick
+    _     <- title "Population" $ display -< pop
     midiOut -< (mo, fmap (const (popToNote pop)) tick)
 
 bifurcate = runUIEx (300,500) "Bifurcate!" $ bifurcateUI
@@ -1067,8 +1068,8 @@ successive note more softly until the velocity reduces to 0.
 
 The key component we need for this problem is a delay function that
 can delay a given event signal for a certain amount of time.  Recall
-that the function |vdelay| takes the amount of time
-to delay and an input signal and returns a delayed version of the
+that the function |vdelay| takes a time signal, the amount of time
+to delay, and an input signal, and returns a delayed version of the
 input signal.
 
 There are two signals we want to attenuate, or ``decay.''  One is the
@@ -1101,7 +1102,7 @@ echoUI = proc _ -> do
     f <- title "Echoing frequency" $ withDisplay (hSlider (1, 10) 10) -< ()
 
     rec let m' = removeNull $ mergeE (++) m s
-        s <- vdelay -< (1.0 / f, fmap (mapMaybe (decay 0.1 r)) m')
+        s <- vdelay -< (1/f, fmap (mapMaybe (decay 0.1 r)) m')
 
     midiOut -< (mo, m')
 
@@ -1154,7 +1155,7 @@ uisfSourceE  randomIO   :: Random c => UISF (SEvent ())     (SEvent c)
 uisfPipeE    readFile   :: UISF (SEvent FilePath)  (SEvent String)
 uisfSinkE $ uncurry writeFile ::
   UISF (SEvent (FilePath, String)) (SEvent ())
-\end{spec} % $
+\end{spec} %% $
 
 Euterpea also has an event buffer:
 \begin{spec}

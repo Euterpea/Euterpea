@@ -25,14 +25,12 @@ lineToList (n :+: ns)         = n : lineToList ns
 lineToList _                  = 
     error "lineToList: argument not created by function line"
 invert :: Music Pitch -> Music Pitch
-invert m  =
-  let l  = lineToList m
-      l' = dropWhile (\x -> case x of (Prim (Rest _)) -> True; _ -> False) l
-      inv r (Prim (Note d p))  =
-                 note d (pitch (2 * absPitch r - absPitch p))
-      inv r (Prim (Rest d))    = rest d
-   in case l' of []                    -> m
-                 (Prim (Note _ p)) : _ -> line (map (inv p) l)
+invert m   = 
+  let  l@(Prim (Note _ r) : _)  = lineToList m
+       inv (Prim  (Note d p))    = 
+                  note d (pitch (2 * absPitch r - absPitch p))
+       inv (Prim  (Rest d))      = rest d
+  in line (map inv l)
 retro, retroInvert, invertRetro :: Music Pitch -> Music Pitch
 retro        = line . reverse . lineToList
 retroInvert  = retro  . invert

@@ -14,10 +14,10 @@ detGenerate :: Eq a => DetGrammar a -> [[a]]
 detGenerate (DetGrammar st ps) = iterate (concatMap f) [st]
             where f a = maybe [a] id (lookup a ps)
 redAlgae = DetGrammar 'a'
-               [  ('a',"b|c"),  ('b',"b"),  ('c',"b|d"),
-                  ('d',"e\\d"), ('e',"f"),  ('f',"g"),
-                  ('g',"h(a)"), ('h',"h"),  ('|',"|"),
-                  ('(',"("),    (')',")"),  ('/',"\\"),
+               [  ('a',"b|c"),   ('b',"b"),  ('c',"b|d"),
+                  ('d',"e\\d"),  ('e',"f"),  ('f',"g"),
+                  ('g',"h(a)"),  ('h',"h"),  ('|',"|"),
+                  ('(',"("),     (')',")"),  ('/',"\\"),
                   ('\\',"/")
                ]
 t n g = sequence_ (map putStrLn (take n (detGenerate g)))
