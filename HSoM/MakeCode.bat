@@ -5,8 +5,10 @@ lhs2tex --code Performance.lhs      > ../Euterpea/Music/Note/Performance.hs
 lhs2tex --code Additive.lhs         > ../Euterpea/Music/Signal/Additive.hs
 lhs2tex --code SigFuns.lhs          > ../Euterpea/Music/Signal/SigFuns.hs
 lhs2tex --code SpectrumAnalysis.lhs > ../Euterpea/Music/Signal/SpectrumAnalysis.hs
-
+REM Donya Quick wrote a FromMidi.lhs file which supercedes this one
 REM lhs2tex --code FromMidi.lhs     > ../Euterpea/IO/MIDI/FromMidi.hs
+REM ToDO: Convert FromMidi.lhs into a LaTeX file (perhaps as an appendix 
+REM to HSoM), and return to auto-generating FromMidi.hs
 lhs2tex --code GeneralMidi.lhs      > ../Euterpea/IO/MIDI/GeneralMidi.hs
 lhs2tex --code ToMidi.lhs           > ../Euterpea/IO/MIDI/ToMidi.hs
 

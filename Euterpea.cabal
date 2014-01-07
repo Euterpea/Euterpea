@@ -3,19 +3,19 @@ version:	1.0.0
 Cabal-Version:  >= 1.8
 license:	BSD3
 license-file:	License
-copyright:      Copyright (c) 2008-2012 Paul Hudak
+copyright:      Copyright (c) 2008-2014 Paul Hudak
 category:	Sound
 stability:      experimental
 build-type:     Custom
-author:         Paul Hudak <paul.hudak@cs.yale.edu>, 
+author:         Paul Hudak <paul.hudak@yale.edu>, 
                 Eric Cheng <eric.cheng@aya.yale.edu>,
                 Hai (Paul) Liu <hai.liu@aya.yale.edu>
-maintainer:     Paul Hudak <paul.hudak@cs.yale.edu>, 
+maintainer:     Paul Hudak <paul.hudak@yale.edu>, 
                 Donya Quick <donya.quick@yale.edu>,
                 Dan Winograd-Cort <daniel.winograd-cort@yale.edu>
 bug-reports:    mailto:paul.hudak@yale.edu
 homepage:       http://haskell.cs.yale.edu/
-synopsis:	Library for computer music research and education.
+synopsis:	Library for computer music research and education
 description:
         Euterpea is a domain-specific language embedded in Haskell for 
         computer music research, education, and development, providing
@@ -35,6 +35,7 @@ extra-source-files:
 	ReadMe.txt,
         ArrowWrap.hs,
         Examples/EnableGUI.hs,
+	HSoM/HSoM.lhs,
         HSoM/Preface.lhs,
         HSoM/Intro.lhs,
         HSoM/Music.lhs,
@@ -51,14 +52,16 @@ extra-source-files:
         HSoM/RandomMusic.lhs,
         HSoM/ToMidi.lhs,
         HSoM/IO.lhs,
+        HSoM/Monads.lhs,
         HSoM/MUI.lhs,
         HSoM/Signals.lhs,
         HSoM/SigFuns.lhs,
         HSoM/SpectrumAnalysis.lhs,
         HSoM/Additive.lhs,
-        Class-tour.lhs,
-        Bitans.lhs,
-        Patterns.lhs,
+        HSoM/List-tour.lhs,
+        HSoM/Class-tour.lhs,
+        HSoM/Bitans.lhs,
+        HSoM/Patterns.lhs,
         HSoM/myFormat.fmt,
         HSoM/soe.bib
 

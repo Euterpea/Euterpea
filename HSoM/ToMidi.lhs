@@ -17,7 +17,8 @@
 \begin{code}
 module Euterpea.IO.MIDI.ToMidi(toMidi, UserPatchMap, defST,
   defUpm, testMidi, testMidiA,
-  test, testA, play, playM, playA,
+  test, testA, writeMidi, writeMidiA,
+  play, playM, playA,
   makeMidi, mToMF, gmUpm, gmTest)  where
 
 import Euterpea.Music.Note.Music
@@ -25,12 +26,19 @@ import Euterpea.Music.Note.MoreMusic
 import Euterpea.Music.Note.Performance
 import Euterpea.IO.MIDI.GeneralMidi
 import Euterpea.IO.MIDI.MidiIO
+import Euterpea.IO.MIDI.ExportMidiFile
 import Sound.PortMidi
-
 import Data.List(partition)
 import Data.Char(toLower,toUpper)
 import Codec.Midi
 \end{code}
+
+writeMidi :: (Performable a) => FilePath -> Music a -> IO ()
+writeMidi fn = exportMidiFile fn . testMidi
+
+writeMidiA :: (Performable a) => FilePath -> PMap Note1 -> Context
+Note1 -> Music a -> IO ()
+writeMidiA fn pm con m = exportMidiFile fn (testMidiA pm con m)
 
 \indexwd{Midi} is shorthand for ``Musical Instrument Digital
 Interface,'' and is a standard protocol for controlling electronic
@@ -579,10 +587,17 @@ Generate a MIDI file:
 \begin{code}
 
 test :: Performable a => Music a -> IO ()
-test     m = exportFile "test.mid" (testMidi m)
+test     m = exportMidiFile "test.mid" (testMidi m)
 
 testA :: Performable a => PMap Note1 -> Context Note1 -> Music a -> IO ()
-testA pm con m = exportFile "test.mid" (testMidiA pm con m)
+testA pm con m = exportMidiFile "test.mid" (testMidiA pm con m)
+
+writeMidi :: Performable a => FilePath -> Music a -> IO ()
+writeMidi fn = exportMidiFile fn . testMidi
+
+writeMidiA :: Performable a => 
+              FilePath -> PMap Note1 -> Context Note1 -> Music a -> IO ()
+writeMidiA fn pm con m = exportMidiFile fn (testMidiA pm con m)
 \end{code} 
 
 Alternatively, just run "play m", which will play the music
@@ -634,7 +649,7 @@ mToMF :: PMap a -> Context a -> UserPatchMap -> FilePath -> Music a -> IO ()
 mToMF pmap c upm fn m =
       let pf = perform pmap c m
           mf = toMidi pf upm
-      in exportFile fn mf
+      in exportMidiFile fn mf
 \end{code} 
 
 Some General Midi test functions (use with caution)
