@@ -7,8 +7,6 @@ module Euterpea.Music.Signal.SigFuns where
 
 import Euterpea
 import Control.Arrow ((>>>),(<<<),arr)
-type AudSF a b  = SigFun AudRate a b
-type CtrSF a b  = SigFun CtrRate a b
 s1 :: Clock c => SigFun c () Double
 s1 = proc () -> do
        s <- oscFixed 440 -< ()

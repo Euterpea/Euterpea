@@ -3,12 +3,12 @@
 module Control.SF.AuxFunctions (
     SEvent, Time, DeltaT, 
     ArrowTime, time, 
-    constA, 
+    constA, constSF,
     edge, 
     accum, unique, 
     hold, now, 
     mergeE, (~++), 
-    concatA, foldA, 
+    concatA, foldA, foldSF,
     delay, vdelay, fdelay, 
     vdelayC, fdelayC, 
     timer, genEvents, 
@@ -79,6 +79,10 @@ class ArrowTime a where
 constA  :: Arrow a => c -> a b c
 constA = arr . const
 
+-- | constSF is a convenience
+constSF :: Arrow a => b -> a b d -> a c d
+constSF s sf = constA s >>> sf
+
 -- | edge generates an event whenever the Boolean input signal changes
 --   from False to True -- in signal processing this is called an ``edge
 --   detector,'' and thus the name chosen here.
@@ -146,6 +150,16 @@ foldA merge i sf = h where
         c <- sf -< b
         d <- h  -< bs
         returnA -< merge c d
+
+-- | For folding results of a list of signal functions
+foldSF ::  Arrow a => (b -> c -> c) -> c -> [a () b] -> a () c
+foldSF f b sfs =
+  foldr g (constA b) sfs where
+    g sfa sfb =
+      proc () -> do
+        s1  <- sfa -< ()
+        s2  <- sfb -< ()
+        returnA -< f s1 s2
 
 --------------------------------------
 -- Delays and Timers

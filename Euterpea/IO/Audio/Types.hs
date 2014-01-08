@@ -23,10 +23,12 @@ instance Clock AudRate where
 instance Clock CtrRate where
     rate _ = 4410
 
-type Signal clk a b = ArrowP SF clk a b
-type SigFun clk a b = ArrowP SF clk a b
-type SignalSyn clk a b = ArrowP ASyn clk a b
+type AudSF a b  = SigFun AudRate a b
+type CtrSF a b  = SigFun CtrRate a b
 
+type Signal clk a b    = ArrowP SF clk a b
+type SigFun clk a b    = ArrowP SF clk a b
+type SignalSyn clk a b = ArrowP ASyn clk a b
 
 -- Arbitrary number of channels (say, 5.1) can be supported by just adding more
 -- instances of the AudioSample type class.
@@ -53,7 +55,6 @@ instance AudioSample (Double,Double) where
 -- Some useful type synonyms:
 type Mono p = Signal p () Double
 type Stereo p = Signal p () (Double,Double)
-
 
 -- Experimental stuff
 class Unlifted a where

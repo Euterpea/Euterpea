@@ -4,9 +4,6 @@ module Euterpea.Examples.SoundCheck where
 
 import Euterpea
 
-type AudSF a b = Signal AudRate a b
-type CtrSF a b = Signal CtrRate a b
-
 sineTable     = tableSinesN 16384 [1]
 sawtoothTable = tableSinesN 16384 
                   [1, 0.5, 0.3, 0.25, 0.2, 0.167, 0.14, 0.125, 0.111]
