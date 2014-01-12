@@ -17,7 +17,7 @@
 \begin{code}
 {-# LANGUAGE Arrows #-}
 
-module Euterpea.Music.Signal.SigFuns where
+module Euterpea.Examples.SigFuns where
 
 import Euterpea
 import Control.Arrow ((>>>),(<<<),arr)
@@ -230,10 +230,10 @@ instance Clock CtrRate where
 \end{spec}
 Because these two clock types are so often used, it is helpful to
 define a couple of type synonyms:
-\begin{code}
+\begin{spec}
 type AudSF a b  = SigFun AudRate a b
 type CtrSF a b  = SigFun CtrRate a b
-\end{code}
+\end{spec}
 
 From these definitions it should be clear how to define your own clock type.
 
@@ -396,7 +396,7 @@ oscFixed ::  Clock c =>
 \end{spec}
 
 |oscFixed freq| is a signal source whose sinusoidal output frequency
-is |freq|.  Uses a recurrence relation that requires only one multiply
+is |freq|.  It uses a recurrence relation that requires only one multiply
 and two add operations for each sample of output.
 \vspace{0.15in}
 
@@ -409,7 +409,7 @@ oscDur, oscDurI ::  Clock c =>
 rate determined by |dur|. For the first |del| seconds, the point of
 scan will reside at the first location of the table; it will then move
 through the table at a constant rate, reaching the end in another
-|dur| seconds; from that time on (i.e. after |del + dur| seconds) it
+|dur| seconds; from that time on (i.e.\ after |del + dur| seconds) it
 will remain pointing at the last location.  |oscDurI| is similar but
 uses linear interpolation between points.
 \vspace{0.15in}
@@ -488,9 +488,9 @@ s2 :: Clock c => SigFun c () Double
 s2 = proc () -> do
        osc tab1 0 -< 440
 \end{code}
-Alternatively, we could use the |const| and compostion operators to
-write either |constA 440 >>> osc tab1 0| or |osc tab2 0 <<<
-constA 440|.  |s1| and |s2| should be compared closely.
+Alternatively, we could use the |const| and composition operators to
+write either |constA 440 >>> osc tab1 0| or |osc tab2 0 <<< constA
+440|.  |s1| and |s2| should be compared closely.
 
 \begin{figure}
 \begin{spec}
@@ -862,7 +862,7 @@ simple vibrato instrument defined above, we can generate our result
 and write it to a file, as follows:
 \begin{code}
 (dr, sf)  = renderSF mel myInstrMap
-main     = outFile "simple.wav" dr sf
+main      = outFile "simple.wav" dr sf
 \end{code}
 For clarity we show in Figure~\ref{fig:sf-instrument} all of the
 pieces of this running example as one program.
@@ -916,7 +916,7 @@ example, when a wind instrument is played (whether it be a flute,
 saxophone, or trumpet), the note does not begin instantaneously---it
 depends on how quickly and forcibly the performer blows into the
 instrument.  This is called the ``attack.''  Indeed, it is not
-uncommon for the initial pulse of energey to generate a sound that is
+uncommon for the initial pulse of energy to generate a sound that is
 louder than the ``sustained'' portion of the sound.  And when the note
 ends, the airflow does not stop instantaneously, so there is
 variability in the ``release'' of the note.
@@ -924,32 +924,31 @@ variability in the ``release'' of the note.
 The overall variability in the loudness of a note can be simulated by
 multiplying the output of a signal function by an \emph{envelope},
 which is a time-varying signal that captures the desired behavior.
-For example, ...
+Indeed, the \emph{ADSR envelope} (attack, decay, sustain, release)
+introduced above is one of the most common envelopes used in practice.
+It is shown pictorially in Figure \ref{fig:ADSR}.  Before defining it
+in Euterpea, however, we first describe a collection of simpler
+envelopes.
 
-Euterpea provides several evelope-generating functions: see
-Figure~\ref{fig:line-envelopes}.
+\begin{figure}
+...
+\caption{ADSR Envelope}
+\end{figure}
 
-Fifth arg to |envCSEnvplx|: A value greater than 1 causes exponential
-growth; a value less than 1 causes exponential decay; a value = 1 will
-maintain a true steady state at the last rise value. The attenuation
-is not by a fixed rate (as in a piano), but is sensitive to a note's
-duration. However, if this argument is less than 0 (or if steady state
-is less than 4 k-periods) a fixed attenuation rate of abs atss per
-second will be used. 0 is illegal.
-
-Sixth arg to |envCSEnvplx|: Must be positive and is normally of the
-order of 0.01.  A large or excessively small value is apt to produce a
-cutoff that is not audible. Values less than or equal to 0 are
-disallowed.
+Figure~\ref{fig:line-envelopes} shows six pre-defined
+envelope-generating functions.  Read the code comments carefully to
+understand what they do.  
 
 \begin{figure}
 \begin{spec}
+-- a linear envelope
 envLine      ::  Clock p => 
    Double     ->      -- starting value
    Double     ->      -- duration in seconds
    Double     ->      -- value after dur seconds
    SigFun p () Double
 
+-- an exponential envelope
 envExpon     ::  Clock p => 
    Double     ->      -- starting value; zero is illegal for exponentials
    Double     ->      -- duration in seconds                
@@ -957,40 +956,62 @@ envExpon     ::  Clock p =>
                       --   and agree in sign with first argument)
    SigFun p () Double
 
+-- a series of linear envelopes
 envLineSeg   ::  Clock p => 
    [Double]   ->      -- list of points to trace through
    [Double]   ->      -- list of durations for each line segment
                       --   (one element fewer than previous argument)
    SigFun p () Double
 
+-- a series of exponential envelopes
 envExponSeg  ::  Clock p => 
    [Double]   ->      -- list of points to trace through
    [Double]   ->      -- list of durations for each line segment
                       --   (one element fewer than previous argument)
    SigFun p () Double
 
+-- an ``attack/decay/release'' envelope; each segment is exponential
 envASR       ::  Clock p =>
    Double     ->      -- rise time in seconds
    Double     ->      -- overall duration in seconds
    Double     ->      -- decay time in seconds
    SigFun p () Double
 
+-- a more sophisticated ASR
 envCSEnvlpx  ::  Clock p =>
    Double     ->      -- rise time in seconds
    Double     ->      -- overall duration in seconds
    Double     ->      -- decay time in seconds
-   Table      ->      -- table of stored rise shape
+   Table      ->      -- table representing rise shape
    Double     ->      -- attenuation factor, by which the last value
                       -- of the envlpx rise is modified during the
                       -- note's pseudo steady state 
-  Double      ->      -- attenuation factor by which the closing
+   Double     ->      -- attenuation factor by which the closing
                       -- steady state value is reduced exponentially
                       -- over the decay period 
-  SigFun p () Double
+   SigFun p () Double
 \end{spec}
 \caption{Envelopes}
 \label{fig:line-envelopes}
 \end{figure}
+
+Here are some additional comments regarding |envCSEnvplx|, easiy the
+most sophisticated of the envelope generators:
+\begin{enumerate}
+\item
+The fifth argument to |envCSEnvplx|: A value greater than 1 causes
+exponential growth; a value less than 1 causes exponential decay; a
+value = 1 will maintain a true steady state at the last rise
+value. The attenuation is not by a fixed rate (as in a piano), but is
+sensitive to a note's duration. However, if this argument is less than
+0 (or if steady state is less than 4 k-periods) a fixed attenuation
+rate of |abs atss| per second is used.  A value of 0 is illegal.
+\item
+The sixth arg to |envCSEnvplx|: Must be positive and is normally of the
+order of 0.01.  A large or excessively small value is apt to produce a
+cutoff that is not audible.  Values less than or equal to 0 are
+disallowed.
+\end{enumerate}
 
 \vspace{.1in}\hrule
 

@@ -205,4 +205,6 @@
 %format lt0
 %format lt1
 %format flt1
+%format bell1
+%format bell2
 

@@ -53,7 +53,7 @@ import Euterpea
 \end{spec} 
 This says that the |Interlude| module is part of the |Examples| folder
 in the overall |Euterpea| library.  In general, these hierarchical
-names correspond to the folder (directory) structure in a particular
+names correspond to the folder (directory) structure of a particular
 implementation.  Similarly, the name of the file containing the module
 is generally the same as the module name, plus the file extension (in
 this case, the name of the file is |Interlude.lhs|).

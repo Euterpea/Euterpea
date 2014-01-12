@@ -2,7 +2,7 @@
 
 \documentclass[11pt,fleqn,oneside]{book} % 
 
-\newcommand{\HSoMVersion}{2.5 (January 2013)}
+\newcommand{\HSoMVersion}{2.6 (January 2014)}
 
 %% \usepackage[pdftex,bookmarks=true]{hyperref}
 
@@ -227,17 +227,23 @@ Cover image: \emph{Euterpe}, the Greek Muse of Music\\
 % Spectrum Analysis
 \include{SpectrumAnalysis}
 
-% Additive Synthesis
+% Additive and Subtractive Synthesis
 \include{Additive}
+
+% Amplitude and Frequency Modulation
+\include{AMAndFM}
+
+% Physical Modelling
+\include{PhysicalModeling}
+
+% Effects
+\include{Effects}
 
 % Programming with Streams
 % \include{streams}
 
 % Communicating With the Outside World
 % \include{ioproc}
-
-% Higher-Order Types
-% \include{monads}
 
 % ---------------------------------------------------------------------
 % \backmatter

@@ -11,30 +11,56 @@
 \end{code}
 }
 
-\chapter{Additive Synthesis and Amplitude Modulation}
+\chapter{Additive and Subtractive Synthesis}
 \label{ch:additive}
 
 \begin{code}
 {-# LANGUAGE Arrows #-}
 
-module Euterpea.Music.Signal.Additive where
-
+module Euterpea.Examples.Additive where
 import Euterpea
-import Control.Arrow ((>>>),(<<<),arr)
 \end{code}
 
+There are many techniques for synthesizing sound.  In this chapter we
+will discuss two of them: \emph{additive synthesis} and
+\emph{subtractive synthesis}.  In practice it is rare for either of
+these, or any of the ones discussed in future chapters, to be utilized
+alone---a typical application may in fact employ all of them.  But it
+is helpful to \emph{study} them in isolation, so that the sound
+designer has a suitably rich toolbox of techniques at his or her
+disposal.
+
 \emph{Additive synthesis} is, conceptually at least, the simplest of
-many sound synthesis techniques.  Simply put, the idea is to add
+the many sound synthesis techniques.  Simply put, the idea is to add
 signals (usually sine waves of differing amplitudes, frequencies and
 phases) together to form a sound of interest.  It is based on
 Fourier's theorem as discussed in the previous chapter, and indeed is
 sometimes called \emph{Fourier synthesis}.  
 
-%% We discuss additive synthesis in this chapter, in theory and
-%% practice, including the notion of \emph{time-varying} additive
-%% synthesis.
+\emph{Subtractive synthesis} is the dual of additive synthesis.  The
+basic ideas is to start with a signal rich in harmonoc content, and
+seletively ``remove'' signals to create a desired effect.
 
-\section{Preliminaries}
+In understanding the difference between the two, it is helpful to
+consider the following analogy to art:
+\begin{itemize}
+\item Additive synthesis is like painting a picture---each stroke of
+  the brush, each color, each shape, each texture, and so on, adds to
+  the artist's conception of the final artistic artifact.
+\item In contract, subtractive synthesis is like creating a sculpture
+  from stone---each stroke of the chisel takes away material that is
+  unwanted, eventually revealing the artist's conception of what the
+  artistic artifact should be.
+\end{itemize}
+
+Additive synthesis in the context of Euterpea will be discussed in
+Section \ref{sec:additive}, and substractive synthesis in Section
+\ref{sec:subtractive}.
+
+\section{Addtive Synthesis}
+\label{sec:additive}
+
+\subsection{Preliminaries}
 
 When doing pure additive synthesis it is often convenient to work with
 a \emph{list of signal sources} whose elements are eventually summed
@@ -49,8 +75,9 @@ signal source |constA b| if the list is empty, and otherwise uses |f|
 to combine the results, pointwise, from the right.  In other words, if
 |sfs| has the form:
 \begin{spec}
-sf1 : sf2 : ... : sfn : []
+[sf1, sf2, ..., sfn]
 \end{spec}
+%% sf1 : sf2 : ... : sfn : []
 then the result will be:
 \begin{spec}
 proc () -> do
@@ -62,7 +89,7 @@ proc () -> do
 \end{spec}
 
 \begin{figure}
-\begin{code}
+\begin{spec}
 constSF :: Clock c => a -> SigFun c a b -> SigFun c () b
 constSF s sf = constA s >>> sf
 
@@ -75,14 +102,79 @@ foldSF f b sfs =
         s1  <- sfa -< ()
         s2  <- sfb -< ()
         outA -< f s1 s2
-\end{code}
+\end{spec}
 \caption{Working With Lists of Signal Sources}
 \label{fig:foldSF}
 \end{figure}
 
-\section{A Bell Sound}
+\syn{|constSF| and |foldSF| are actually predefined in Euterpea, but
+  with slightly more general types:
+\begin{spec}
+constSF  :: Arrow a => b -> a b d -> a c d
+foldSF   :: Arrow a => (b -> c -> c) -> c -> [a () b] -> a () c
+\end{spec}
+The more specific types shown in Figure \ref{fig:foldSF} reflect how
+we will use the functions in this chapter.}
 
-A bell, or gong, sound is a good example of the use of ``brute force''
+\subsection{Overtone Synthsis}
+
+Perhaps the simplest form of additive synthesis is combining a sine
+wave with some of its overtones to create a rich sound that is closer
+in harmonic content to that of a real instrument, as discussed in
+Chapter \ref{ch:signals}.  Indeed, in Chapter \ref{ch:sigfuns} we saw
+several ways to do this using built-in Eutperpea signal functions.
+For example, recall the function:
+\begin{spec}
+oscPartials ::  Clock c => 
+                Table -> Double -> SigFun c (Double,Int) Double 
+\end{spec}
+|oscPartials tab ph| is a signal function whose pair of dynamic inputs
+determines the frequency, as well as the number of harmonics of that
+frequency, of the output.  So this is a ``built-in'' notion of
+additive synthesis.  A problem with this approach in modelling a
+conventional instrument is that the partials all have the same
+strength, which does not reflect the harmonic content of most physical
+instruments.
+
+A more sophisticated approach, also described in Chapter
+\ref{ch:sigfuns}, is based on various ways to build look-up tables.
+In particular, this function was defined:
+\begin{spec}
+tableSines3 :: 
+    TableSize -> [(PartialNum, PartialStrength, PhaseOffset)] -> Table
+\end{spec}
+Recall that |tableSines3 size triples| is a table of size |size| that
+represents a sinusoidal wave and an arbitrary number of partials,
+whose relationship to the fundamental frequency, amplitude, and phase
+are determined by each of the triples in |triples|.
+
+\subsection{Deviating from Pure Overtones}
+
+Sometimes, however, these built-in functions don't achieve exactly
+what we want.  In that case, we can define our own, customized notion
+of additive synthesis, in whatever way we desire.  For a simple
+example, traditional harmony is the simultaneous playing of more than
+one note at a time, and thus an instance of additive synthesis.  More
+interestingly, richer sounds can be created by using slightly
+``out-of-tune'' overtones; that is, overtones that are not an exact
+multiple of the fundamental frequency.  For example:
+\begin{code}
+-- TBD
+\end{code}
+This creates a kind of ``chorusing'' effect, very ``electronic'' in
+nature.
+
+Some real instruments in fact exhibit this kind of behavior, and
+sometimes the degree of being ``out of tune'' is not quite fixed.
+Here's a variation of the above example where the detuning varies
+sinusoidally:
+\begin{code}
+-- TBD
+\end{code}
+
+\subsection{A Bell Sound}
+
+Synthesizing a bell or gong sound is a good example of ``brute force''
 additive synthesis.  Physically, a bell or gong can be thought of as a
 bunch of concentric rings, each having a different resonant frequency
 because they differ in diameter depending on the shape of the bell.
@@ -106,7 +198,7 @@ program to achieve this is shown in Figure~\ref{fig:bell1}.  Note the
 use of |map| to create the list of partials, and |foldSF| to add them
 together.  Also note that some of the partials are expressed as
 \emph{fractions} of the fundamental---i.e.\ their frequencies are less
-than that of the fundamental.
+than that of the fundamental!
 
 \begin{figure}
 \begin{code}
@@ -151,29 +243,27 @@ test1' = outFile "bell1'.wav" 6 (bell1' 6 (absPitch (C,5)) 100 [])
 }
 
 The reader might wonder why we don't just use one of Euterpea's table
-generating functions, such as:
-\begin{spec}
-tableSines3, tableSines3N :: 
-    TableSize -> [(PartialNum, PartialStrength, PhaseOffset)] -> Table
-\end{spec}
-to generate a table with all the desired partials.  The problem is,
-even though |PartialNum| is a |Double|, the intent is that the partial
-numbers all be integral.  To see why, suppose 1.5 were one of the
-partial numbers---then 1.5 cycles of a sine wave would be written into
-the table.  But the whole point of wavetable lookup synthesis is that
-the wavetable be a periodic representation of the desired sound---but
-that is certainly not true of 1.5 cycles of a sine wave.  The
+generating functions, such as |tableSines3| discussed above, to
+generate a table with all the desired partials.  The problem is, even
+though the |PartialNum| argument to |tableSines3| is a |Double|, the
+normal intent is that the partial numbers all be integral.  To see
+why, suppose 1.5 were one of the partial numbers---then 1.5 cycles of
+a sine wave would be written into the table.  But the whole point of
+wavetable lookup synthesis is to repeatedly cycle through the table,
+which means that this 1.5 cycle would get repeated, since the
+wavetable be a periodic representation of the desired sound.  The
 situation gets worse with partials such as 4.07, 3.75, 2.74, 0.56, and
 so on.
 
 In any case, we can do even better than |bell1|.  An important aspect
 of a bell sound that is not captured by the program in
-Figure~\ref{fig:bell1}, is that the higher frequency partials tend to
+Figure~\ref{fig:bell1} is that the higher-frequency partials tend to
 decay more quickly than the lower ones.  We can remedy this by giving
-each partial its own envelope, and making the duration of the envelope
-inversely proportional to the partial number.  Such a more
-sophisticated instrument is shown in Figure~\ref{fig:bell2}.  This
-results in a much more pleasing and realistic sound.
+each partial its own envelope (recall Section \ref{sec:envelopes}, and
+making the duration of the envelope inversely proportional to the
+partial number.  Such a more sophisticated instrument is shown in
+Figure~\ref{fig:bell2}.  This results in a much more pleasing and
+realistic sound.
 
 \begin{figure}
 \begin{code}
@@ -234,151 +324,82 @@ loop (sf:sfs) =
     outA -< a1 + a2
 -------------------------------------------------------------------  }
 
-\section{Amplitude Modulation}
-\label{sec:am}
+\section{Subtractive Synthesis}
+\label{sec:subtractive}
 
-Technically speaking, whenever the amplitude of a signal is
-dynamically changed, it is a form of \emph{amplitude modulation}, or
-\emph{AM} for short; that is, we are modulating the amplitude of a
-signal.  So, for example, shaping a signal with an envelope, as well
-as adding tremolo, are both forms of AM.  In this section more
-interesting forms of AM are explored, including their mathematical
-basis.  To help distinguish these forms of AM from others, we define a
-few terms:
-\begin{itemize}
-\item
-The dynamically changing signal that is doing the modulation is called
-the \emph{modulating signal}
-\item
-The signal being modulated is sometimes called the \emph{carrier}.
-\item
-A \emph{unipolar signal} is one that is always either positive or negative
-(usually positive).
-\item
-A \emph{bipolar signal} is one that takes on both positive and
-negative values (that are often symmetric and thus average out to
-zero).
-\end{itemize}
+As mentioned in the introduction to this chapter, subtractive
+synthesis involves starting with a harmonically rich sound source, and
+selectively taking away sounds to create a desired effect.  In signal
+processing terms, we ``take away'' sounds using \emph{filters}.
 
-So, shaping a signal using an envelope is an example of amplitude
-modulation using a unipolar modulating signal whose frequency is very
-low (to be precise, $\nicefrac{1}{dur}$, where |dur| is the length of
-the note), and in fact only one cyctle of that signal is used.
-Likewise, tremolo is an example of amplitude modulation with a
-unipolar modulating signal whose frequency is a bit higher than with
-envelope shaping, but still quite low (typically 2-10 Hz).  In both
-cases, the modulating signal is infrasonic.
+\subsection{Filters}
 
-Note that a bipolar signal can be made unipolar (or the other way
-around) by adding or subtracting an offset (sometimes called a ``DC
-offset,'' where DC is shorthand for ``direct current'').  This is
-readily seen if we try to mathematically formalize the notion of
-tremolo.  Specifically, tremolo can be defined as adding an offset of
-1 to an infrasonic sine wave whose frequency is $f_t$ (typically
-2-10Hz), multiplying that by a ``depth'' argument $d$ (in the range 0
-to 1), and using the result as the modulating signal; the carrier
-frequency is $f$:
-
-\[ (1 + d \times \sin(2\pi f_t t)) \times \sin (2\pi f t) \]
-
-%% tremolo is the expressive variation in the loudness of a note that
-%% a singer or musician employs to give a dramatic effect in a
-%% performance.
-
-Based on this equation, here is a simple tremolo envelope generator
-written in Euterpea, and defined as a signal source (see
-Exercise~\ref{ex:tremolo}):
-\begin{code}
-tremolo ::   Clock c =>
-             Double -> Double -> SigFun c () Double
-tremolo tfrq dep = proc () -> do
-     trem  <- osc tab1 0 -< tfrq
-     outA  -< 1 + dep*trem
-\end{code}
-
-|tremolo| can then be used to modulate an audible signal as follows:
-
-...
-
-\subsection{AM Sound Synthesis}
-
-What happens when the modulating signal is audible, just like the
-carrier signal?  This is where things get interesting from a sound
-synthesis point of view, and can result in a rich blend of sounds.  To
-understand this mathematically, recall this trigonometric identity:
-
-\[ \sin(C) \times \sin(M) = \frac{1}{2} (\cos(C-M) - \cos(C+M)) \]
-
-or, sticking entirely with cosines:
-
-\[ \cos(C) \times \cos(M) = \frac{1}{2} (\cos(C-M) + \cos(C+M)) \]
-
-These equations demonstrate that AM is really just additive synthesis,
-which is why the two topics are included in the same chapter.  Indeed,
-the equations imply two ways to implement AM in Euterpea: We can
-directly multiply the two outputs, as specified by the left-hand sides
-of the equations above, or we can add two signals as specified by the
-right-hand sides of the equations.
-
-Note the following:
+Filters can be arbitrarily complex, but are characterized by a
+\emph{transfer function} that captures, in the frequency domain, how
+much of each frequency component of the input is transferred to the
+output.  Figure \ref{fig:filter-types} shows the general transfer
+function for the four most common forms of filters:
 \begin{enumerate}
 \item
-When the modulating frequency is the same as the carrier frequency,
-the right-hand sides above reduce to $\nicefrac{1}{2}\cos(2C)$.  That
-  is, we essentially double the frequency.
+A \emph{low-pass} filter passes low frequencies and rejects
+(i.e.\ attenuates) high frequencies.
 \item
-Since multiplication is commutative, the following is also true:
-
-\[ \cos(C) \times \cos(M) = \frac{1}{2} (\cos(M-C) + \cos(M+C)) \]
-
-which is validated because $\cos(t) = \cos(-t)$.
+A \emph{high-pass} filter passes high frequencies and rejects
+(i.e.\ attenuates) low frequencies.
 \item
-Scaling the modulating signal or carrier just scales the entire
-signal, since multiplication is associative.
+A \emph{band-pass} (or \emph{notch}) filter passes a particular band
+of frequencies while rejecting others.
+\item
+A \emph{band-reject} (or \emph{band-stop}) filter rejects a particular
+band of frequencies, while passing others.
 \end{enumerate}
+It should be clear that filters can be combined in sequence or in
+parallel to achieve more complex transfer functions.  For example, a
+low-pass and a high-pass filter can be combined in sequence to create
+a band-pass filter, and can be combined in parallel to create a
+band-reject filter.
 
-Also note that adding a third modulating frequency yields the following:
+\begin{figure}
+...
+\caption{Transfer Functions for Four Common Filter Types}
+\end{figure}
 
-\[\begin{array}{l}
-\cos(C) \times \cos(M1) \times cos(M2) \\
-\ \ = (0.5 \times (\cos(C-M1) \times \cos(C+M1))) \times \cos(M2) \\
-\ \ = 0.5 \times (\cos(C-M1)\times \cos(M2) + \cos(C+M1) \times \cos(M2))\\
-\ \ = 0.25 \times (\cos(C-M1-M2) + \cos(C-M1+M2) + \\
-\ \ \ \ \ \ \ \ \cos(C+M1-M2) + \cos(C+M1+M2))
-\end{array}\]
+It is important to realize that not all filters of a particular type
+are alike.  Two low-pass filters, for example, may, of course, have
+different cutoff frequencies, but even if the cutoff frequencies are
+the same, the ``steepness'' of the cutoff curves may be different (an
+ideal step curve does not exist), and the other parts of the curve
+might not be the same---they are never completely linear, and might
+not even be monotonically increasing or decreasing.  Furthermore, all
+filters have some degree of \emph{phase distortion}, which is to say
+that the transferred phase angle can vary with frequency.
 
-In general, combining $n$ signals using amplitude modulation results
-in $2^{n-1}$ signals.  AM used in this way for sound synthesis is
-sometimes called \emph{ring modulation}, because the analog circuit
-(of diodes) originally used to implement this technique took the shape
-of a ring.  Some nice “bell-like” tones can be generated with this
-technique.
+There is an elegant theory of filter design that can help predict and
+therefore control these characteristics, but it is beyond the scope of
+this textbook.  In the digital domain, filters are often described
+using \emph{recurrence relations} of varying degrees.  A good book on
+digital signal processing will elaborate on these issues in detail.
 
-\section{What do Tremolo and AM Radio Have in Common?}
+\subsection{Euterpea's Filters}
+\label{sec:euterpea-filters}
 
-Combining the previous two ideas, we can use a bipolar carrier in the
-\emph{electromagnetic spectrum} (i.e.\ the radio spectrum) and a
-unipolar modulating frequency in the \emph{audible} range, which we
-can represent mathematically as:
+Euterpea has a set of pre-defined filters that are adequate for most
+sound synthesis applications.  They are shown in Figure
+\ref{fig:euterpea-filters}.  
 
-\[ \cos(C) \times (1 + \cos(M)) = \cos(C) + 0.5 \times (\cos(C-M) +
-\cos(C+M)) \]
 
-Indeed, this is how AM radio works.  The above equation says that AM
-Radio results in a carrier signal plus two sidebands.  To completely
-cover the audible frequency range, the modulating frequency would need
-to be as much as 20kHz, thus yielding sidebands of $\pm$20kHz, thus
-requiring station separation of at least 40 kHz.  Yet, note that AM
-radio stations are separated by only 10kHz!  (540 kHz, 550 kHz, ...,
-1600 kHz).  This is because, at the time Commercial AM Radio was developed,
-a fidelity of 5KHz was considered ``good enough.''
+\begin{figure}
+\begin{spec}
+filterLowPass, filterHighPass :: 
+  Clock p => SigFun p (Double, Double) Double
 
-Also note now that the amplitude of the modulating frequency does
-matter:
+filterBandPass ::
+  Clock p => Int -> Signal p (Double, Double, Double) Double
 
-\[ \cos(C) \times (1 + A \times cos(M)) = cos(C) + 0.5 \times A \times
-(\cos(C-M) + \cos(C+M)) \]
+filterBandStop ::
+  Clock p => Int -> SigFun p (Double, Double, Double) Double
 
-$A$, called the \emph{modulation index}, controls the size of the
-sidebands.  Note the similarity of this equation to that for tremolo.
-
+filterLowPassBW, filterHighPassBW :: 
+  Clock p => SigFun p (Double, Double) Double
+\end{spec}
+\end{figure}

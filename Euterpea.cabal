@@ -99,6 +99,8 @@ Library
         Euterpea.Examples.SoundCheck,
         Euterpea.Examples.SSF,
         Euterpea.Examples.UIExamples,
+        Euterpea.Examples.SigFuns,
+        Euterpea.Examples.Additive,
         Euterpea.IO.Audio.Basics,
         Euterpea.IO.Audio.BasicSigFuns,
         Euterpea.IO.Audio.IO,
@@ -125,8 +127,6 @@ Library
         Euterpea.Music.Note.MoreMusic,
         Euterpea.Music.Note.Music,
         Euterpea.Music.Note.Performance,
-        Euterpea.Music.Signal.Additive,
-        Euterpea.Music.Signal.SigFuns,
         Euterpea.Music.Signal.SpectrumAnalysis,
         System.Random.Distributions
   other-modules:
