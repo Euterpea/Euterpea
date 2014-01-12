@@ -202,7 +202,7 @@ retroPitches (line [c 4 en, d 4 qn])
 \begin{figure*}
 \centerline{
 \epsfysize=2.0in 
-\epsfbox{Pics/pr12.eps}
+\epsfbox{pics/pr12.eps}
 }
 \caption{Nested Polyrhythms (top: |pr1|; bottom: |pr2|)}
 \label{polyrhythms}
