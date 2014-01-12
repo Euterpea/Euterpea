@@ -619,7 +619,7 @@ detail.
 \begin{figure}
 \centerline{
 \epsfysize=7in 
-\epsfbox{Pics/classes.eps}
+\epsfbox{pics/classes.eps}
 }
 \caption{Numeric Class Hierarchy}
 \label{fig:tc-hierarchy}
