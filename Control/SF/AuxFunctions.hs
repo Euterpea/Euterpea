@@ -37,7 +37,7 @@ import Data.Complex
 import Data.Map (Map)
 import qualified Data.Map as Map
 
--- | Alternative for working with Math.FFT instead of Numeric.FFT
+--Alternative for working with Math.FFT instead of Numeric.FFT
 --import qualified Math.FFT as FFT
 --import Data.Array.IArray
 --import Data.Array.CArray
