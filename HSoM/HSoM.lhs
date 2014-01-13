@@ -234,7 +234,7 @@ Cover image: \emph{Euterpe}, the Greek Muse of Music\\
 \include{AMAndFM}
 
 % Physical Modelling
-\include{PhysicalModeling}
+\include{PhysicalModelling}
 
 % Effects
 \include{Effects}
