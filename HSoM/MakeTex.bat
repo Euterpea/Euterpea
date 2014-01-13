@@ -22,6 +22,9 @@ lhs2tex --poly Signals.lhs > Signals.tex
 lhs2tex --poly SigFuns.lhs > SigFuns.tex
 lhs2tex --poly SpectrumAnalysis.lhs > SpectrumAnalysis.tex
 lhs2tex --poly Additive.lhs > Additive.tex
+lhs2tex --poly AMAndFM.lhs > AMAndFM.tex
+lhs2tex --poly PhysicalModelling.lhs > PhysicalModelling.tex
+lhs2tex --poly Effects.lhs > Effects.tex
 lhs2tex --poly List-tour.lhs > List-tour.tex
 lhs2tex --poly Class-tour.lhs > Class-tour.tex
 lhs2tex --poly Bitans.lhs > Bitans.tex
