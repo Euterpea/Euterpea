@@ -12,7 +12,7 @@
 }
 
 \chapter{Amplitude and Frequency Modulation}
-\caption{ch:AMAndFM}
+\label{ch:AMAndFM}
 
 To \emph{modulate} something is to change it in some way.  In signal
 processing, \emph{amplitude modulation} is the process of modifying a

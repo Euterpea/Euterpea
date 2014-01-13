@@ -12,6 +12,6 @@
 }
 
 \chapter{Physical Modelling}
-\caption{ch:physical-modelling}
+\label{ch:physical-modelling}
 
 TBD
