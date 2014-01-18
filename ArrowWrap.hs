@@ -8,6 +8,9 @@ import Data.Maybe
 import System.Environment
 import System.Process
 
+import Distribution.Simple.Program (findProgramLocation)
+import Distribution.Verbosity (silent)
+
 
 isTyVar (TyVar _) = True
 isTyVar _         = False
@@ -49,7 +52,7 @@ parseArrowPOutput filename str =
                         "Parse error: " ++ show loc ++ ": " ++ show err
 
 mkPragma exts = "{-# LANGUAGE " ++ 
-                intercalate "," (map (show . enabled) exts) ++
+                intercalate ", " (map (show . enabled) exts) ++
                 " #-}"
   where enabled (EnableExtension ext) = ext
 
@@ -66,3 +69,27 @@ runArrowP arrowp inFile outFile = do
       parse  = parseArrowPOutput inFile result
       pragma = mkPragma exts
   writeFile outFile $ pragma ++ "\n" ++ prettyPrintWithMode ppMode parse
+
+
+-- The list of files to be processed, given as a pair of input name and output name.
+-- This is used when using main, but not when using the cabal preprocessor.
+fileList = [("Euterpea/IO/Audio/Basics.as", "Euterpea/IO/Audio/Basics.hs")]
+
+-- The main function that, when this is not being used as a preprocessor 
+-- with cabal, should be run to do the processing.
+main = do
+    arrowp <- findArrowP silent
+    mapM_ (f arrowp) fileList
+  where
+  f arrowp (inFile, outFile) = do
+    runArrowP arrowp inFile outFile
+    putStrLn $ inFile ++ " has been preprocessed to " ++ outFile
+
+-- Copied from Setup.hs so it can be used in the main method here.
+findArrowP verbosity = do
+  a <- findProgramLocation verbosity "ccap"
+  case a of 
+    Nothing -> error "Preprocessor ccap not found. Please make sure the \
+                     \CCA library is already installed, and ccap is in \
+                     \your PATH environment."
+    Just p  -> return p

@@ -135,7 +135,7 @@ Library
         mtl, containers, markov-chain, 
         CCA >= 0.1.3, GLFW == 0.5.*, OpenGL, PortMidi, 
         HCodecs >= 0.2, heap == 0.6.0, 
-        template-haskell, haskell-src-exts >= 1.14.0,
+        template-haskell, 
         monadIO, deepseq,
         pure-fft,
         stm
