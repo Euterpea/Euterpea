@@ -523,7 +523,7 @@ maxPitch ps  = fold (!!!) (pitch 0) ps
   it in parentheses.  This is required in order to pass an operator as
   a value to another function, as in the examples above.  (If we wrote
   |fold !!! 0 ps| instead of |fold (!!!) 0 ps| it would look like we
-  were trying to apply |(+++)| to |fold| and |0 ps|, which is
+  were trying to apply |(!!!)| to |fold| and |0 ps|, which is
   nonsensical and ill-typed.)}
 
 In Chapter \ref{ch:induction} we will use induction to prove that

@@ -109,19 +109,19 @@ they will be introduced as needed in future chapters.
 \epsfysize=7in 
 \epsfbox{pics/ChildSong6.eps}
 }
-\caption{Excerpt from Chick Corea's \emph{Child Song No.\ 6}}
+\caption{Excerpt from Chick Corea's \emph{Children's Songs No.\ 6}}
 \label{fig:childsong6}
 \end{figure*}
 
 \section{Transcribing an Existing Score}
 
 Figure \ref{fig:childsong6} shows the first 28 bars of Chick Corea's
-\emph{Child Song No.\ 6}, written for electric piano.  Analyzing this
-tune explores several basic issues that arise in the transcription of
-an existing score into Euterpea, including repeating phrases, grace
-notes, triplets, tempo, and specifying an instrument.  To begin,
-however, we will define a couple of auxiliary functions to make our
-job easier.
+\emph{Children's Songs No.\ 6}, written for electric piano.  Analyzing
+the structure of this tune explores several basic issues that arise in
+the transcription of an existing score into Euterpea, including
+repeating phrases, grace notes, triplets, tempo, and specifying an
+instrument.  To begin, however, we will define a couple of auxiliary
+functions to make our job easier.
 
 \subsection{Auxiliary Functions}
 
@@ -183,7 +183,7 @@ Finally, a function to add a grace note to a note is defined.  Grace
 notes can approach the principal note from above or below; sometimes
 starting a half-step away, and sometimes a whole step; and having a
 rhythmic interpretation that is to a large extent up to the performer.
-In the case of the six uses of grace notes in \emph{Child Song
+In the case of the six uses of grace notes in \emph{Children's Songs
   No.\ 6}, we will assume that the grace note begins on the downbeat
 of the principal note, and thus its duration will subtract from that
 of the principal note.  We will also assume that the grace note
@@ -315,7 +315,7 @@ a metronome value of 120.  Therefore the tempo should be scaled by a
 factor of |(dhn/qn)*(69/120)|.
 
 These two observations lead to the final definition of the
-transcription of \emph{Children's Song No.\ 6} into Euterpea:
+transcription of \emph{Children's Songs No.\ 6} into Euterpea:
 \begin{code}
 childSong6 :: Music Pitch
 childSong6 =  let t = (dhn/qn)*(69/120)

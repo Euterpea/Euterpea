@@ -320,6 +320,15 @@ efficient solution is to have |perform| compute the duration directly,
 returning it as part of its result.  This version of |perform| is
 shown in Figure \ref{fig:real-perform}.
 
+Aside from efficiency, there is a more abstract reason for including
+duration in the result of |perform|.  Namely, the performance of a
+rest is not just nothing---it is a period of ``silence'' equal in
+duration to that of the rest.  Indeed, John Cage's famous composition
+\emph{4' 33"}, in which the performer is instructed to play nothing,
+would otherwise be meaningless.\footnote{In reality this piece is
+  meant to capture extemporaneously the sound of the environment
+  during that period of ``silence.''}
+
 Also note that |merge| compares entire events rather than just start
 times.  This is to ensure that it is commutative, a desirable
 condition for some of the proofs used later in the text.  Here is a

@@ -11,7 +11,8 @@
 \end{code}
 }
 
-\chapter{Musical L-Systems and Generative Grammars}
+\chapter[L-Systems and Generative Grammars]
+{Musical L-Systems and Generative Grammars}
 \label{ch:lsystems}
 
 \begin{code}

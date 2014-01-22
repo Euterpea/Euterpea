@@ -417,7 +417,7 @@ Establish the validity of each of the above axioms.}
 
 \begin{exercise}{\em
 Recall the polyphonic and contrapuntal melodies |mel1| and |mel2| from
-Chapter~\ref{ch:Intro}.  Prove that |mel1 === mel2|.}
+Chapter~\ref{ch:intro}.  Prove that |mel1 === mel2|.}
 \end{exercise}
 
 \vspace{.1in}\hrule
