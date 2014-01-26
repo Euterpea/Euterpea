@@ -404,13 +404,13 @@ data Mode        = Major | Minor
 
 |AbsPitch| (``absolute pitch,'' to be defined in Section
 \ref{sec:abspitch}) is just a type synonym for |Int|.  Instrument
-names are borrowed from the General MIDI standard \cite{MIDI}, and are
-captured as an algebraic data type in Figure
-\ref{fig:instrument-names}.  Phrase attributes and the concept of a
-``player'' are closely related, but a full explanation is deferred
-until Chapter \ref{ch:performance}.  The |KeySig| constructor attaches
-a key signature to a |Music| value, and is different conceptually from
-transposition.
+names are borrowed from the General MIDI standard
+\cite{MIDI,General-MIDI}, and are captured as an algebraic data type
+in Figure \ref{fig:instrument-names}.  Phrase attributes and the
+concept of a ``player'' are closely related, but a full explanation is
+deferred until Chapter \ref{ch:performance}.  The |KeySig| constructor
+attaches a key signature to a |Music| value, and is different
+conceptually from transposition.
 
 %% are defined in Figure \ref{fig:phase-attributes}.  The 
 
@@ -774,6 +774,16 @@ will have to be converted into a |Music Pitch| value.  Define a
 function |fromBlues :: Music BluesPitch -> Music Pitch| to do this,
 using the ``approximate'' translation described at the beginning of
 this exercise.
+
+Hint: To do this properly, you will have to pattern match against the
+|Music| value, something like this:
+\begin{spec}
+fromBlues (Prim (Note d p))  = ...
+fromBlues (Prim (Rest d))    = ...
+fromBlues (m1 :+: m2)        = ...
+fromBlues (m1 :=: m2)        = ...
+fromBlues (Modify ...)       = ...
+\end{spec}
 \item
 Write out a few melodies of type |Music BluesPitch|, and play them
 using |fromBlues| and |play|.
@@ -917,6 +927,29 @@ equivalences, |pitch (abspitch p) = p|.}
 
 \begin{exercise}{\em
 Show that |trans i (trans j p) = trans (i+j) p|.}
+\end{exercise}
+
+\begin{exercise}{\em
+|Transpose| is part of the |Control| data type, which in turn is part
+of the |Music| data type.  Its use in transposing a |Music| value is
+thus a kind of ``annotation''---it doesn't really change the |Music|
+value, it just annotates it as something that is transposed.
+
+Define instead a recursive function |transM :: AbsPitch -> Music Pitch
+-> Music Pitch| that actually changes each note in a |Music Pitch|
+value by transposing it by the interval represented by the first
+argument.
+
+Hint: To do this properly, you will have to pattern match against the
+|Music| value, something like this:
+\begin{spec}
+transM ap (Prim (Note d p))  = ...
+transM ap (Prim (Rest d))    = ...
+transM ap (m1 :+: m2)        = ...
+transM ap (m1 :=: m2)        = ...
+transM ap (Modify ...)       = ...
+\end{spec}
+}
 \end{exercise}
 
 \vspace{.1in}\hrule

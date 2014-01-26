@@ -140,7 +140,7 @@
 {\sl New Haven, CT, USA}\\
 {\sl Version \HSoMVersion}\\[.1in]
 Copyright \copyright\ Paul Hudak\\
-January 2011, 2012, 2013\\
+January 2011, 2012, 2013, 2014\\
 All rights reserved.  No part of this publication may be reproduced or
 distributed in any form or by any means, or stored in a data base or
 retrieval system, without the prior written permission of the author.

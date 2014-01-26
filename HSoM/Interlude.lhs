@@ -116,12 +116,12 @@ they will be introduced as needed in future chapters.
 \section{Transcribing an Existing Score}
 
 Figure \ref{fig:childsong6} shows the first 28 bars of Chick Corea's
-\emph{Children's Songs No.\ 6}, written for electric piano.  Analyzing
-the structure of this tune explores several basic issues that arise in
-the transcription of an existing score into Euterpea, including
-repeating phrases, grace notes, triplets, tempo, and specifying an
-instrument.  To begin, however, we will define a couple of auxiliary
-functions to make our job easier.
+\emph{Children's Songs No.\ 6}, written for electric piano
+\cite{Corea94}.  Analyzing the structure of this tune explores several
+basic issues that arise in the transcription of an existing score into
+Euterpea, including repeating phrases, grace notes, triplets, tempo,
+and specifying an instrument.  To begin, however, we will define a
+couple of auxiliary functions to make our job easier.
 
 \subsection{Auxiliary Functions}
 

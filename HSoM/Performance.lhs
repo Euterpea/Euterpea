@@ -456,8 +456,6 @@ different players.  This is done by exploiting polymorphism to define
 a version of |Music| that in addition to pitch, carries a list of note
 attributes for each individual note:
 
-\pagebreak
-
 \begin{spec}
 data NoteAttribute = 
         Volume  Int          -- MIDI convention: 0=min, 127=max
@@ -497,6 +495,9 @@ respect to performance and notation.  An Euterpean |Player| is a
 four-tuple consisting of a name and three functions: one for
 interpreting notes, one for phrases, and one for producing a properly
 notated score:
+
+\pagebreak
+
 \begin{code}
 data Player a = MkPlayer {  pName         :: PlayerName, 
                             playNote      :: NoteFun a,
@@ -668,6 +669,8 @@ which after simplification is:
 shortens event times rather than lengthening them.  And a similar but
 simpler strategy explains the behaviors of |Crescendo| and
 |Diminuendo|.
+
+\pagebreak
 
 \section{Putting it all Together}
 
