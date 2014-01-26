@@ -57,7 +57,7 @@ Additive synthesis in the context of Euterpea will be discussed in
 Section \ref{sec:additive}, and substractive synthesis in Section
 \ref{sec:subtractive}.
 
-\section{Addtive Synthesis}
+\section{Additive Synthesis}
 \label{sec:additive}
 
 \subsection{Preliminaries}

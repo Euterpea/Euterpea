@@ -93,6 +93,11 @@
                         {\small\sf {\bf Details:} #1}}
                      \end{quote}}
 
+\newcommand{\cbox}[1]{\begin{quote} 
+                      \parashade[1.0]{roundcorners}{\gdef\outlineboxwidth{.5}
+                        {#1}}
+                      \end{quote}}
+
 \begin{document}
 
 %---------------------------------------------------------------------

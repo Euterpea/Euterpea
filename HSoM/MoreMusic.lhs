@@ -726,6 +726,7 @@ encoding the opening lines of John Philip Sousa's \emph{Stars and
   Stripes Forever}.
 
 \begin{figure}
+\cbox{
 \begin{code}
 ssfMel :: Music Pitch
 ssfMel = line (l1 ++ l2 ++ l3 ++ l4)
@@ -736,7 +737,7 @@ ssfMel = line (l1 ++ l2 ++ l3 ++ l4)
 
 starsAndStripes :: Music Pitch
 starsAndStripes = instrument Flute ssfMel
-\end{code}
+\end{code}}
 \caption{Trills in \emph{Stars and Stripes Forever}}
 \label{fig:ssf}
 \end{figure}
@@ -804,7 +805,8 @@ whatsoever: they are just a convenient way to select from a large
 number of percussion sounds.  Indeed, part of the General MIDI
 Standard is a set of names for commonly used percussion sounds.
 
-\begin{figure}{\small
+\begin{figure}
+\cbox{\small
 \begin{spec}
 data PercussionSound =
         AcousticBassDrum  -- MIDI Key 35

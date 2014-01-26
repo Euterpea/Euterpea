@@ -586,7 +586,8 @@ in x + y
 %% In fact this same rule may be used to override layout in any context,
 %% how the layout rule can be overridden through the use of a semicolon.
 
-\begin{figure}{\small
+\begin{figure}
+\cbox{\small
 \begin{code}
 cff,cf,c,cs,css,dff,df,d,ds,dss,eff,ef,e,es,ess,fff,ff,f,
   fs,fss,gff,gf,g,gs,gss,aff,af,a,as,ass,bff,bf,b,bs,bss :: 
@@ -615,7 +616,8 @@ bss  o d = note d (Bss,  o)
 \label{fig:note-names}
 \end{figure}
 
-\begin{figure}{\small
+\begin{figure}
+\cbox{\small
 \begin{code}
 
 bn, wn, hn, qn, en, sn, tn, sfn, dwn, dhn, 
@@ -829,7 +831,8 @@ With this definition, |absPitch (Cf,4)| yields 47, as desired.
 %% instead of 12?  I do not know.  In most cases it will not matter, but
 %% it is an interesting question.
 
-\begin{figure}{\small
+\begin{figure}
+\cbox{\small
 \begin{spec}
 pcToInt :: PitchClass -> Int
 

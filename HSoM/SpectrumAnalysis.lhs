@@ -978,9 +978,9 @@ plot their FFT's.  Comment on the results.
 \section{References}
 
 Most of the ideas in this chapter can be found in any good textbook on
-signal processing, such as \cite{}.  The particular arrangement of the
-material here, in particular Figure~\ref{fig:fourier-transforms} and
-the development and demonstration of a program for the DFT, is
-borrowed from the excellent text \emph{Computer Music} by Moore
-\cite{moore:computer-music}.
+signal processing.  The particular arrangement of the material here,
+in particular Figure~\ref{fig:fourier-transforms} and the development
+and demonstration of a program for the DFT, is borrowed from the
+excellent text \emph{Elements of Computer Music} by Moore
+\cite{Moore90}.
 

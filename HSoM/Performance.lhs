@@ -208,6 +208,7 @@ in understanding the definition of |perform|, let's step through the
 equations one at a time.
 
 \begin{figure}
+\cbox{\small
 \begin{spec}
 perform :: PMap a -> Context a -> Music a -> Performance
 perform pm 
@@ -226,7 +227,7 @@ perform pm
      Modify (KeySig pc mo)  m  ->  perform pm (c {cKey = (pc,mo)})   m
      Modify (Player pn)     m  ->  perform pm (c {cPlayer = pm pn})  m
      Modify (Phrase pa)     m  ->  interpPhrase pl pm c pa           m
-\end{spec}
+\end{spec}}
 \caption{An abstract |perform| function}
 \label{fig:perform}
 \end{figure}
@@ -327,7 +328,7 @@ duration to that of the rest.  Indeed, John Cage's famous composition
 \emph{4' 33"}, in which the performer is instructed to play nothing,
 would otherwise be meaningless.\footnote{In reality this piece is
   meant to capture extemporaneously the sound of the environment
-  during that period of ``silence.''}
+  during that period of ``silence.'' \cite{Cage433}}
 
 Also note that |merge| compares entire events rather than just start
 times.  This is to ensure that it is commutative, a desirable
@@ -344,6 +345,7 @@ merge a@(e1:es1)  b@(e2:es2)  =
 \end{code} 
 
 \begin{figure}
+\cbox{\small
 \begin{code}
 
 perform :: PMap a -> Context a -> Music a -> Performance
@@ -369,7 +371,7 @@ perf pm
      Modify  (KeySig pc mo)  m  -> perf pm (c {cKey = (pc,mo)})   m
      Modify  (Player pn)     m  -> perf pm (c {cPlayer = pm pn})  m
      Modify  (Phrase pas)    m  -> interpPhrase pl pm c pas       m
-\end{code}
+\end{code}}
 \caption{A more efficient |perform| function}
 \label{fig:real-perform}
 \end{figure}
@@ -409,7 +411,8 @@ violinist does, because of differences in their instruments.
 Similarly, diminuendo on a piano and diminuendo on a harpsichord are
 very different concepts.
 
-\begin{figure}{\small
+\begin{figure}
+\cbox{\small
 \begin{spec}
 data PhraseAttribute  =  Dyn Dynamic
                       |  Tmp Tempo
@@ -544,6 +547,7 @@ section; in particular, note the calls to |playNote| and
 phrase attributes.
 
 \begin{figure}
+\cbox{\small
 \begin{code}
 defPlayNote ::  (Context (Pitch,[a]) -> a -> Event-> Event)
                 -> NoteFun (Pitch, [a])
@@ -576,7 +580,7 @@ defPasHandler (Art (Staccato x))  =
 defPasHandler (Art (Legato   x))  = 
     map (\e -> e {eDur = x * eDur e})
 defPasHandler _                   = id
-\end{code} 
+\end{code}}
 \caption{Definition of default player |defPlayer|.}
 \label{fig:default-Player}
 \end{figure}
@@ -804,7 +808,7 @@ in G major should yield |e 4 en :+: fs 4 en :+: g 4 en|.
 
 \begin{figure}
 \todo{This code has errors and needs to be fixed.}
-{\small
+\cbox{\small
 \begin{code}
 
 fancyPlayer :: Player (Pitch, [NoteAttribute])

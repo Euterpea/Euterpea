@@ -279,6 +279,7 @@ with each of the pieces defined in Figure \ref{fig:bars7-28}.  Note that:
 \end{itemize}
 
 \begin{figure}
+\cbox{\small
 \begin{code}
 v2a  =  line [  cs 5 (dhn+dhn), d 5 dhn, 
                 f 5 hn, gs 5 qn, fs 5 (hn+en), g 5 en]     -- bars 7-11
@@ -297,7 +298,7 @@ v2f  =  line [  fs 5 en, a 5 en, b 5 (hn+qn), a 5 en, fs 5 en, e 5 qn,
                 d 5 en, fs 5 en, e 5 hn, d 5 hn, fs 5 qn]  -- bars 21-23
 v2g  =  tempo (3/2) (line [cs 5 en, d 5 en, cs 5 en]) :+: 
         b 4 (3*dhn+hn)                                     -- bars 24-28
-\end{code}
+\end{code}}
 \caption{Bars 7-28}
 \label{fig:bars7-28}
 \end{figure}

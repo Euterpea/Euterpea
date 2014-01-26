@@ -395,7 +395,7 @@ side is |a->b|, whereas on the right-hand side it is |[a]->[b]|;
 i.e. these are really two different functions.)
 
 \begin{table}
-\fbox{
+\cbox{
 \begin{minipage}{4.75in}
 {\bf Properties of |map|:}
 
@@ -441,7 +441,7 @@ foldr op e xs = foldl (flip op) e (reverse xs)
 \end{table}
 
 \begin{table}
-\fbox{
+\cbox{
 \begin{minipage}{4.75in}
 {\bf Properties of |(++)|:}
 
@@ -1005,7 +1005,7 @@ property is not difficult, but also requires induction; it is shown in
 Figure \ref{fig:exp-lemma}.
 
 \begin{figure}
-\fbox{
+\cbox{
 \begin{minipage}{4.75in}
 Base case (|n=0|):
 \begin{spec}

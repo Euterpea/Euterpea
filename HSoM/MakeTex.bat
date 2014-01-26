@@ -30,5 +30,6 @@ lhs2tex --poly Class-tour.lhs > Class-tour.tex
 lhs2tex --poly Bitans.lhs > Bitans.tex
 lhs2tex --poly Patterns.lhs > Patterns.tex
 
+bibtex HSoM
 latex HSoM
 dvips HSoM

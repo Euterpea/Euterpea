@@ -49,18 +49,19 @@ import Euterpea.Examples.MUI
 Many music software packages have a graphical user interface (aka
 ``GUI'') that provides varying degrees of functionality to the user.
 In Euterpea a basic set of widgets is provided that are collectively
-referred to as the \emph{musical user interface}, or MUI.  This
-interface is quite different from the GUI interfaces found in most
-conventional languages, and is built around the concepts of
-\emph{signal functions} and \emph{arrows}.  Signal functions are an
-abstraction of the time-varying values inherent in an interactive
-system such as a GUI or Euterpea's MUI.  Signal functions are provided
-for creating graphical sliders, pushbuttons, and so on for input, and
-textual displays and graphic images for output (in the future, other
-kinds of graphic input and output, including virtual keyboards, plots,
-and so on, will be introduced).  In addition to these graphical
-widgets, the MUI also provides an interface to standard MIDI input and
-output devices.
+referred to as the \emph{musical user interface}, or MUI.\footnote{The
+  Euterpea MUI is related to the arrow-based GUI library \emph{Fruit}
+  \cite{fruit,courtney-phd}.}  This interface is quite different from
+the GUI interfaces found in most conventional languages, and is built
+around the concepts of \emph{signal functions} and \emph{arrows}
+\cite{AFP2002,Hughes2000}.  Signal functions are an abstraction of the
+time-varying values inherent in an interactive system such as a GUI or
+Euterpea's MUI.  Signal functions are provided for creating graphical
+sliders, pushbuttons, and so on for input, and textual displays and
+graphic images for output (in the future, other kinds of graphic input
+and output, including virtual keyboards, plots, and so on, will be
+introduced).  In addition to these graphical widgets, the MUI also
+provides an interface to standard MIDI input and output devices.
 
 \section{Basic Concepts}
 

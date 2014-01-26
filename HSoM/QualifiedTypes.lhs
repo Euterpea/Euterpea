@@ -800,6 +800,7 @@ save space).
   |Eq| is given), since |Eq| is a superclass of |Ord|.}
 
 \begin{figure}
+\cbox{\small
 \begin{spec}
 data PitchClass  =  Cff | Cf | C | Dff | Cs | Df | Css | D | Eff | Ds 
                  |  Ef | Fff | Dss | E | Ff | Es | F | Gff | Ess | Fs
@@ -825,7 +826,7 @@ data Control =
     |  Phrase      [PhraseAttribute]  -- phrase attributes
     |  Player      PlayerName         -- player label
   deriving (Show, Eq, Ord)
-\end{spec}
+\end{spec}}
 \caption{Euterpea's Data Types with Deriving Clauses}
 \label{fig:actual-datatypes}
 \end{figure}

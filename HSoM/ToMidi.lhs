@@ -42,10 +42,10 @@ writeMidiA fn pm con m = exportMidiFile fn (testMidiA pm con m)
 
 \indexwd{Midi} is shorthand for ``Musical Instrument Digital
 Interface,'' and is a standard protocol for controlling electronic
-musical instruments.  This chapter describes how to convert an
-abstract {\em performance} as defined in Chapter \ref{ch:performance}
-into a \emph{standard Midi file} that can be played on any modern PC
-with a standard sound card.
+musical instruments \cite{MIDI,General-MIDI}.  This chapter describes
+how to convert an abstract {\em performance} as defined in Chapter
+\ref{ch:performance} into a \emph{standard Midi file} that can be
+played on any modern PC with a standard sound card.
 
 \section{An Introduction to Midi}
 \label{sec:midi}

@@ -11,8 +11,8 @@
 
 In this chapter we will explore a number of properties of the |Music|
 data type and functions defined on it, properties that collectively
-form an \emph{algebra of music}.  With this algebra we can reason
-about, transform, and optimize computer music programs in a
+form an \emph{algebra of music} \cite{PTM-PADL}.  With this algebra we
+can reason about, transform, and optimize computer music programs in a
 meaning preserving way.
 
 \section{Musical Equivalance}
@@ -428,6 +428,8 @@ Discuss formal semantics.  Denotational, operational (relate to
 ``proof by calculation''), and algebraic.
 
 Soundness and Completeness.
+
+\cite{PTM-PADL}
 
 \section{Other Musical Properties}
 

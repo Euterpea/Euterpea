@@ -88,7 +88,7 @@ spectrum of a signal), and special effects (reverb, panning,
 distortion, and so on).
 
 Suppose for a moment that a musician is playing music using a
-metronome set at 96, which corresponds to 96 beats per minute.  That
+metro\-nome set at 96, which corresponds to 96 beats per minute.  That
 means that one beat takes $\nicefrac{60}{96}$ = 0.625 seconds.  At a
 stereo sampling rate of 44,100 samples per second, that in turn
 translates into $2\times 0.625\times 44,100$ = 55,125 samples, and
