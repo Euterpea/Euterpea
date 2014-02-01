@@ -748,14 +748,32 @@ The textual representation defined by a derived |Show| instance is
 consistent with the appearance of constant Haskell expressions
 (i.e.\ values) of the type involved.  For example, from:
 \begin{spec}
-data Color = Red | Orange | Yellow | Green | Blue | Indigo | Violet
-     deriving (Eq,Enum,Show)
+data Color = Black
+           | Blue
+           | Green
+           | Cyan
+           | Red
+           | Magenta
+           | Yellow
+           | White
+  deriving (Show, Eq, Ord, Enum, Bounded)
 \end{spec}
 we can expect that:
 \begin{spec}
 show [Red ..]  
-===>  "[Red,Orange,Yellow,Green,Blue,Indigo,Violet]"
+===>  "[Black,Blue,Green,Cyan,Red,Magenta,Yellow,White]"
 \end{spec}
+
+We can also expect that:
+\begin{spec}
+minBound :: Color ===> Black
+maxBound :: Color ===> White
+\end{spec}
+Note that the type signature ``|:: Color|'' is given explicitly in
+this case, because, out of any context, at least, Haskell does not
+know the type for which you are trying to determine the minimum and
+maximum bounds.
+
 Further details about derived instances can be found in the Haskell
 Report.
 
@@ -1037,15 +1055,14 @@ class).
 \end{itemize}
 These constraints must therefore be part of the instance declaration.
 
-Hint: use the minimum and maximum bounds of a type, and enumerate the
-rest using an arithmetic sequence (recall Section
-\ref{sec:arithmetic-sequences}), which, despite the name, works for
+Hint: using the minimum and maximum bounds of a type, enumerate all
+the elements of that type using an arithmetic sequence (recall Section
+\ref{sec:arithmetic-sequences}), which, despite its name, works for
 any enumerable type.
 
 Test your implementation by defining some functions on existing
-Euterpea types that have finite domains (such as |PitchClass|,
-|InstrumentName|, |Color|, and so on), or by defining some functions
-on your own data type(s).}
+Euterpea types that have finite, bounded domains (such as |PitchClass|
+and |Color|), or by defining some functions on your own data type(s).}
 \end{exercise}
 
 \vspace{.1in}\hrule
