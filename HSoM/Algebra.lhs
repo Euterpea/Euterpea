@@ -436,7 +436,7 @@ Soundness and Completeness.
 Aside from the axioms discussed so far, there are many other
 properties of |Music| values and its various operators, just as we saw
 in Chapter~\ref{ch:induction} for lists.  For example, this property
-of |map| taken from Table~\ref{table:list-props1}:
+of |map| taken from Figure~\ref{fig:list-props1}:
 \begin{spec}
 map (f . g)       = map f . map g
 \end{spec}
@@ -444,18 +444,18 @@ suggests and analogous property for |mMap|:
 \begin{spec}
 map (f . g)       = map f . map g
 \end{spec}
-Not all of the properties in Tables~\ref{table:list-props1} and
-\ref{table:list-props2} have analogous musical renditions, and there
+Not all of the properties in Figures~\ref{fig:list-props1} and
+\ref{fig:list-props2} have analogous musical renditions, and there
 are also others that are special only to |Music| values.
-Table~\ref{table:music-props} summarizes the most important of these
+Figure~\ref{fig:music-props} summarizes the most important of these
 properties, including the one above.  Note that some of the properties
 are expressed as strict equality---that is, the left-hand and
 right-hand sides are equivalent as Haskell values.  But others are
 expressed using musical equivalence---that is, using |(===)|.  We
 leave the proofs of all these properties as an exercise.
 
-\begin{table}
-\fbox{
+\begin{figure}
+\cbox{
 \begin{minipage}{4.75in}
 {\bf Properties of |mMap|:}
 
@@ -504,8 +504,8 @@ dur (dropM d m)  = max 0 (dur m - d)
 \end{spec}
 \end{minipage}}
 \caption{Useful Properties of Other Musical Functions}
-\label{table:music-props}
-\end{table}
+\label{fig:music-props}
+\end{figure}
 
 \vspace{.1in}\hrule
 
@@ -514,7 +514,7 @@ Prove that |timesM a m :+: timesM b m === timesM (a+b) m|.}
 \end{exercise}
 
 \begin{exercise}{\em
-Prove as many of the axioms from Table~\ref{table:music-props} as you
+Prove as many of the axioms from Figure~\ref{fig:music-props} as you
 can.}
 \end{exercise}
 

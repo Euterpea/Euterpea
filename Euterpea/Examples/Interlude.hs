@@ -42,8 +42,7 @@ v2e  =  line [  graceNote 2 (e 5 qn), d 5 en, graceNote 2 (d 5 qn), cs 5 en,
 v2f  =  line [  fs 5 en, a 5 en, b 5 (hn+qn), a 5 en, fs 5 en, e 5 qn,
                 d 5 en, fs 5 en, e 5 hn, d 5 hn, fs 5 qn]  -- bars 21-23
 v2g  =  tempo (3/2) (line [cs 5 en, d 5 en, cs 5 en]) :+: 
-        b 4 (3*dhn+hn)                                     -- bars 24-28
-childSong6 :: Music Pitch
+        b 4 (3*dhn+hn)                                     -- bars 24-28childSong6 :: Music Pitch
 childSong6 =  let t = (dhn/qn)*(69/120)
               in instrument  RhodesPiano 
                              (tempo t (bassLine :=: mainVoice))

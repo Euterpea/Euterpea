@@ -16,7 +16,7 @@ data Event = Event {  eTime    :: PTime,
                       eDur     :: DurT, 
                       eVol     :: Volume, 
                       eParams  :: [Double]}
-     deriving (Eq,Ord,Show)
+     deriving (Show,Eq,Ord)
 type PTime     = Rational
 type DurT      = Rational
 data Context a = Context {  cTime    :: PTime, 
@@ -118,7 +118,6 @@ defPasHandler (Art (Staccato x))  =
 defPasHandler (Art (Legato   x))  = 
     map (\e -> e {eDur = x * eDur e})
 defPasHandler _                   = id
- 
 defPMap            :: PMap Note1
 defPMap "Fancy"    = fancyPlayer
 defPMap "Default"  = defPlayer

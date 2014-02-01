@@ -61,7 +61,7 @@ data Event = Event {  eTime    :: PTime,
                       eDur     :: DurT, 
                       eVol     :: Volume, 
                       eParams  :: [Double]}
-     deriving (Eq,Ord,Show)
+     deriving (Show,Eq,Ord)
 \end{code}
 \begin{spec}
 type PTime     = Rational
@@ -80,7 +80,7 @@ type DurT      = Rational
 \begin{spec}
 data Event = Event  PTime InstrumentName 
                     AbsPitch DurT Volume [Double]
-     deriving (Eq,Ord,Show)
+     deriving (Show,Eq,Ord)
 \end{spec}
 except that the former also defines ``field labels'' |eTime|, |eInst|, 
 |ePitch|, |eDur|, |eVol|, and |eParams|, which can be used to
@@ -278,7 +278,7 @@ data Control =
 
 type PlayerName  = String
 data Mode        = Major | Minor
-  deriving (Eq, Ord, Show)
+  deriving (Show, Eq, Ord)
 \end{spec}
 Each of these six constructors is handled by a separate equation in
 the definition of |perform|.  Note how the context is updated in each
@@ -371,6 +371,7 @@ perf pm
      Modify  (KeySig pc mo)  m  -> perf pm (c {cKey = (pc,mo)})   m
      Modify  (Player pn)     m  -> perf pm (c {cPlayer = pm pn})  m
      Modify  (Phrase pas)    m  -> interpPhrase pl pm c pas       m
+
 \end{code}}
 \caption{A more efficient |perform| function}
 \label{fig:real-perform}
@@ -418,36 +419,36 @@ data PhraseAttribute  =  Dyn Dynamic
                       |  Tmp Tempo
                       |  Art Articulation
                       |  Orn Ornament
-     deriving (Eq, Ord, Show)
+     deriving (Show, Eq, Ord)
 
 data Dynamic  =  Accent Rational | Crescendo Rational
               |  Diminuendo Rational | StdLoudness StdLoudness 
               |  Loudness Rational
-     deriving (Eq, Ord, Show)
+     deriving (Show, Eq, Ord)
 
 data StdLoudness = PPP | PP | P | MP | SF | MF | NF | FF | FFF
-     deriving (Eq, Ord, Show, Enum)
+     deriving (Show, Eq, Ord, Enum)
 
 data Tempo = Ritardando Rational | Accelerando Rational
-     deriving (Eq, Ord, Show)
+     deriving (Show, Eq, Ord)
 
 data Articulation  =  Staccato Rational | Legato Rational 
                    |  Slurred Rational | Tenuto | Marcato | Pedal 
                    |  Fermata | FermataDown | Breath | DownBow 
                    |  UpBow | Harmonic | Pizzicato | LeftPizz 
                    |  BartokPizz | Swell | Wedge | Thumb | Stopped
-     deriving (Eq, Ord, Show)
+     deriving (Show, Eq, Ord)
 
 data Ornament  =  Trill | Mordent | InvMordent | DoubleMordent
                |  Turn | TrilledTurn | ShortTrill
                |  Arpeggio | ArpeggioUp | ArpeggioDown
                |  Instruction String | Head NoteHead
                |  DiatonicTrans Int
-     deriving (Eq, Ord, Show)
+     deriving (Show, Eq, Ord)
 
 data NoteHead  =  DiamondHead | SquareHead | XHead | TriangleHead
                |  TremoloHead | SlashHead | ArtHarmonic | NoHead
-     deriving (Eq, Ord, Show)
+     deriving (Show, Eq, Ord)
 \end{spec}}
 \caption{Phrase Attributes}
 \label{fig:phrase-attributes}
@@ -465,7 +466,7 @@ data NoteAttribute =
      |  Fingering Integer
      |  Dynamics String
      |  Params [Double]
-     deriving (Eq, Show)
+     deriving (Show, Eq)
 \end{spec}
 Our goal then is to define a player for music values of type:
 \begin{code}

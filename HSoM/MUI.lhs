@@ -338,14 +338,15 @@ instead of having values of type |SF a b|, we will use values of type
 
 \subsection{Graphical Input and Output Widgets}
 
-Euterpea's basic widgets are shown in Table \ref{fig:widgets}.  Note
+Euterpea's basic widgets are shown in Figure \ref{fig:widgets}.  Note
 that each of them is, ultimately, a value of type |UISF a b|, for some
 input type |a| and output type |b|, and therefore may be used with the
 arrow syntax to help coordinate their functionality.  The names and
 type signatures of these functions suggest their functionality, which
 we elaborate in more detail below:
 
-\begin{table}
+\begin{figure}
+\cbox{
 \begin{spec}
 label              :: String -> UISF () ()
 display            :: Show a => UISF a ()
@@ -357,10 +358,10 @@ checkbox           :: String -> Bool -> UISF () Bool
 radio              :: [String] -> Int -> UISF () Int
 hSlider,vSlider    :: (RealFrac a) => (a, a) -> a -> UISF () a
 hiSlider,viSlider  :: (Integral a) => a -> (a, a) -> a -> UISF () a
-\end{spec}
+\end{spec}}
 \caption{MUI Input/Output Widgets}
 \label{fig:widgets}
-\end{table}
+\end{figure}
 
 \begin{itemize}
 \item
@@ -482,11 +483,12 @@ Figure \ref{fig:simple-mui}(a).
 
 \subsection{Widget Transformers}
 
-Table \ref{fig:layout-widgets} shows a set of ``widget
+Figure \ref{fig:layout-widgets} shows a set of ``widget
 transformers''---functions that take UISF values as input, and return
 modified UISF values as output.
 
-\begin{table}
+\begin{figure}
+\cbox{
 \begin{spec}
 title       :: String  -> UISF a b -> UISF a b
 setLayout   :: Layout  -> UISF a b -> UISF a b
@@ -496,10 +498,10 @@ topDown, bottomUp, leftRight, rightLeft :: UISF a b -> UISF a b
 makeLayout  :: LayoutType -> LayoutType -> Layout
 data LayoutType  =  Stretchy  { minSize    ::  Int } 
                  |  Fixed     { fixedSize  ::  Int }
-\end{spec}
+\end{spec}}
 \caption{MUI Layout Widget Transformers}
 \label{fig:layout-widgets}
-\end{table}
+\end{figure}
 
 \begin{itemize}
 \item
@@ -594,6 +596,7 @@ examples that follow.
 \begin{figure}
 %% in signal processing this is called an ``edge
 %% detector,'' and thus the name chosen here.
+\cbox{\small
 \begin{spec}
 unique :: Eq a => UISF a (Event a)
   -- generates an event whenever the input changes
@@ -614,7 +617,7 @@ hold :: b -> UISF (Event b) b
 
 now :: UISF () (Event ())
   -- creates a single event ``right now''
-\end{spec}
+\end{spec}}
 \caption{Mediators Between the Continuous and the Discrete}
 \label{fig:mediators}
 \end{figure}
@@ -655,7 +658,6 @@ convenient, although what happens ``behind the scenes'' is that each
 The |Message| data type is described in Chapter~\ref{ch:midi}, and is
 defined in the |Codec.Midi| module.  Its most important functionality
 is summarized here:
-\begin{spec}
 \begin{spec}
 data Message =
   -- Channel Messages

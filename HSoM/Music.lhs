@@ -117,7 +117,7 @@ data PitchClass  =  Cff | Cf | C | Dff | Cs | Df | Css | D | Eff | Ds
                  |  Ef | Fff | Dss | E | Ff | Es | F | Gff | Ess | Fs
                  |  Gf | Fss | G | Aff | Gs | Af | Gss | A | Bff | As 
                  |  Bf | Ass | B | Bs | Bss
-     deriving (Eq, Ord, Show, Read, Enum)
+     deriving (Show, Eq, Ord, Read, Enum, Bounded)
 \end{code}
 }
 
@@ -398,7 +398,7 @@ data Control =
 
 type PlayerName  = String
 data Mode        = Major | Minor
-  deriving (Eq, Ord, Show)
+  deriving (Show, Eq, Ord)
 \end{code}
 }
 
@@ -480,34 +480,34 @@ data PhraseAttribute  =  Dyn Dynamic
                       |  Tmp Tempo
                       |  Art Articulation
                       |  Orn Ornament
-     deriving (Eq, Ord, Show)
+     deriving (Show, Eq, Ord)
 
 data Dynamic  =  Accent Rational | Crescendo Rational | Diminuendo Rational
               |  StdLoudness StdLoudness | Loudness Rational
-     deriving (Eq, Ord, Show)
+     deriving (Show, Eq, Ord)
 
 data StdLoudness = PPP | PP | P | MP | SF | MF | NF | FF | FFF
-     deriving (Eq, Ord, Show, Enum)
+     deriving (Show, Eq, Ord, Enum)
 
 data Tempo = Ritardando Rational | Accelerando Rational
-     deriving (Eq, Ord, Show)
+     deriving (Show, Eq, Ord)
 
 data Articulation  =  Staccato Rational | Legato Rational | Slurred Rational
                    |  Tenuto | Marcato | Pedal | Fermata | FermataDown | Breath
                    |  DownBow | UpBow | Harmonic | Pizzicato | LeftPizz
                    |  BartokPizz | Swell | Wedge | Thumb | Stopped
-     deriving (Eq, Ord, Show)
+     deriving (Show, Eq, Ord)
 
 data Ornament  =  Trill | Mordent | InvMordent | DoubleMordent
                |  Turn | TrilledTurn | ShortTrill
                |  Arpeggio | ArpeggioUp | ArpeggioDown
                |  Instruction String | Head NoteHead
                |  DiatonicTrans Int
-     deriving (Eq, Ord, Show)
+     deriving (Show, Eq, Ord)
 
 data NoteHead  =  DiamondHead | SquareHead | XHead | TriangleHead
                |  TremoloHead | SlashHead | ArtHarmonic | NoHead
-     deriving (Eq, Ord, Show)
+     deriving (Show, Eq, Ord)
 
 \end{code}}
 \caption{Phrase Attributes}

@@ -737,6 +737,7 @@ ssfMel = line (l1 ++ l2 ++ l3 ++ l4)
 
 starsAndStripes :: Music Pitch
 starsAndStripes = instrument Flute ssfMel
+
 \end{code}}
 \caption{Trills in \emph{Stars and Stripes Forever}}
 \label{fig:ssf}
@@ -1035,7 +1036,7 @@ the factor |s|.
 (This problem requires multiplying a |Rational| number by an |Int|
 (i.e.\ |Volume|).  To do this, some coercions between number types are
 needed, which in Haskell is done using \emph{qualified types}, which
-are discussed in Chapter~\ref{qualified-types}.  For now, you can
+are discussed in Chapter~\ref{ch:qualified-types}.  For now, you can
 simply do the following:  If |v| is the volume of a note, then
 |round (s * fromIntegral v)| is the desired scaled volume.)} 
 \end{exercise}

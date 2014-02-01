@@ -377,6 +377,7 @@ called \emph{oscillators}, a name taken from electronic circuit
 design.  They are summarized in Figure \ref{fig:oscillators}.
 
 \begin{figure}
+\cbox{
 \begin{spec}
 osc, oscI ::  Clock c =>
               Table -> Double -> SigFun p Double Double
@@ -423,6 +424,7 @@ oscPartials ::  Clock c =>
 determines the frequency (as with |osc|), as well as the number of
 harmonics of that frequency, of the output.  |tab| is the table that
 is cycled through, and |ph| is the phase angle (as with |osc|).
+}
 \caption{Eutperea's Oscillators}
 \label{fig:oscillators}
 \end{figure}
@@ -493,6 +495,7 @@ write either |constA 440 >>> osc tab1 0| or |osc tab2 0 <<< constA
 440|.  |s1| and |s2| should be compared closely.
 
 \begin{figure}
+\cbox{\small
 \begin{spec}
 type TableSize        = Int
 type PartialNum       = Double
@@ -555,6 +558,7 @@ tableBesselN ::
 Bessel function of the second kind, order 0, suitable for use in
 amplitude-modulated FM.  |x| is the x-interval (0 to |x|) over which
 the function is defined.
+}
 \caption{Table Generating Functions}
 \label{fig:table-generators}
 \end{figure}
@@ -868,6 +872,7 @@ For clarity we show in Figure~\ref{fig:sf-instrument} all of the
 pieces of this running example as one program.
 
 \begin{figure}
+\cbox{
 \begin{code}
 mel :: Music1
 mel =  
@@ -880,12 +885,13 @@ mel =
        na2 (Prim (Note d p))  = Prim (Note d (p,[Params [5,10]]))
        na3 (Prim (Note d p))  = Prim (Note d (p,[Params [5,20]]))
   in instrument simpleInstr m
-\end{code}
+\end{code}}
 \caption{A Simple Melody}
 \label{fig:reflections}
 \end{figure}
 
 \begin{figure}
+\cbox{
 \begin{spec}
 simpleInstr :: InstrumentName
 simpleInstr = Custom "Simple Instrument"
@@ -902,7 +908,7 @@ myInstrMap = [(simpleInstr, myInstr)]
 
 (d, sf)  = renderSF mel myInstrMap
 main     = outFile "simple.wav" d sf
-\end{spec}
+\end{spec}}
 \caption{A Complete Example of a Signal-Function Based Instrument}
 \label{fig:sf-instrument}
 \end{figure}
@@ -940,6 +946,7 @@ envelope-generating functions.  Read the code comments carefully to
 understand what they do.  
 
 \begin{figure}
+\cbox{\small
 \begin{spec}
 -- a linear envelope
 envLine      ::  Clock p => 
@@ -990,7 +997,7 @@ envCSEnvlpx  ::  Clock p =>
                       -- steady state value is reduced exponentially
                       -- over the decay period 
    SigFun p () Double
-\end{spec}
+\end{spec}}
 \caption{Envelopes}
 \label{fig:line-envelopes}
 \end{figure}

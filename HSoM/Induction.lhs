@@ -379,8 +379,8 @@ hypothesis because foldl's third argument is |[x]| and not |[]|.
 \label{sec:list-properties}
 
 There are many useful properties of functions on lists that require
-inductive proofs.  Tables \ref{table:list-props1} and
-\ref{table:list-props2} list a number of them involving functions used
+inductive proofs.  Figures \ref{fig:list-props1} and
+\ref{fig:list-props2} list a number of them involving functions used
 in this text, but their proofs are left as exercises (except for one;
 see below).  You may assume that these properties are true, and use
 them freely in proving other properties of your programs.  In fact,
@@ -390,11 +390,11 @@ them!\footnote{More thorough discussions of these properties and their
   proofs may be found in \cite{birdwadler88,bird98}.}
 
 (Note, by the way, that in the first rule for |map| in Figure
-\ref{table:list-props1}, the type of |\x -> x| on the left-hand
+\ref{fig:list-props1}, the type of |\x -> x| on the left-hand
 side is |a->b|, whereas on the right-hand side it is |[a]->[b]|;
 i.e. these are really two different functions.)
 
-\begin{table}
+\begin{figure}
 \cbox{
 \begin{minipage}{4.75in}
 {\bf Properties of |map|:}
@@ -437,10 +437,10 @@ foldr op e xs = foldl (flip op) e (reverse xs)
 \end{enumerate}
 \end{minipage}}
 \caption{Some Useful Properties of |map| and |fold|.}
-\label{table:list-props1}
-\end{table}
+\label{fig:list-props1}
+\end{figure}
 
-\begin{table}
+\begin{figure}
 \cbox{
 \begin{minipage}{4.75in}
 {\bf Properties of |(++)|:}
@@ -480,13 +480,13 @@ last (reverse xs)     = head xs
 \end{spec}
 \end{minipage}}
 \caption{Useful Properties of Other Functions Over Lists}
-\label{table:list-props2}
-\end{table}
+\label{fig:list-props2}
+\end{figure}
 
 \subsection{[Advanced] Function Strictness}
 
 \index{function!strict} \index{bottom}
-Note that the last rule for |map| in Figure \ref{table:list-props1}
+Note that the last rule for |map| in Figure \ref{fig:list-props1}
 is only valid for \emph{strict} functions.  A function |f| is said to
 be strict if |f bottom| $=$ |bottom|.  Recall from Section
 \ref{sec:expressions} that |bottom| is the value associated with a
@@ -572,8 +572,8 @@ and we are done.
 \vspace{.1in}\hrule
 
 \begin{exercise}{\em
-Prove as many of the properties in Tables \ref{table:list-props1} and
-\ref{table:list-props2} as you can.}
+Prove as many of the properties in Figures \ref{fig:list-props1} and
+\ref{fig:list-props2} as you can.}
 \end{exercise}
 
 \begin{exercise}{\em

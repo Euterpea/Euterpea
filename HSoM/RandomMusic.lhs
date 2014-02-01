@@ -354,6 +354,9 @@ mkLine1 rands  = line (take 32 (map mkNote1 rands))
 With these functions in hand, we can now generate sequences of random
 numbers with a variety of distributions, and convert each of them into
 a melody.  For example:
+
+\pagebreak
+
 \begin{code}
 -- uniform distribution
 m1 :: Music Pitch

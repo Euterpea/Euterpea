@@ -573,6 +573,7 @@ putStr s  = mapM_ putChar s
 \end{spec}
 
 \begin{figure}
+\cbox{
 \begin{spec}
 sequence   :: Monad m => [m a] -> m [a] 
 sequence   =  foldr mcons (return [])
@@ -591,7 +592,7 @@ mapM_ f as =  sequence_ (map f as)
 
 (=<<)      :: Monad m => (a -> m b) -> m a -> m b
 f =<< x    =  x >>= f
-\end{spec}
+\end{spec}}
 \caption{Monadic Utility Functions}
 \label{fig:monad-utilities}
 \end{figure}

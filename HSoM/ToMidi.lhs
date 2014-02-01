@@ -248,6 +248,7 @@ extending Euterpea's functionality with direct Midi capability.
 % (discussed further in Chapter \ref{ch:reactivity}).
 
 \begin{figure}
+\cbox{\small
 \begin{spec}
 -- From the |Codec.Midi| module
 
@@ -289,7 +290,7 @@ fromAbsTime :: (Num a) => Track a -> Track a
 fromAbsTime trk = zip ts' ms 
   where (ts,ms) = unzip trk
         (_,ts') = mapAccumL (\acc t -> (t,t - acc)) 0 ts 
-\end{spec}
+\end{spec}}
 \caption{Partial Definition of the |Midi| Data Type}
 \label{fig:MidiFile}
 \end{figure}
