@@ -31,13 +31,13 @@ Homepage: http://haskell.cs.yale.edu/
 ==== Getting the Source ====
 ============================
 
-Currently (12/15/2012), the most up-to-date version of Euterpea is 
+Currently (2/8/2014), the most up-to-date version of Euterpea is 
 available through GitHub at:
 
     https://github.com/Euterpea/Euterpea
 
-We recommend using GitHub for Windows (http://windows.github.com/) to 
-clone the repository on Windows and git on Linux or Mac.
+We recommend checking out the master version, as it should always be 
+kept stable.
 
 When we reach milestones, we will release stable versions to Hackage.
 
@@ -46,7 +46,7 @@ When we reach milestones, we will release stable versions to Hackage.
 ======= Installation =======
 ============================
 
-Installing from source RECOMMENDED (updated 6/23/2013)
+Installing from source RECOMMENDED (updated 2/8/2014)
 
   1) Clone the source from github
      git clone https://github.com/Euterpea/Euterpea
@@ -57,35 +57,64 @@ Installing from source RECOMMENDED (updated 6/23/2013)
   3) install Euterpea with cabal
      cabal install
 
-Note: If you get errors about pacakges not being installed make sure that cabal binaries are in your `$PATH`.
+--------- Windows ----------
+There are currently no further steps or known issues installing on Windows.
+
+
+---------- Linux -----------
+You may require additional steps to get MIDI sound output working on Linux.  
+First of all, we recommend using TiMidity (http://timidity.sourceforge.net/) 
+and either Freepats (http://freepats.zenvoid.org/) or PersonalCopy 
+(ftp://ftp.personalcopy.net/pub/Unison.sf2.gz) for MIDI support.  
+Make sure timidity is properly depending on the PersonalCopy soundfont 
+if you're using it.
+
+Make sure timidity is the default MIDI-Through port.  The easiest way to 
+do this is probably to remove the default dummy port:
+sudo rmmod snd_seq_dummy
+Then, while Euterpea programs are running, you must have timidity running 
+in the background:
+timidity -iA -Os &
+
+
+--------- Mac OS X ---------
+OS X is the least desirable platform on which to run Euterpea.  In fact,  
+the latest release of OS X (Mavericks) has trouble with GHC in general.
+
+We, the maintainers, currently do not have a Mac to test with, and so we 
+have no exact instructions for how to set up GHC and Euterpea to get them 
+into a functioning condition.
+
+Once Euterpea is set up, you may require additional steps to get MIDI sound 
+output working.  Download SimpleSynth and open it before you run ghci.  It’s 
+a software MIDI synthesizer that plays MIDI output through the speaker.
+
+Furthermore, you will have to use the ``EnableGUI trick'' to run GUI 
+programs for Euterpea.  To do so, first compile EnableGUI.hs from the 
+Euterpea/Examples directory to binary:
+ghc -c -fffi EnableGUI.hs
+(Note: on some systems it is necessary to add the option 
+``-framework ApplicationServices'')
+Then, run your Euterpea GUI programs in ghci like this:
+
+ghci UIExamples.hs EnableGUI
+*UIExamples> :m +EnableGUI
+*UIExamples EnableGUI> enableGUI >> main
+
+With this, GHCi will be able to fully activate the Graphics Window. (Fully 
+compiled GUI programs do not suffer from this anomaly.)
+
+
+------ Troubleshooting -----
+If you get errors about packages not being installed, make sure that cabal 
+binaries are in your `$PATH`.
+
 To add cabal binaries to your path first add 
-export PATH=$HOME/.cabal/bin:$PATH to your .bashrc
-then run 
-source ~/.bashrc.
-Now you should be able to successfully cabal install
+export PATH=$HOME/.cabal/bin:$PATH
+to your .bashrc and then run 
+source ~/.bashrc
+Now you should be able to successfully cabal install.
 
-This will install Euterpea locally for GHC.  As noted on the Haskell wiki:
-
-    One thing to be especially aware of, is that the packages are installed 
-    locally by default, whereas the commands
-
-        runhaskell Setup configure
-        runhaskell Setup build
-        runhaskell Setup install
-
-    install globally by default. If you install a package globally, the 
-    local packages are ignored. The default for cabal-install can be 
-    modified by editing the configuration file.
-
-    Help about cabal-install can be obtained by giving commands like:
-
-        cabal --help
-        cabal install --help
-
-(http://www.haskell.org/haskellwiki/Cabal-Install - Accessed on 12/15/2012)
-
-Installing From Hackage CURRENTLY NOT RECOMMENDED!  
-    cabal install Euterpea
 
 ============================
 ======= Building HSoM ======
@@ -154,5 +183,5 @@ and is currently maintained by
     Donya Quick <donya.quick@yale.edu>,
     Dan Winograd-Cort <daniel.winograd-cort@yale.edu>
 
-This file was last modified on 8/27/2013
+This file was last modified on 2/8/2014
 by Daniel Winograd-Cort
