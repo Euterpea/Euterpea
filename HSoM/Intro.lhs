@@ -1108,7 +1108,7 @@ expressions are \emph{not} equal, and if you printed each of them you
 would get different results.  So what happened?  Did proof by
 calculation fail?
 
-No, proof by calcultation did not fail, since, as just pointed out,
+No, proof by calculation did not fail, since, as just pointed out,
 as Haskell values these two expressions are not the same, and proof by
 calculation is based on the equality of Haskell values.  The problem
 is that a ``deeper'' notion of equivalence is needed, one based on the

@@ -153,7 +153,7 @@ set of conventional functions that work just as well, but are more
 cumbersome to program with (just as with monad syntax).  This
 syntactic expansion will be described in more detail in
 Chapter~\ref{ch:implementing-sigfuns}.  To use the arrow syntax within
-a |.lhs| file, one must declare a compiler flag in GHC at the very
+a ``.lhs'' file, one must declare a compiler flag in GHC at the very
 beginning of the file, as follows:
 \begin{spec}
 {-# LANGUAGE Arrows #-}
@@ -351,11 +351,9 @@ function can be written more succinctly as either |arr (+1) >>> sigfun| or
 |sigfun <<< arr (+1)|.
 
 The functions |(>>>)|, |(<<<)|, and |arr| are actually generic
-operators on arrows, and thus to use them one must import them from
-the |Arrow| library, as follows:
-\begin{spec}
-import Control.Arrow ((>>>),(<<<),arr)
-\end{spec}
+operators on arrows, and are defined in Haskell's |Arrow| library.
+Euterpea imports them from there and adds them to the Euterpea
+namespace, so they do not have to be explicitly imported by the user.
 
 \subsection{Some Simple Examples}
 \label{sec:sigfun-examples}
@@ -699,7 +697,7 @@ avoided.
 
 One can easily write signal functions that deal with clipping in one
 way or another.  For example here's one that simply returns the
-maximum (positive) or mininum (negative) value if they are exceeded.
+maximum (positive) or mininum (negative) value if they are exceeded,
 thus avoiding the abrupt change in magnitude described above, and
 degenerating in the worst case to a square wave:
 \begin{code}
@@ -758,7 +756,7 @@ ideas in previous chapters about |Music| values, |Performance|s, and
 so on, to the ideas presented in this chapter?  This section presents
 a bridge between the two worlds.
 
-\subsection{Turning a Signal Function into an Instruement}
+\subsection{Turning a Signal Function into an Instrument}
 
 Suppose that we have a |Music| value that, previously, we would have
 played using a MIDI instrument, and now we want to play using an
@@ -939,6 +937,7 @@ envelopes.
 \begin{figure}
 ...
 \caption{ADSR Envelope}
+\label{fig:ADSR}
 \end{figure}
 
 Figure~\ref{fig:line-envelopes} shows six pre-defined
@@ -1002,7 +1001,7 @@ envCSEnvlpx  ::  Clock p =>
 \label{fig:line-envelopes}
 \end{figure}
 
-Here are some additional comments regarding |envCSEnvplx|, easiy the
+Here are some additional comments regarding |envCSEnvplx|, easily the
 most sophisticated of the envelope generators:
 \begin{enumerate}
 \item

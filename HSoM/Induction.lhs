@@ -779,7 +779,7 @@ mMap f (mMap g m)  = mMap (f . g) m
 \end{exercise}
 
 \begin{exercise}{\em
-Frove that, for all |pmap|, |c|, and |m|:
+Prove that, for all |pmap|, |c|, and |m|:
 \begin{spec}
 perf pmap c m = (perform pmap c m, dur m)
 \end{spec}

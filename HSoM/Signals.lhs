@@ -722,8 +722,8 @@ transverse wave:
 \begin{itemize}
 \item	A vibrating violin string.
 \item	Stop-and-go traffic on a highway.
-\item	"The wave" in a crowd at a stadium.
-\item	"Water hammer" in the plumbing of your house.
+\item	``The wave'' in a crowd at a stadium.
+\item	``Water hammer'' in the plumbing of your house.
 \item	The wave caused by a stone falling in a pond.
 \item	A radio wave.
 \end{itemize} }

@@ -544,7 +544,7 @@ explanation a few more of Haskell's secrets will be revealed.
        & also enables arithmetic sequences & \\
        & minimal set: |toEnum| \& |fromEnum| & \\
 \hline
-|Bounded| & |minBound,maxBound :: a|       & \\
+|Bounded| & |minBound,maxBound :: a|       & |Int, Char, Bool| \\
 \hline
 |Show| & |show :: Show a => a -> String|   & Almost every type except \\
        &                                   & for functions \\
@@ -1043,7 +1043,7 @@ function, when applied to each element in the domain, returns the same
 result.
 
 Define an instance of |Eq| for functions.  For this to be possible,
-note that, if the functions' type is |a->b|, then:
+note that, if the function type is |a->b|, then:
 \begin{itemize}
 \item
 the type |a| must be \emph{enumerable} (i.e.\ a member of the |Enum| class), 
@@ -1061,7 +1061,7 @@ the elements of that type using an arithmetic sequence (recall Section
 any enumerable type.
 
 Test your implementation by defining some functions on existing
-Euterpea types that have finite, bounded domains (such as |PitchClass|
+Euterpea types that are finite and bounded (such as |PitchClass|
 and |Color|), or by defining some functions on your own data type(s).}
 \end{exercise}
 

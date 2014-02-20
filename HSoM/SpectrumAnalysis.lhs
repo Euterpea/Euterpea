@@ -357,7 +357,7 @@ For example, if the sampling rate is 44.1 kHz (the CD standard), then:
 Thus, as would be expected, taking more samples yields a \emph{finer}
 resolution of the frequency spectrum.  On the other hand, note that if
 we increase the sampling rate and keep the number of samples fixed, we
-get a \emph{courser} resolution of the spectrum---this also should be
+get a \emph{coarser} resolution of the spectrum---this also should be
 expected, because if we increase the sampling rate we would expect to
 have to look at more samples to get the same accuracy.
 
@@ -377,7 +377,7 @@ the points are:
 \item 
   -22.05 kHz, -22.049 kHz, ..., -1 Hz, 0, 1 Hz,    ..., 22.049 kHz, 22.05 kHz
 \end{itemize}
-For practical purposes, the first of these is usually too course, the
+For practical purposes, the first of these is usually too coarse, the
 third is too fine, and the middle one is useful for many applications.
 
 Note that the first range of frequencies above does not quite cover
