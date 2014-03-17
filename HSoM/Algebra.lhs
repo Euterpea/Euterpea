@@ -294,7 +294,7 @@ tempo r (m1 :+: tempo (1/r) m2)
 %% \vspace*{1in}
 %% \centerline{
 %% \epsfysize=.6in 
-%% \epsfbox{Pics/equiv.eps}
+%% \epsfbox{pics/equiv.eps}
 %% }
 %% \caption{Equivalent Phrases}
 %% \label{equiv}
