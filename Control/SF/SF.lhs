@@ -98,6 +98,7 @@
 >         in (y, SF (f i'))
 
 > run :: SF a b -> [a] -> [b]
+> run _ [] = []
 > run (SF f) (x:xs) =
 >   let (y, f') = f x 
 >   in y `seq` f' `seq` (y : run f' xs)
