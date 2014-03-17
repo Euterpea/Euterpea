@@ -3,6 +3,7 @@
 
 module Euterpea.IO.Audio.IO (
     outFile,  outFileNorm, 
+    playSignal, playSignalNorm,
 --    outFileA, outFileNormA, RecordStatus, 
     maxSample) where
 
@@ -16,6 +17,7 @@ import Control.SF.MSF
 import Euterpea.IO.MUI.UIMonad
 import Euterpea.IO.MUI.UISF
 import Control.Concurrent.MonadIO
+import Control.Concurrent (forkOS, forkFinally)
 
 import Euterpea.IO.Audio.Types hiding (Signal)
 
@@ -29,7 +31,17 @@ import Foreign.Marshal.Array
 import Foreign.Marshal.Utils
 import Foreign.Ptr
 import Foreign.Storable
---import Sound.RtAudio
+
+import qualified Sound.PortAudio.Base as PAB
+import qualified Sound.PortAudio as PA
+
+import Control.Monad
+
+import Foreign.C.Types
+import Foreign.ForeignPtr
+
+import Control.Exception as E
+import System.IO
 
 type Signal clk a b = ArrowP SF clk a b
 
@@ -76,6 +88,55 @@ outFileHelp f filepath dur sf =
                     sampleData    = array }
   in exportFile filepath aud
 
+{- RealTime Audio -}
+
+playSignal :: forall a p. (AudioSample a, Clock p) => 
+              Double              -- ^ Duration to play in seconds.
+           -> Signal p () a       -- ^ Signal representing the sound.
+           -> IO ()
+playSignal     = playSignalHelp id
+
+playSignalNorm :: forall a p. (AudioSample a, Clock p) => 
+                  Double              -- ^ Duration to play in seconds.
+               -> Signal p () a       -- ^ Signal representing the sound.
+               -> IO ()
+playSignalNorm = playSignalHelp normList
+
+paCallback :: MVar [Double] -> PA.StreamCallback CFloat CFloat
+paCallback mvar _ _ nSamples _ out = do
+    samples <- readMVar mvar
+    let (playedS, bufferedS) = splitAt (fromIntegral nSamples) samples
+    zipWithM_ (pokeElemOff out) [0..] (map realToFrac playedS)
+    swapMVar mvar bufferedS
+    return (if null bufferedS then PA.Abort else PA.Continue)
+
+playSignalHelp :: forall a p. (AudioSample a, Clock p) => 
+                  ([Double] -> [Double]) -- ^ Post-processing function.
+               -> Double              -- ^ Duration to play in seconds.
+               -> Signal p () a       -- ^ Signal representing the sound.
+               -> IO ()
+playSignalHelp f dur sf = 
+  let sr    = rate (undefined :: p)
+      nChan = numChans (undefined :: a)
+      dat   = f (toSamples dur sf)
+  in do 
+      PA.initialize
+      mSamples <- newMVar dat
+      -- Set up callbacks
+      let playback = Just (paCallback mSamples)
+      let cleanup  = Just (return ())
+      let dur_uS   = truncate (dur * 1000 * 1000)
+      -- Below 512 = size of buffer
+      m   <- newEmptyMVar
+      tId <- forkFinally (void $ PA.withDefaultStream 0 nChan sr (Just 512) playback cleanup $ \s ->
+                  bracket_ (PA.startStream s) (PA.stopStream s)
+                    (threadDelay dur_uS) >>= (return . Right))
+                (\e -> PA.terminate >> putMVar m e)
+      ex  <- try (void $ readMVar m)
+      case ex of
+        Right () -> return ()
+        Left (_ :: SomeException) -> do
+          killThread tId
 
 {-
 data RecordStatus = Pause | Record | Clear | Write
