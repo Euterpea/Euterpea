@@ -105,8 +105,7 @@ playSignalHelp f dur sf =
       durMS = round (dur * 1000 * 1000)
   in do 
       tId <- playAudioGUI sr dat
-      threadDelay durMS
-      killThread tId
+      finally (threadDelay durMS) (killThread tId)
 
 playAudioGUI :: forall a. AudioSample a =>
                 Double       -- ^ Signal Rate
@@ -119,9 +118,9 @@ playAudioGUI sr dat = do
   let cleanup  = Just (return ())
   let nChan    = numChans (undefined :: a)
   forkFinally (void $ PA.withDefaultStream 0 nChan sr (Just 512) playback cleanup $ \s ->
-        bracket_ (PA.startStream s) (PA.stopStream s)
-          (forever (threadDelay (30*1000*1000)) >>= (return . Right)))
-      (\_ -> PA.terminate >> return ())
+                 bracket_ (PA.startStream s) (PA.stopStream s)
+                   (forever (threadDelay (30*1000*1000)) >>= (return . Right)))
+              (\_ -> PA.terminate >> return ())
 
 {-
 data RecordStatus = Pause | Record | Clear | Write
