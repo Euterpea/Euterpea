@@ -3,7 +3,7 @@
 
 module Euterpea.IO.Audio.IO (
     outFile,  outFileNorm, 
-    playSignal, playSignalNorm,
+    playSignal, playSignalNorm, playAudioGUI
 --    outFileA, outFileNormA, RecordStatus, 
     maxSample) where
 
@@ -112,31 +112,32 @@ paCallback mvar _ _ nSamples _ out = do
 
 playSignalHelp :: forall a p. (AudioSample a, Clock p) => 
                   ([Double] -> [Double]) -- ^ Post-processing function.
-               -> Double              -- ^ Duration to play in seconds.
-               -> Signal p () a       -- ^ Signal representing the sound.
+               -> Double                 -- ^ Duration to play in seconds.
+               -> Signal p () a          -- ^ Signal representing the sound.
                -> IO ()
 playSignalHelp f dur sf = 
   let sr    = rate (undefined :: p)
-      nChan = numChans (undefined :: a)
       dat   = f (toSamples dur sf)
+      durMS = round (dur * 1000 * 1000)
   in do 
-      PA.initialize
-      mSamples <- newMVar dat
-      -- Set up callbacks
-      let playback = Just (paCallback mSamples)
-      let cleanup  = Just (return ())
-      let dur_uS   = truncate (dur * 1000 * 1000)
-      -- Below 512 = size of buffer
-      m   <- newEmptyMVar
-      tId <- forkFinally (void $ PA.withDefaultStream 0 nChan sr (Just 512) playback cleanup $ \s ->
-                  bracket_ (PA.startStream s) (PA.stopStream s)
-                    (threadDelay dur_uS) >>= (return . Right))
-                (\e -> PA.terminate >> putMVar m e)
-      ex  <- try (void $ readMVar m)
-      case ex of
-        Right () -> return ()
-        Left (_ :: SomeException) -> do
-          killThread tId
+      tId <- playAudioGUI sr dat
+      threadDelay durMS
+      killThread tId
+
+playAudioGUI :: forall a. AudioSample a =>
+                Double       -- ^ Signal Rate
+             -> [a]          -- ^ Signal representing the sound.
+             -> IO ThreadId  -- ^ Forked thread ID for external termination
+playAudioGUI sr dat = do
+  PA.initialize
+  mSamples <- newMVar (concatMap collapse $ dat)
+  let playback = Just (paCallback mSamples)
+  let cleanup  = Just (return ())
+  let nChan    = numChans (undefined :: a)
+  forkFinally (void $ PA.withDefaultStream 0 nChan sr (Just 512) playback cleanup $ \s ->
+        bracket_ (PA.startStream s) (PA.stopStream s)
+          (forever (threadDelay (30*1000*1000)) >>= (return . Right)))
+      (\e -> PA.terminate >> return ())
 
 {-
 data RecordStatus = Pause | Record | Clear | Write
@@ -183,10 +184,6 @@ writeWav f filepath sr numChannels adat =
                     sampleData    = array }
   in liftIO $ exportFile filepath aud
 
-
-
-  
-
 toSamples :: forall a p. (AudioSample a, Clock p) =>
              Double -> Signal p () a -> [Double]
 toSamples dur sf = 
@@ -199,7 +196,6 @@ toSamples dur sf =
 maxSample :: forall a p. (AudioSample a, Clock p) =>
              Double -> Signal p () a -> Double
 maxSample dur sf = maximum (map abs (toSamples dur sf))
-
 
 {-
 chunk !nFrames !(i, f) ref buf = nFrames `seq` i `seq` f `seq` aux nFrames i 
