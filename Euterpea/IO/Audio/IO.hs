@@ -3,45 +3,26 @@
 
 module Euterpea.IO.Audio.IO (
     outFile,  outFileNorm, 
-    playSignal, playSignalNorm, playAudioGUI
---    outFileA, outFileNormA, RecordStatus, 
+    playSignal, playSignalNorm, playAudioGUI,
+ -- outFileA, outFileNormA, RecordStatus, 
     maxSample) where
 
 import Prelude hiding (init)
-import Control.CCA.Types
-import Control.CCA.ArrowP
-import Control.Arrow
-
-import Control.SF.SF
-import Control.SF.MSF
-import Euterpea.IO.MUI.UIMonad
-import Euterpea.IO.MUI.UISF
-import Control.Concurrent.MonadIO
-import Control.Concurrent (forkOS, forkFinally)
-
 import Euterpea.IO.Audio.Types hiding (Signal)
-
-import Codec.Wav
-import Data.Audio
-import Data.Array.Unboxed
-import Data.Int
-import Data.IORef
-import Foreign.C
-import Foreign.Marshal.Array
-import Foreign.Marshal.Utils
-import Foreign.Ptr
-import Foreign.Storable
-
-import qualified Sound.PortAudio.Base as PAB
 import qualified Sound.PortAudio as PA
 
+import Control.CCA.ArrowP
+import Control.Concurrent.MonadIO
+import Control.Concurrent (forkFinally)
+import Control.Exception
 import Control.Monad
-
-import Foreign.C.Types
-import Foreign.ForeignPtr
-
-import Control.Exception as E
-import System.IO
+import Control.SF.SF
+import Codec.Wav
+import Data.Array.Unboxed
+import Data.Audio
+import Data.Int
+import Foreign.C
+import Foreign.Storable
 
 type Signal clk a b = ArrowP SF clk a b
 
@@ -71,9 +52,9 @@ outFileNorm = outFileHelp normList
 
 outFileHelp :: forall a p. (AudioSample a, Clock p) => 
             ([Double] -> [Double]) -- ^ Post-processing function.
-         -> String              -- ^ Filename to write to.
-         -> Double              -- ^ Duration of the wav in seconds.
-         -> Signal p () a       -- ^ Signal representing the sound.
+         -> String                 -- ^ Filename to write to.
+         -> Double                 -- ^ Duration of the wav in seconds.
+         -> Signal p () a          -- ^ Signal representing the sound.
          -> IO ()
 outFileHelp f filepath dur sf = 
   let sr          = rate (undefined :: p)
@@ -90,12 +71,15 @@ outFileHelp f filepath dur sf =
 
 {- RealTime Audio -}
 
+-- | Plays a signal to the default speaker
 playSignal :: forall a p. (AudioSample a, Clock p) => 
               Double              -- ^ Duration to play in seconds.
            -> Signal p () a       -- ^ Signal representing the sound.
            -> IO ()
 playSignal     = playSignalHelp id
 
+-- | Like playSignal, but normalizes the audio stream before playing it.
+-- Note: This will compute the entire audio before it starts playing.
 playSignalNorm :: forall a p. (AudioSample a, Clock p) => 
                   Double              -- ^ Duration to play in seconds.
                -> Signal p () a       -- ^ Signal representing the sound.
@@ -137,7 +121,7 @@ playAudioGUI sr dat = do
   forkFinally (void $ PA.withDefaultStream 0 nChan sr (Just 512) playback cleanup $ \s ->
         bracket_ (PA.startStream s) (PA.stopStream s)
           (forever (threadDelay (30*1000*1000)) >>= (return . Right)))
-      (\e -> PA.terminate >> return ())
+      (\_ -> PA.terminate >> return ())
 
 {-
 data RecordStatus = Pause | Record | Clear | Write
@@ -172,6 +156,7 @@ outFileHelpA f filepath sr =
                                      returnA -< a:dat
         returnA -< ()
 -}
+{-
 
 writeWav :: AudioSample a => ([Double] -> [Double]) -> String -> Double -> Int -> [a] -> UI ()
 writeWav f filepath sr numChannels adat = 
@@ -183,6 +168,8 @@ writeWav f filepath sr numChannels adat =
                     channelNumber = numChannels,
                     sampleData    = array }
   in liftIO $ exportFile filepath aud
+
+-}
 
 toSamples :: forall a p. (AudioSample a, Clock p) =>
              Double -> Signal p () a -> [Double]
