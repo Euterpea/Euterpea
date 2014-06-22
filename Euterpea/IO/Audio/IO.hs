@@ -88,10 +88,10 @@ playSignalHelp :: forall a p. (AudioSample a, Clock p) =>
                -> Double                 -- ^ Duration to play in seconds.
                -> Signal p () a          -- ^ Signal representing the sound.
                -> IO ()
-playSignalHelp f dur sf = bracket (openChannel sr) closeChannel (\c -> mapM_ (writeChannel c) dat)
+playSignalHelp f dur sf = bracket (openChannel 512 sr) closeChannel 
+      (\c -> mapM_ (writeChannel c) dat) -- This is equivalent to ((flip mapM_) dat) . writeChannel
     where sr    = rate (undefined :: p)
           dat   = f (toSamples dur sf)
-          durMS = round (dur * 1000 * 1000)
 
 toSamples :: forall a p. (AudioSample a, Clock p) =>
              Double -> Signal p () a -> [Double]
