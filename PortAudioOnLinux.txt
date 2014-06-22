@@ -1,0 +1,8 @@
+So far, we've only tested this with Linux Mint 16-17.
+
+Installing the portaudio dependencies is simple. Just run:
+
+    > sudo apt-get install portaudio19-dev
+
+If you already had libportaudio-dev installed, this will remove it.
+That version of portaudio is not compatible with Euterpea.
