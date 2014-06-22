@@ -1,5 +1,5 @@
-{-# LANGUAGE BangPatterns, ExistentialQuantification, 
-    ScopedTypeVariables, FlexibleContexts, Arrows #-}
+{-# LANGUAGE ExistentialQuantification, ScopedTypeVariables,
+    FlexibleContexts #-}
 
 module Euterpea.IO.Audio.IO (
     outFile,  outFileNorm, 

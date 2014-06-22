@@ -1,5 +1,4 @@
-{-# LANGUAGE BangPatterns, ExistentialQuantification, 
-    ScopedTypeVariables, FlexibleContexts, Arrows #-}
+{-# LANGUAGE ExistentialQuantification, ScopedTypeVariables, FlexibleContexts #-}
 module Euterpea.IO.Audio.PortAudioChannel
     (PortAudioChannel, 
      openChannel, closeChannel,
@@ -42,7 +41,7 @@ audioSubsystemShutdown = do
 paCallback :: forall a. AudioSample a => TBQueue a -> PA.StreamCallback CFloat CFloat
 paCallback chan _ _ cBufSize _ out = do
     let bufSize = fromIntegral cBufSize
-    let nToGet = bufSize `quot` (numChans (undefined :: a))
+    let nToGet = bufSize `quot` numChans (undefined :: a)
     samples <- replicateM nToGet (atomically $ readTBQueue chan)
     zipWithM_ (pokeElemOff out) [0..(bufSize-1)] (map realToFrac (concatMap collapse samples))
     return PA.Continue
@@ -60,7 +59,7 @@ openChannel bufSize sr = do
     let nChan    = numChans (undefined :: a)
     tId <- forkFinally (void $ PA.withDefaultStream 0 nChan sr (Just bufSize) playback cleanup $ \s ->
                           bracket_ (PA.startStream s) (PA.stopStream s)
-                            (forever (threadDelay (30*1000*1000)) >>= (return . Right)))
+                            (liftM Right $ forever $ threadDelay (30 * 1000 * 1000)))
                        (const audioSubsystemShutdown)
     return (PortAudioChannel channel tId)
 
@@ -71,4 +70,4 @@ readChannel :: forall a. AudioSample a => PortAudioChannel a -> IO a
 readChannel (PortAudioChannel channel _) = atomically $ readTBQueue channel
 
 writeChannel :: forall a. AudioSample a => PortAudioChannel a -> a -> IO ()
-writeChannel (PortAudioChannel channel _) = atomically . (writeTBQueue channel)
+writeChannel (PortAudioChannel channel _) = atomically . writeTBQueue channel
