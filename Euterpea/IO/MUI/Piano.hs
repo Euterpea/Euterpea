@@ -18,9 +18,7 @@ import qualified Data.Char as Char
 --Also, this is an ugly hack that can't stay
 --it's mostly to test the new key events
 toUpper :: Char -> Char
-toUpper c = case lookup c keyMap of
-                Just c' -> c'
-                Nothing -> Char.toUpper c
+toUpper c = fromMaybe (Char.toUpper c) (lookup c keyMap)
             where keyMap = [('`', '~'), ('1', '!'), ('2', '@'), ('3', '#'), ('4', '$'),
                             ('5', '%'), ('6', '^'), ('7', '&'), ('8', '*'), ('9', '('),
                             ('0', ')'), ('-', '_'), ('=', '+'), ('[', '{'), (']', '}'),

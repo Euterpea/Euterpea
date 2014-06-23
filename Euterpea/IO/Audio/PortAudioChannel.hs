@@ -8,16 +8,16 @@ module Euterpea.IO.Audio.PortAudioChannel
 import Euterpea.IO.Audio.Types
 import qualified Sound.PortAudio as PA
 
-import Control.Concurrent.MonadIO
 import Control.Concurrent (forkFinally)
+import Control.Concurrent.MonadIO
+import Control.Concurrent.STM
+import Control.Concurrent.STM.TBQueue
+import Control.DeepSeq
 import Control.Exception
 import Control.Monad
 import Foreign.C
 import Foreign.Storable
-
 import System.IO.Unsafe
-import Control.Concurrent.STM
-import Control.Concurrent.STM.TBQueue
 
 data PortAudioChannel a = PortAudioChannel (TBQueue a) ThreadId
 
@@ -69,5 +69,5 @@ closeChannel (PortAudioChannel _ tId) = killThread tId
 readChannel :: forall a. AudioSample a => PortAudioChannel a -> IO a
 readChannel (PortAudioChannel channel _) = atomically $ readTBQueue channel
 
-writeChannel :: forall a. AudioSample a => PortAudioChannel a -> a -> IO ()
-writeChannel (PortAudioChannel channel _) = atomically . writeTBQueue channel
+writeChannel :: forall a. (AudioSample a, NFData a) => PortAudioChannel a -> a -> IO ()
+writeChannel (PortAudioChannel channel _) x = deepseq x $ atomically $ writeTBQueue channel x
