@@ -1,7 +1,4 @@
-{-# LANGUAGE TypeOperators, EmptyDataDecls, BangPatterns,
-             MultiParamTypeClasses, FunctionalDependencies,
-             TypeSynonymInstances, FlexibleInstances,
-             ScopedTypeVariables #-}
+{-# LANGUAGE EmptyDataDecls, FlexibleInstances #-}
 
 module Euterpea.IO.Audio.Types where
 
@@ -56,6 +53,8 @@ instance AudioSample (Double,Double) where
 type Mono p = Signal p () Double
 type Stereo p = Signal p () (Double,Double)
 
+
+{-
 -- Experimental stuff
 class Unlifted a where
     expose :: a -> b -> b
@@ -71,8 +70,8 @@ instance Unlifted a => Unlifted [a]
 
 instance (Unlifted a, Unlifted b) => Unlifted (a -> b)
 
-data (Unlifted a, Unlifted b) => a :!: b = !a :!: !b
-instance (Unlifted a, Unlifted b) => Unlifted (a :!: b) where
+data a :!: b = (Unlifted a, Unlifted b) => !a :!: !b
+instance Unlifted (a :!: b) where
   expose (a :!: b) s = expose a (expose b s)
   {-# INLINE expose #-}
 
@@ -93,3 +92,4 @@ instance (Unlifted a, Unlifted b, Unlifted c, Unlifted d, Unlifted e)
     => Unlifted (a,b,c,d,e) where
     expose (a, b, c,d,e) s = expose a (expose b (expose c (expose d (expose e s))))
     {-# INLINE expose #-}
+-}
