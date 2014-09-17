@@ -3,13 +3,12 @@ module Euterpea.IO.MUI
     UISF 
   , convertToUISF       -- :: NFData b => Integer -> Int -> SF a b -> UISF a ([b], Bool)
   , Dimension           -- type Dimension = (Int, Int)
-  , Rect                -- type Rect = (Point, Dimension)
   , topDown, bottomUp, leftRight, rightLeft    -- :: UISF a b -> UISF a b
   , setSize             -- :: Dimension -> UISF a b -> UISF a b
   , setLayout           -- :: Layout -> UISF a b -> UISF a b
   , pad                 -- :: (Int, Int, Int, Int) -> UISF a b -> UISF a b
-  , runUI               -- :: String -> UISF () () -> IO ()
-  , runUIEx             -- :: Dimension -> String -> UISF () () -> IO ()
+  , runMUI'             -- :: String -> UISF () () -> IO ()
+  , runMUI              -- :: Dimension -> String -> UISF () () -> IO ()
   , getTime             -- :: UISF () Time
     -- Widgets
   , label               -- :: String -> UISF a a
@@ -40,8 +39,23 @@ module Euterpea.IO.MUI
   , Color (..)          -- data Color = Black | Blue | Green | Cyan | Red | Magenta | Yellow | White
   ) where
 
-import Euterpea.IO.MUI.UIMonad
-import Euterpea.IO.MUI.UISF
-import Euterpea.IO.MUI.Widget
 import Euterpea.IO.MUI.MidiWidgets
-import Euterpea.IO.MUI.SOE (Color (..))
+import Euterpea.IO.MIDI.MidiIO (initializeMidi, terminateMidi)
+import FRP.UISF
+
+import FRP.UISF.Types.MSF
+import Control.Monad.Fix
+import Control.CCA.Types
+
+instance MonadFix m => ArrowInit (MSF m) where
+    init i = MSF (h i) where h i x = return (i, MSF (h x))
+
+
+runMUI :: Dimension -> String -> UISF () () -> IO ()
+runMUI size title uisf = initializeMidi >> runUI size title uisf >> terminateMidi
+
+runMUI' :: String -> UISF () () -> IO ()
+runMUI' title uisf = initializeMidi >> runUI' title uisf >> terminateMidi
+
+
+

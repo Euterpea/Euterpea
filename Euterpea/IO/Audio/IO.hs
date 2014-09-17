@@ -12,9 +12,6 @@ import Control.CCA.ArrowP
 import Control.Arrow
 
 import Control.SF.SF
-import Control.SF.MSF
-import Euterpea.IO.MUI.UIMonad
-import Euterpea.IO.MUI.UISF
 import Control.Concurrent.MonadIO
 
 import Euterpea.IO.Audio.Types hiding (Signal)
@@ -110,7 +107,7 @@ outFileHelpA f filepath sr =
                                      returnA -< a:dat
         returnA -< ()
 -}
-
+{-
 writeWav :: AudioSample a => ([Double] -> [Double]) -> String -> Double -> Int -> [a] -> UI ()
 writeWav f filepath sr numChannels adat = 
   let dat         = map (fromSample . (*0.999)) 
@@ -121,7 +118,7 @@ writeWav f filepath sr numChannels adat =
                     channelNumber = numChannels,
                     sampleData    = array }
   in liftIO $ exportFile filepath aud
-
+-}
 
 
   

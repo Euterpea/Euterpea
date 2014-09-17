@@ -13,7 +13,7 @@ ui0  =   proc _ -> do
     ap <- hiSlider 1 (0,100) 0 -< ()
     display -< pitch ap
 
-mui0 = runUI "Simple MUI" ui0
+mui0 = runMUI' "Simple MUI" ui0
 
 ui1 ::  UISF () ()
 ui1 =   setLayout (makeLayout (Fixed 150) (Fixed 150)) $ 
@@ -21,14 +21,14 @@ ui1 =   setLayout (makeLayout (Fixed 150) (Fixed 150)) $
     ap <- title "Absolute Pitch" (hiSlider 1 (0,100) 0) -< ()
     title "Pitch" display -< pitch ap
 
-mui1  =  runUI "Simple MUI (sized and titled)" ui1
+mui1  =  runMUI' "Simple MUI (sized and titled)" ui1
 ui2   ::  UISF () ()
 ui2   =   leftRight $
   proc _ -> do
     ap <- title "Absolute Pitch" (hiSlider 1 (0,100) 0) -< ()
     title "Pitch" display -< pitch ap
 
-mui2  =  runUI "Simple MUI (left-to-right layout)" ui2
+mui2  =  runMUI' "Simple MUI (left-to-right layout)" ui2
 ui3  ::  UISF () ()
 ui3  =   proc _ -> do
     ap <- title "Absolute Pitch" (hiSlider 1 (0,100) 0) -< ()
@@ -36,7 +36,7 @@ ui3  =   proc _ -> do
     uap <- unique -< ap
     midiOut -< (0, fmap (\k-> [ANote 0 k 100 0.1]) uap)
 
-mui3  = runUI "Pitch Player" ui3
+mui3  = runMUI' "Pitch Player" ui3
 
 ui4   ::  UISF () ()
 ui4   =   proc _ -> do
@@ -46,7 +46,7 @@ ui4   =   proc _ -> do
     uap <- unique -< ap
     midiOut -< (devid, fmap (\k-> [ANote 0 k 100 0.1]) uap)
 
-mui4  = runUI "Pitch Player with MIDI Device Select" ui4
+mui4  = runMUI' "Pitch Player with MIDI Device Select" ui4
 
 ui5   :: UISF () ()
 ui5   = proc _ -> do
@@ -55,7 +55,7 @@ ui5   = proc _ -> do
     m   <- midiIn        -< mi
     midiOut -< (mo, m)
 
-mui5  = runUI "MIDI Input / Output UI" ui5
+mui5  = runMUI' "MIDI Input / Output UI" ui5
 
 getDeviceIDs = topDown $
   proc () -> do
@@ -71,7 +71,7 @@ ui6   =   proc _ -> do
     tick    <- timer -< 1/f
     midiOut -< (devid, fmap (const [ANote 0 ap 100 0.1]) tick)
 
-mui6  = runUI "Pitch Player with Timer" ui6
+mui6  = runMUI' "Pitch Player with Timer" ui6
 
 chordIntervals :: [ (String, [Int]) ]
 chordIntervals = [  ("Maj",     [4,3,5]),    ("Maj7",    [4,3,4,1]),
@@ -100,7 +100,7 @@ buildChord = leftRight $
                    radio (fst (unzip chordIntervals)) 0 -< ()
     midiOut -< (mo, fmap (toChord i) m)
 
-chordBuilder = runUIEx (600,400) "Chord Builder" buildChord
+chordBuilder = runMUI (600,400) "Chord Builder" buildChord
 grow      :: Double -> Double -> Double
 grow r x  = r * x * (1-x)
 
@@ -118,7 +118,7 @@ bifurcateUI = proc _ -> do
     _     <- title "Population" $ display -< pop
     midiOut -< (mo, fmap (const (popToNote pop)) tick)
 
-bifurcate = runUIEx (300,500) "Bifurcate!" $ bifurcateUI
+bifurcate = runMUI (300,500) "Bifurcate!" $ bifurcateUI
 
 echoUI :: UISF () ()
 echoUI = proc _ -> do
@@ -133,7 +133,7 @@ echoUI = proc _ -> do
 
     midiOut -< (mo, m')
 
-echo = runUIEx (500,500) "Echo" echoUI
+echo = runMUI (500,500) "Echo" echoUI
 
 removeNull :: Maybe [MidiMessage] -> Maybe [MidiMessage]
 removeNull (Just [])  = Nothing

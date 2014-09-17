@@ -9,7 +9,7 @@
 >   module Euterpea.IO.MIDI,
 >   module Euterpea.IO.MUI,
 >   module Control.Arrow,
->   -- These 4 lines are from Control.SF.AuxFunctions
+>   -- These 4 lines are from FRP.UISF.AuxFunctions
 >   SEvent, edge, accum, constA, constSF, foldA, foldSF, 
 >   unique, hold, now, mergeE,
 >   delay, vdelay, fdelay,
@@ -26,7 +26,7 @@
 > import Euterpea.IO.MUI
 
 > import Control.Arrow
-> import Control.SF.AuxFunctions
+> import FRP.UISF.AuxFunctions
 
 > import Codec.Midi(exportFile, importFile)
 > import Sound.PortMidi

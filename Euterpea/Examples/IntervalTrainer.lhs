@@ -7,10 +7,10 @@
 > import System.Random (randomRIO)
 > import Codec.Midi (Message(ProgramChange))
 
-> import Control.SF.AuxFunctions ((=>>), (->>), (.|.), snapshot, snapshot_, concatA)
+> import FRP.UISF.AuxFunctions (concatA)
 
 
-> main = runUIEx (600,700) "Interval Trainer" intervalTrainer
+> main = runMUI (600,700) "Interval Trainer" intervalTrainer
 
 > -- music theory name for intervals:
 > intNameList :: [String]
@@ -183,3 +183,18 @@ at 60 BPM a whole note is 1 sec
 
 ANote :: Channel -> Key -> Velocity -> Time -> MidiMessage
 
+--------------------------------------
+-- Yampa-style utilities
+--------------------------------------
+
+> (=>>) :: SEvent a -> (a -> b) -> SEvent b
+> (=>>) = flip fmap
+> (->>) :: SEvent a -> b -> SEvent b
+> (->>) = flip $ fmap . const
+> (.|.) :: SEvent a -> SEvent a -> SEvent a
+> (.|.) = flip $ flip maybe Just
+> 
+> snapshot :: SEvent a -> b -> SEvent (a,b)
+> snapshot = flip $ fmap . flip (,)
+> snapshot_ :: SEvent a -> b -> SEvent b
+> snapshot_ = flip $ fmap . const -- same as ->>

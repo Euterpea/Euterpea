@@ -455,12 +455,12 @@ ui0  = hiSlider 1 (0,100) 0 >>> arr pitch >>> display
 
 We can execute this example using the function:
 \begin{spec}
-runUI   ::  String -> UI () () -> IO ()
+runMUI'   ::  String -> UI () () -> IO ()
 \end{spec}
 where the string argument is a title displayed in the window holding
 the widget.  So our first running example of a MUI is:
 \begin{code}
-mui0 = runUI "Simple MUI" ui0
+mui0 = runMUI' "Simple MUI" ui0
 
 \end{code}
 The resulting MUI, once the slider has been moved a bit, is shown in
@@ -522,7 +522,7 @@ ui1 =   setLayout (makeLayout (Fixed 150) (Fixed 150)) $
     ap <- title "Absolute Pitch" (hiSlider 1 (0,100) 0) -< ()
     title "Pitch" display -< pitch ap
 
-mui1  =  runUI "Simple MUI (sized and titled)" ui1
+mui1  =  runMUI' "Simple MUI (sized and titled)" ui1
 
 \end{code} %% $
 This MUI is shown in Figure \ref{fig:simple-mui}(b).
@@ -542,7 +542,7 @@ ui2   =   leftRight $
     ap <- title "Absolute Pitch" (hiSlider 1 (0,100) 0) -< ()
     title "Pitch" display -< pitch ap
 
-mui2  =  runUI "Simple MUI (left-to-right layout)" ui2
+mui2  =  runMUI' "Simple MUI (left-to-right layout)" ui2
 
 \end{code} %% $
 This MUI is shown in Figure \ref{fig:simple-mui}(c).  
@@ -700,7 +700,7 @@ ui3  =   proc _ -> do
     uap <- unique -< ap
     midiOut -< (0, fmap (\k-> [ANote 0 k 100 0.1]) uap)
 
-mui3  = runUI "Pitch Player" ui3
+mui3  = runMUI' "Pitch Player" ui3
 
 \end{code}
 Note the use of the mediator |unique| to generate an event whenever
@@ -751,7 +751,7 @@ ui4   =   proc _ -> do
     uap <- unique -< ap
     midiOut -< (devid, fmap (\k-> [ANote 0 k 100 0.1]) uap)
 
-mui4  = runUI "Pitch Player with MIDI Device Select" ui4
+mui4  = runMUI' "Pitch Player with MIDI Device Select" ui4
 
 \end{code}
 
@@ -770,7 +770,7 @@ ui5   = proc _ -> do
     m   <- midiIn        -< mi
     midiOut -< (mo, m)
 
-mui5  = runUI "MIDI Input / Output UI" ui5
+mui5  = runMUI' "MIDI Input / Output UI" ui5
 
 \end{code}
 
@@ -835,7 +835,7 @@ ui6   =   proc _ -> do
     tick    <- timer -< 1/f
     midiOut -< (devid, fmap (const [ANote 0 ap 100 0.1]) tick)
 
-mui6  = runUI "Pitch Player with Timer" ui6
+mui6  = runMUI' "Pitch Player with Timer" ui6
 
 \end{code}
 Note that the rate of |tick|s is controlled by the second slider---a
@@ -889,15 +889,15 @@ value---i.e.\ the UISF needs to be ``run.''  We can do this using one of
 the following two functions, the first of which we have already been
 using:
 \begin{spec}
-runUI    ::               String -> UISF () () -> IO ()
-runUIEx  :: Dimension ->  String -> UISF () () -> IO ()
+runMUI'    ::               String -> UISF () () -> IO ()
+runMUI     :: Dimension ->  String -> UISF () () -> IO ()
 
 type Dimension = (Int,Int)
 \end{spec}
 Both of these functions take a string argument that is displayed in
-the title bar of the graphical window that is generated.  |runUIEx|
+the title bar of the graphical window that is generated.  |runMUI|
 additionally takes the dimensions of the window as an argument
-(measured in pixels).  Executing |runUI s ui| or |runUIEx d s ui| will
+(measured in pixels).  Executing |runMUI' s ui| or |runMUI d s ui| will
 create a single MUI window whose behavior is governed by the argument
 |ui :: UISF () ()|.
 
@@ -977,7 +977,7 @@ buildChord = leftRight $
                    radio (fst (unzip chordIntervals)) 0 -< ()
     midiOut -< (mo, fmap (toChord i) m)
 
-chordBuilder = runUIEx (600,400) "Chord Builder" buildChord
+chordBuilder = runMUI (600,400) "Chord Builder" buildChord
 
 \end{code} %% $
 Figure \ref{fig:chordbuilder} shows this MUI in action.
@@ -1058,7 +1058,7 @@ bifurcateUI = proc _ -> do
     _     <- title "Population" $ display -< pop
     midiOut -< (mo, fmap (const (popToNote pop)) tick)
 
-bifurcate = runUIEx (300,500) "Bifurcate!" $ bifurcateUI
+bifurcate = runMUI (300,500) "Bifurcate!" $ bifurcateUI
 
 \end{code}
 
@@ -1109,7 +1109,7 @@ echoUI = proc _ -> do
 
     midiOut -< (mo, m')
 
-echo = runUIEx (500,500) "Echo" echoUI
+echo = runMUI (500,500) "Echo" echoUI
 
 \end{code}  %% $
 

@@ -1,8 +1,8 @@
 > module Euterpea.IO.MIDI.MidiIO (
->   getAllDevices, isValidInputDevice, isValidOutputDevice, -- Used only by Euterpea.IO.MUI.Widget
->   terminateMidi, initializeMidi, -- Used only by Euterpea.IO.MUI.UISF
->   outputMidi, deliverMidiEvent, -- Used only by Euterpea.IO.MUI.Widget (particularly by midiOut)
->   pollMidi, -- Used only by Euterpea.IO.MUI.Widget (particularly by midiIn)
+>   getAllDevices, isValidInputDevice, isValidOutputDevice, -- Used only by Euterpea.IO.MUI.MidiWidgets
+>   terminateMidi, initializeMidi, -- Used only by Euterpea.IO.MUI
+>   outputMidi, deliverMidiEvent, -- Used only by Euterpea.IO.MUI.MidiWidgets (particularly by midiOut)
+>   pollMidi, -- Used only by Euterpea.IO.MUI.MidiWidgets (particularly by midiIn)
 >   defaultOutput, defaultInput,
 >   playMidi, 
 >   MidiMessage (ANote, Std), 
@@ -51,7 +51,7 @@
 ----------
 
 Is this the time we want?  This comes from PortMidi, but there's also the 
-function Euterpea.IO.MUI.SOE.timeGetTime which uses time data from GLFW.
+function FRP.UISF.SOE.timeGetTime which uses time data from GLFW.
 
 > getTimeNow :: IO Time 
 > getTimeNow = do

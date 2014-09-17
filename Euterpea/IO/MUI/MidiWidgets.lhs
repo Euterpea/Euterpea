@@ -12,15 +12,10 @@
 > , BufferEvent(..) -- Reexported for use with midiOutMB
 > ) where
 
-> import Euterpea.IO.MUI.SOE
-> import Euterpea.IO.MUI.UIMonad
-> import Euterpea.IO.MUI.UISF
-> import Euterpea.IO.MUI.Widget
+> import FRP.UISF
+> import FRP.UISF.UISF (uisfPipeE, uisfSinkE, initialIOAction)
 > import Euterpea.IO.MIDI.MidiIO
-> import Control.SF.AuxFunctions (SEvent, DeltaT, constA, (~++), delay, foldA, 
->                                 eventBuffer, BufferControl, BufferEvent(..))
 
-> import Control.Arrow
 > import Control.Monad (when)
 
 > -- These four lines are just for musicToMsgs

@@ -10,10 +10,10 @@ compatability.
 >     module Euterpea.IO.MUI.InstrumentWidgets
 >   -- The InstrumentWidgets module provides support for the piano and guitar
 >   -- MUI widgets.
->   , toMSF, toRealTimeMSF
->   , toUISF, convertToUISF, convertToUISF'
+>   , toUISF, convertToUISF, asyncUISF
 >   -- These conversion functions are for lifting SFs into MSFs (or UISFs).
->   , async
+>   , AsyncInput(..), AsyncOutput(..)
+>   , Automaton(..), toAutomaton
 >   -- The async function allows a signal function to run asynchronously.  
 >   -- This can be especially useful for a hard computation that needs to be 
 >   -- performed sporadically in the MUI.
@@ -28,6 +28,7 @@ compatability.
 > ) where
 
 > import Euterpea.IO.MUI.InstrumentWidgets
-> import Euterpea.IO.MUI.UISF (toUISF, convertToUISF, convertToUISF',
+> import Euterpea.IO.MUI.FFT
+> import FRP.UISF.UISF (toUISF, convertToUISF, asyncUISF,
 >                              uisfSourceE, uisfSinkE, uisfPipeE)
-> import Control.SF.AuxFunctions (toMSF, toRealTimeMSF, async, quantize, presentFFT, fftA)
+> import FRP.UISF.AuxFunctions
