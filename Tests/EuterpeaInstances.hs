@@ -251,4 +251,4 @@ instance Arbitrary (Context Note1) where
 -}
                 
 instance Arbitrary (Player Note1) where
-    arbitrary = elements [defPlayer, fancyPlayer]
+    arbitrary = elements [defPlayer]
