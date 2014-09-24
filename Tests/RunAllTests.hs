@@ -11,11 +11,11 @@ import Control.Concurrent
 totalTests = 1000
 
 -- Thank you, Rosetta Code!
-colorStrLn :: ColorIntensity -> Color -> ColorIntensity -> Color -> String -> IO ()
-colorStrLn fgi fg bgi bg str = do
-    setSGR [SetColor Foreground fgi fg, SetColor Background bgi bg]
+colorStrLn :: ColorIntensity -> Color -> String -> IO ()
+colorStrLn fgi fg str = do
+    setSGR [SetColor Foreground fgi fg]
     putStr str
-    setSGR [SetColor Foreground Dull White, SetColor Background Dull Black]
+    setSGR [Reset]
     putStrLn ""
 
 runTest :: MVar (String, Result) -> (String, IO Result) -> IO ()
@@ -28,12 +28,12 @@ printResults n result log failsR = replicateM_ n $ do
     (s, res) <- takeMVar result
     printf ("%-" ++ show (1 + maximum (map length ((fst . unzip) tests))) ++ "s ") s
     case res of
-        Failure _ _ _ _ _ True _ _ -> colorStrLn Vivid Yellow Dull Black "Interrupted"
+        Failure _ _ _ _ _ True _ _ -> colorStrLn Vivid Yellow "Interrupted"
         Failure _ _ _ _ r _ _ o -> do
             hPutStrLn log $ s ++ ":\n" ++ o ++ "\n"
-            colorStrLn Vivid Red Dull Black r
+            colorStrLn Vivid Red r
             atomicModifyIORef failsR (\x -> (x+1, ()))
-        _ -> colorStrLn Vivid Green Dull Black $ "Passed " ++ show totalTests ++ " trials"
+        _ -> colorStrLn Vivid Green $ "Passed " ++ show totalTests ++ " trials"
 
 main :: IO ()
 main = do
