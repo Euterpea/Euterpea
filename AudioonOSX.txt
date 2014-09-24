@@ -1,0 +1,49 @@
+Audio on OS X
+
+***
+If you're already using professional MIDI hardware, refer
+to your vendor's setup instructions. As long as your midi
+device is audible and the default output, Euterpea should
+be able to play midi through it.
+***
+
+To use OS X's built-in software synth, the IAC driver has
+to be enabled. Go to "Audio MIDI Setup" via Spotlight and
+go to Window -> Show MIDI Window. Double click on the IAC
+Driver icon and ensure that "Device is Online" is active.
+
+You only need to do this once.
+
+Next, you will need to install AU Lab to actually map the
+IAC driver to a SoundFont. Download AU Lab from:
+
+https://www.apple.com/itunes/mastered-for-itunes/
+
+and install it into your Utilities directory.
+
+===========
+
+You'll have to do this every time you want to use Apple's
+software synthesizer.
+
+===========
+
+From AU Lab, open the "Stereo Out" Factory Configuration.
+Change the "Audio Input Device" dropdown to "None". Audio
+Output Device should stay as Built-in Output. Next, click
+"Create Document" at the bottom of the form and click Add
+Audio Unit Instrument from the Edit menu. Select the "IAC
+Driver" as your MIDI Input Source, and the DLSMusicDevice
+for the Instrument.
+
+A Stereo Mix window should appear. If it does not, switch
+to the "Untitled" window, where there should now be a new
+column labeled "Stereo Mix". Click on the piano button in
+the column to open up the correct window.
+
+At the top of that window, there should be a blue toolbar
+with four dropdowns. Open the rightmost one and change it
+to "MIDI Editor". The window should change to include the
+"Active Channels" section. Select all of the channels and
+then close the window.
+
