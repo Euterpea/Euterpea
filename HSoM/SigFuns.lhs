@@ -378,7 +378,7 @@ design.  They are summarized in Figure \ref{fig:oscillators}.
 \cbox{
 \begin{spec}
 osc, oscI ::  Clock c =>
-              Table -> Double -> SigFun p Double Double
+              Table -> Double -> SigFun c Double Double
 \end{spec}
 
 |osc tab ph| is a signal function whose input is a frequency, and
@@ -423,7 +423,7 @@ determines the frequency (as with |osc|), as well as the number of
 harmonics of that frequency, of the output.  |tab| is the table that
 is cycled through, and |ph| is the phase angle (as with |osc|).
 }
-\caption{Eutperea's Oscillators}
+\caption{Euterpea's Oscillators}
 \label{fig:oscillators}
 \end{figure}
 
@@ -670,13 +670,21 @@ signal of type |a| as output (i.e.\ a signal source), where |a| is
 required to be an instance of the |AudioSample| type class, which
 allows one to choose between mono, stereo, etc.
 
+For convenience, Euterpea defines these type synonyms:
+\begin{spec}
+type Mono p    = SigFun p () Double
+type Stereo p  = SigFun p () (Double,Double)
+\end{spec}
+
 For example, the IO command |outfile "test.wav" 5 sf| generates 5
 seconds of output from the signal function |sf|, and writes the result
-to the file |"test.wav"|.  If |sf| has type |SigFun AudRate () Double|
-then the result will be monophonic; if the type is |SigFun AudRate ()
-(Double,Double)| the result will be stereophonic; |SigFun AudRate
-() (Double,Double,Double,Double)| yields quadraphonic sound, and so
-on.
+to the file |"test.wav"|.  If |sf| has type |Mono AudRate|
+(i.e.\ |SigFun AudRate () Double| then the result will be monophonic;
+if the type is |Stereo AudRate| (i.e.\ |SigFun AudRate ()
+(Double,Double)| the result will be stereophonic.
+
+%% |SigFun AudRate () (Double,Double,Double,Double)| yields
+%% quadraphonic sound, and so on.
 
 One might think that |outFile| should be restricted to |AudRate|.
 However, by allowing a signal of any clock rate to be written to a
@@ -745,7 +753,8 @@ use this to normalize the |ss|.
 
 Note that |sfToList| is not something that can be defined using
 Euterpea as a library---it would have to be defined within
-Euterpea's implementation of signal functions.}
+Euterpea's implementation of signal functions.
+}
 
 \section{Instruments}
 \label{sec:euterp-instruments}
@@ -976,7 +985,7 @@ envExponSeg  ::  Clock p =>
                       --   (one element fewer than previous argument)
    SigFun p () Double
 
--- an ``attack/decay/release'' envelope; each segment is exponential
+-- an ``attack/decay/release'' envelope; each segment is linear
 envASR       ::  Clock p =>
    Double     ->      -- rise time in seconds
    Double     ->      -- overall duration in seconds

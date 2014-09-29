@@ -269,7 +269,7 @@ signal on the right (interpreted in the time domain).
 \end{center}
 \includegraphics[height=2.4in,angle=270]{pics/19_2c.eps} 
 \begin{center}
-(c) Since wave + third and fifth harmonics
+(c) Sine wave + third and fifth harmonics
 \end{center}
 \includegraphics[height=2.4in,angle=270]{pics/19_2d.eps} 
 \begin{center}
@@ -597,7 +597,7 @@ Using the helper function |printComplexL| defined in
 Figure~\ref{fig:pp-code}, which ``pretty prints'' a list of complex
 numbers, we can look at the result of our DFT in a more readable
 form.\footnote{``Pretty-printing'' real numbers is a subtle task.  The
-  code in Figure~\ref{fig:pp-code} rounds the numnber to 10 decimal
+  code in Figure~\ref{fig:pp-code} rounds the number to 10 decimal
   places of accuracy, and inserts spaces before and after to line up
   the decimal points and give a consistent string length.  The
   fractional part is not padded with zeros, since that would give a

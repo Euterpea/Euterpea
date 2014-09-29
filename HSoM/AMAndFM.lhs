@@ -50,7 +50,7 @@ zero over time).
 So, shaping a signal using an envelope is an example of amplitude
 modulation using a unipolar modulating signal whose frequency is very
 low (to be precise, $\nicefrac{1}{dur}$, where |dur| is the length of
-the note), and in fact only one cyctle of that signal is used.
+the note), and in fact only one cycle of that signal is used.
 Likewise, tremolo is an example of amplitude modulation with a
 unipolar modulating signal whose frequency is a bit higher than with
 envelope shaping, but still quite low (typically 2-10 Hz).  In both
@@ -173,7 +173,174 @@ matter:
 $A$, called the \emph{modulation index}, controls the size of the
 sidebands.  Note the similarity of this equation to that for tremolo.
 
+\begin{exercise}{\em
+Experiment with amplitude modulation as a sound synthesis technique.
+In particular, try using three or more signals.}
+\end{exercise}
+
 \section{Frequency Modulation}
 \label{sec:FM}
 
+[This section needs work.]
+
+As mentioned in the introduction of this chapter, if we modulate the
+frequency (rather than amplitude) of a signal with another signal, we
+are performing \emph{frequency modulation}, or FM.
+
+FM can be used to implement vibrato. [show code] Contrast this with
+tremolo, which varies the amplitude. [show code?]  It is also the
+basis for FM radio.  [see later subsection]
+
+More generally, FM with two audible signals causes complex things
+happen, and results in a much richer sound than AM.  In its simplest
+form, we can express FM as follows:
+\[ A \cos(C + d \cos(M)) \]
+where, as for AM, $C$ is the carrier frequency, and $M$ is the
+modulating frequency (both in radians).
+
+The result of FM is a carrier plus a large number of sidebands that
+are integer multiples of the difference between C and M, as depicted
+in Figure~\ref{fig:FM}.  But how many and how large are these
+sidebands?
+
+\begin{figure}
+[figure TBD]
+\caption{FM Spectrum}
+\label{fig:FM}
+\end{figure}
+
+\subsection{Bessell Functions}
+
+Let's rewrite the previous formula more formally as follows:
+\[ s_{fm}(t) = A \cos(2\pi (f_c + d \cos(2\pi f_m\ t)) t) \]
+where $f_c$ and $f_m$ are the frequencies, in Hertz, of the carrier
+and modulating signals, respectively.  As we will see, $A$ and $d$
+relate to the magnitude of the carrier and sidebands.
+
+The \emph{FM modulation index} $I$ is defined as:
+\[ I = D / f_m \]
+where $D$ is the maximum deviation in Hertz of the carrier.  For
+example, if the modulating signal $f_m$ is a pure sine wave, then it
+varies between $+1$ and $-1$, so the maximum deviation would be $d$,
+and therefore $I=d/f_m$.
+
+The equation for $s_{fm}$ above is difficult to understand, being the
+cosine of a cosine, but it can be shown to be equivalent to the
+following sum of sines:
+\[ s_{fm}(t) = \sum_{n=-\infty}^{+\infty}\ J_n(I)\ \sin(2\pi (f_c \pm nf_m)\ t) \]
+where $J_n$ is the $n$th \emph{Bessell function}.  Ignoring the
+scaling effect of the Bessell function for a moment, note that the
+resulting signal consists of the carrier (at $n=0$) plus sidebands
+spaced evenly at increments of the modulating frequency $f_m$.
+
+Bessell functions themselves are beyond the scope of this text, but
+can be visualized as shown in Figure~\ref{fig:bessell-functions}.  In
+this figure, note that:
+\begin{itemize}
+\item ...
+\end{itemize}
+
+\begin{figure}
+[figure TBD]
+\caption{Three-Dimensional Graph of First Fifteen Bessell Functions}
+\label{fig:bessell-functions}.
+\end{figure}
+
+\subsection{FM Sound Synthesis}
+
+From a sound synthesis point of view, it is important to realize that,
+for many carrier and modulating frequency pairs, the spectrum of the
+result is quite complex, far more than for, say, amplitude
+modulation or additive synthesis.  Indeed, according to equation
+\ref{eqn:fm}, there are an infinite number of sidebands.
+
+The generic Euterpea arrow-code snippet corresponding to
+Equation~\ref{eqn:FM-simple} is:
+\begin{spec}
 ...
+ms  <- osc ...  -<  mf
+s   <- osc ...  -<  cf + d*ms
+outA -< a*s
+...
+\end{spec}
+where |cf| and |mf| are the carrier and modulating frequencies,
+respectively, and |ms| is the modulating signal.
+
+[show UISF example; explain d, etc.]
+
+[give examples where the carrier, modulating frequency, and modulation
+  index are ``swept'' appropriately]
+
+Here are some ``rules of thumb'' that are useful in selecting the
+modulation index:
+\begin{itemize}
+\item
+To synthesize harmonic sounds, the modulating signal should have a
+harmonic relationship to the original carrier signal.  
+\item
+Use of modulating frequencies that are non-integer multiples of the
+carrier results in inharmonic sounds, which are nevertheless
+interesting and pleasant sounding in their own way.
+\item
+A low modulation index results in sidebands that are ``tight'' near
+the carrier, but the variations between them can be large.
+\item
+A higher mod index results in more sidebands at a greater distance
+from the carrier, but they are more uniform in size.
+\item
+In addition, as $I$ increases, the drop-off in sidebands is not
+uniform; in fact it is sinusoidal, so there are regions where the
+sidebands drop out completely, then reappear further away from the
+carrier.
+\item
+\emph{Carson's rule} states that nearly all (~98 percent) of the power
+of a frequency-modulated signal lies within a bandwidth of:
+\[ B_T = 2(\Delta f + f_m) \]
+where $\Delta f$, is the peak deviation of the instantaneous
+frequency from the carrier frequency $f_c$.
+\end{itemize}
+
+FM synthesis is a powerful methodolgy for musical sound design.  There
+are many ways to create both real musical instrument sounds and
+ethereal ones.  Even the seminal paper on FM sound synthesis
+\cite{Chowning73} written over 40 years ago gives great insight into
+this.
+
+\subsection{An FM Bell}
+
+By creating inharmonic sounds, atonal and tonal bell-like and
+percussive sounds can easily be created.  Figure~\ref{fig:fm-bell}
+shows a Euterpea program for an FM bell.  Note that the pitch $f$ of
+the bell is used as both the carrier frequency, and, slightly
+modified, as the modulating frquency.  That modulating frequency
+varies sinusoidally from ...  Note that $d$ in this case is ...  This
+is strange!
+
+\begin{figure}
+\begin{code}
+bellFM :: Instr (Mono AudRate)
+bellFM dur ap vol [] = 
+  let f = apToHz ap
+      v = fromIntegral vol / 100
+      d = fromRational dur
+  in proc () -> do
+       aenv <- envExponSeg [0,1,0.001] [0.003,d-0.003] -< ()
+       a2 <- osc tab1 0 -< 280
+       a1 <- osc tab1 0 -< f+(a2*f*0.95)
+       outA -< a1*aenv*v
+
+bellTest = outFile "bellFM.wav" 6 (bellFM 6 (absPitch (G,4)) 80 [])
+\end{code}
+\caption{An FM Bell}
+\label{fig:fm-bell}
+\end{figure}
+
+\subsection{FM Radio}
+
+Reword:
+
+The FM broadcasting range is 87.5-108 MHz.  It uses a channel spacing
+of 200 kHz, with a maximum frequency deviation of 75 kHz, leaving a 25
+kHz buffer above the highest and below the lowest frequency to reduce
+interaction with other channels.
+

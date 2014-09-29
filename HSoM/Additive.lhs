@@ -113,7 +113,7 @@ foldSF f b sfs =
 constSF  :: Arrow a => b -> a b d -> a c d
 foldSF   :: Arrow a => (b -> c -> c) -> c -> [a () b] -> a () c
 \end{spec}
-The more specific types shown in Figure \ref{fig:foldSF} reflect how
+The more specific types shown in Figure~\ref{fig:foldSF} reflect how
 we will use the functions in this chapter.}
 
 \subsection{Overtone Synthsis}
@@ -122,7 +122,7 @@ Perhaps the simplest form of additive synthesis is combining a sine
 wave with some of its overtones to create a rich sound that is closer
 in harmonic content to that of a real instrument, as discussed in
 Chapter \ref{ch:signals}.  Indeed, in Chapter \ref{ch:sigfuns} we saw
-several ways to do this using built-in Eutperpea signal functions.
+several ways to do this using built-in Euterpea signal functions.
 For example, recall the function:
 \begin{spec}
 oscPartials ::  Clock c => 
@@ -147,6 +147,227 @@ Recall that |tableSines3 size triples| is a table of size |size| that
 represents a sinusoidal wave and an arbitrary number of partials,
 whose relationship to the fundamental frequency, amplitude, and phase
 are determined by each of the triples in |triples|.
+
+\subsection{Resonance and Standing Waves}
+\label{sec:resonance}
+
+As we know from Fourier's Theorem, any periodic signal can be
+represented as a sum of a fundemental frequency and multiples of that
+fundamental frequency.  We also know that a musical instrument's sound
+consists primarily of the sum of a fundamental frequency (the
+preceived pitch) and some of the multiples of that pitch (called
+harmonics, partials, or overtones).  But what is it that makes a
+musical instrument behave this way in the first place?  Answering this
+question can help us in understanding how to use additive synthesis to
+generate an instrument sound, but becomes even more important in
+Chapter~\ref{physical-modeling} where we attempt to model the physical
+attributes of a particular instrument.
+
+\subsubsection{String Instruments}
+\label{sec:string-instruments}
+
+To answer this question, let's start with a simple string, fixed at
+both ends.  Now imagine that energy is inserted at some point along
+the string---perhaps by a finger pluck, a guitar pick, a violin bow,
+or the hammer on a piano.  This energy will cause the string to
+vibrate in some way.  The energy will flow along the string as a wave,
+just like a pebble dropped in water, except that the energy only flows
+in one dimension, i.e.\ only along the orientation of the string.  How
+fast the wave travels will depend on the string material and how taut
+it is.  For example, the tauter the string, the faster the wave
+travels.
+
+Because the ends of the string are fixed, however, the string can only
+vibrate in certain ways, which are called \emph{modes}, or
+\emph{resonances}.  The most obvious mode for a string is shown in
+Figure~\ref{fig:string-mode}a, where the center of the string is
+moving up and down, say, and the end-points do not move at all.
+Energy that is not directly contributing to a particular mode is
+quickly absorbed by the fixed endpoints.  A mode is sometimes called a
+"standing wave" since it appears to be standing still---it does not
+seem to be moving up or down the string.  But another way to think of
+it is that the energy in the string is being \emph{reflected back} at
+each endpoint of the string, and those reflections reinforce each
+other to form the standing wave.
+
+%% Now, when this energy wave hits the end of the string, i.e.\ where
+%% it is fixed, it has to go somewhere.  If the fixed point is
+%% sufficiently firm, that energy will therefore be reflected back
+%% along the string, like a ball bouncing off of a wall---it has
+%% nowhere else to go.  And like waves in the water, those waves
+%% traveling in opposite directions on the string just pass through
+%% one another.
+
+Eventually, of course, even the energy in a mode will dissipate, for
+three reasons: (1) since the ends of the string are never perfectly
+fixed, the reflections are not perfect either, and thus some energy is
+absorbed, (2) the movement of the string creates friction in the
+string material, generating heat and also absorbing energy, and (3)
+the transverse vibration of the string induces a longitudinal
+vibration in the air---i.e.\ the sound we hear---and that also absorbs
+some energy.
+
+%% However, some of the reflected energy will actually
+%% \emph{reinforce} energy traveling in the other direction, and will
+%% thus take much longer to die out.  This is what forms what is
+%% called a "standing wave," because the perfect alignment of these
+%% supporting waves depends precisely on the length and tautness of of
+%% the string, and so appears to "stand still."  It is also what
+%% accounts for the "resonant frequency," i.e.\ the perceived pitch.
+
+To better understand the nature of modes, suppose a pulse of energy is
+introduced at one end of the string.  If $v$ is the velocity of the
+resulting wave traveling along the string, and $\lambda$ is the string
+length, then it takes $\lambda/v$ seconds for a wave to travel the
+length of the string, and $p = 2\lambda/v$ for it to travel up and
+back.  So if the pulse is repeated every $p$ seconds, it will
+reinforce the previous pulse.  If we think of $p$ as the period of a
+periodic signal, its frequency in Hertz is the \emph{reciprocol} of
+the period $p$, namely:
+\[ f_0 = v / (2\lambda) \] 
+Indeed, this is the frequency of the mode shown in
+Figure~\ref{fig:string-mode}a, and corresponds to the fundamental
+frequency, i.e.\ the observed pitch.
+
+\begin{figure}[hbtp]
+\centering
+\includegraphics[height=8.5in]{pics/DPlots/StringModes.eps}
+\caption{The Modes of a Stringed Instrument}
+\label{fig:string-mode}
+\end{figure}
+
+But note that this is not the only possible mode---another is shown in
+Figure~\ref{fig:string-mode}b.  This mode can be interpreted as
+repeating the pulse of energy inserted at the end of the string every
+$p/2$ seconds, thus corresponding to a frequency of:
+\[ f_1 = 1/(p/2) = v / \lambda = 2f_0 \]
+In other words, this is the first overtone.  
+
+Indeed, each subsequent mode corresponds to an overtone, and can be
+derived in the same way.  A pulse of energy every $p/n$ seconds
+corresponds to the (n-1)th overtone with frequency $nf_0$ Hz.
+Figure~\ref{fig:string-mode} shows these derivations for the first
+four modes; i.e.\ the fundamental plus three overtones.
+
+Note: The higher overtones generally---but not always---decay more
+quickly primarily because they are generated by a quicker bending of
+the string, causing more friction and a quicker loss of energy.
+
+%% We can plot this phonomenon as shown in
+%% Figure~\ref{fig:string-resonance}.  At the top of the figure is the
+%% string, fixed at both ends.  The first plot below that corresponds to
+%% the fundamental resonant frequency.  Further below are the first
+%% couple of partials.
+
+\subsubsection{Wind Instruments}
+\label{sec:wind-instruments}
+
+Resonances in other musical instruments behave similarly.  But in the
+case of a wind instrument, there a couple of important differences.
+First of all, the resonance happens within the air itelf, rather than
+a string.  For example, a clarinet can be thought of as a
+\emph{cylindical tube} closed at one end.  The closed end is the
+mouthpiece, and the open end is called the "bell."  The closed end,
+like the fixed end of a string, reflects energy directly back in the
+opposite direction.  But because the open end is open, it behaves
+differently.  In particular, as energy (a wave) escapes the open end,
+its pressure is dissipated into the air.  This causes a pressure drop
+that induces a negative pressure---i.e.\ a vacumm---in the opposite
+direction, causing the wave to reflect back, \emph{but inverted}!
+
+%% A wave traveling toward the mouthpiece, on the other hand, is like
+%% the fixed end of a string---it is reflected back uninverted.
+
+Unfortuntely, we cannot easily visualize the standing wave in a
+clarinet, partly because the air is invisible, but also because, (1)
+the wave is \emph{longitudinal}, whereas for a string it is
+transverse, and (2) as just discussed, the open end inverts the signal
+upon reflection.  The best we can do is create a transverse
+representation.  For example, Figure~\ref{fig:clarinet-mode}a
+represents the fundamental mode, or fundamantal frequency.  Note that
+the left, closed end looks the same as for a fixed string---i.e.\ it
+is at the zero crossing of the sine wave.  But the right end is
+different---it is intended to depict the inversion at the open end of
+the clarinet as the maximum absolute value of the sine wave.  If the
+signal comes in at +1, it is inverted to the value -1, and so on.
+
+Analogously to our detailed analysis of a string, we can analyze a
+clarinet's acoustic behavior as follows: Suppose a pulse of energy is
+introduced at the mouthpiece (i.e.\ closed end).  If $v$ is the
+velocity of sound in the air, and $\lambda$ is the length of the
+clarinet, that wave appears at the open end in $\lambda/v$ seconds.
+Its \emph{inverted} reflection then appears back at the mouthpiece in
+$2*\lambda/v$ seconds.  But because it is inverted, \emph{it will
+cancel out another pulse emitted $2*\lambda/v$ seconds after the
+first!}  On the other hand, suppose we let that reflection bounce off
+the closed end, travel back to the open end to be inverted a second
+time, and then return to the closed end.  Two inversions are like no
+inversion at all, and so if we were to insert another pulse of energy
+at that moment, the two signals will be "in synch."  In other words,
+if we repeat the pulse every $4\lambda/v$ seconds, the peaks and the
+troughs of the signals line up, and they will reinforce one another.
+This corresponds to a frequency of:
+\[ f_0 = v / (4\lambda) \]
+and is in fact the fundamental mode, i.e.\ fundamental frequency, of
+the clarinet.  This situation corresponds precisely to
+Figure~\ref{fig:clarinet-mode}a.
+
+\begin{figure}[hbtp]
+\centering
+\includegraphics[height=8.5in]{pics/DPlots/ClarinetModes.eps}
+\vspace{-.2in}
+\caption{The Modes of a Clarinet Seen as a Cylindrical Tube}
+\label{fig:clarinet-mode}
+\end{figure}
+
+Now here is the interesting part: If we were to double the pulse rate
+in hopes of generating the first overtone, we arrive precisely at the
+situation we were in above: the signals cancel out.  Thus, \emph{a
+clarinet has no first overtone!}  On the other hand, if we triple the
+pulse rate, the signals line up again, corresponding to a frequency
+of:
+\[ f_1 = v / ((4/3)\lambda) = (3v)/(4\lambda) = 3f_0 \] 
+This is the clarinet's second mode, and corresponds to
+Figure~\ref{fig:clarinet-mode}b.
+
+By a similar argument, it can be shown that all the even overtones of
+a clarinet don't exist (or, equivalently, have zero amplitude),
+whereas all of the odd overtones do exist.
+Figure~\ref{fig:clarinet-mode} shows the first three modes of a
+clarinet, corresponding to the fundamental frequency, and third and
+fifth overtones.  (Note, by the way, the similarity of this to the
+spectral content of a square wave.)
+
+[Todo: discuss other wind instruments]
+
+%% Quote from somewhere: A clarinet is an example of a cylindrical
+%% bore instrument closed at one end.  Hence, the normal resonant
+%% modes must have a pressure maximum at the closed end (the
+%% mouthpiece) and a pressure minimum near the first open key (or the
+%% bell).  These conditions result in the presence of only odd
+%% harmonics in the sound.  This contrasts to the saxophone or oboe,
+%% which have a conical bore and hence include the even harmonics.
+
+%% Consider changing the cylindrical tube diagrams so that the signals
+%% are shifted by 90 degrees, with the idea that the ``zero crossing''
+%% corresponds to minimal energy, and is thus at the open end, not at
+%% the mouthpiece.  On the other hand, the current figure has a nice
+%% analogy to a jump rope fixed at one end, and ``shaken'' at the
+%% other.
+
+\begin{exercise}{\em
+If $\omega = 2\pi f$ is the fundamental radial frequency, the sound of
+a sustained note for a typical clarinet can be approximated \cite{} by:
+\begin{eqnarray*}
+s(t) & = & \sin(\omega t)\ +\ 0.75\sin(3\omega t)\ +\ 0.5\sin(5\omega t) + 
+           0.14\sin(7\omega t)\ \\
+     &   & +\ 0.5\sin(9\omega t)\ +\ 0.12\sin(11\omega t)\ +\ 
+           0.17\sin(13\omega t) 
+\end{eqnarray*}
+Define an instrument |clarinet :: Instr (Mono AudRate)| that simulates
+this sound.  Add an envelope to it to make it more realistic.  Then
+test it with a simple melody.}
+\end{exercise}
 
 \subsection{Deviating from Pure Overtones}
 
@@ -203,7 +424,7 @@ than that of the fundamental!
 \begin{figure}
 \begin{code}
 bell1  :: Instr (Mono AudRate)
-       -- Dur -> AbsPitch -> Volume -> AudSF () Double
+       -- |Dur -> AbsPitch -> Volume -> AudSF () Double|
 bell1 dur ap vol [] = 
   let  f    = apToHz ap
        v    = fromIntegral vol / 100
@@ -251,7 +472,7 @@ why, suppose 1.5 were one of the partial numbers---then 1.5 cycles of
 a sine wave would be written into the table.  But the whole point of
 wavetable lookup synthesis is to repeatedly cycle through the table,
 which means that this 1.5 cycle would get repeated, since the
-wavetable be a periodic representation of the desired sound.  The
+wavetable is a periodic representation of the desired sound.  The
 situation gets worse with partials such as 4.07, 3.75, 2.74, 0.56, and
 so on.
 
@@ -259,7 +480,7 @@ In any case, we can do even better than |bell1|.  An important aspect
 of a bell sound that is not captured by the program in
 Figure~\ref{fig:bell1} is that the higher-frequency partials tend to
 decay more quickly than the lower ones.  We can remedy this by giving
-each partial its own envelope (recall Section \ref{sec:envelopes}, and
+each partial its own envelope (recall Section \ref{sec:envelopes}), and
 making the duration of the envelope inversely proportional to the
 partial number.  Such a more sophisticated instrument is shown in
 Figure~\ref{fig:bell2}.  This results in a much more pleasing and
@@ -268,7 +489,7 @@ realistic sound.
 \begin{figure}
 \begin{code}
 bell2  :: Instr (Mono AudRate)
-       -- Dur -> AbsPitch -> Volume -> AudSF () Double
+       -- |Dur -> AbsPitch -> Volume -> AudSF () Double|
 bell2 dur ap vol [] = 
   let  f    = apToHz ap
        v    = fromIntegral vol / 100
@@ -300,11 +521,17 @@ partial numbers are less than one.  Fix this.}
 \end{exercise}
 
 \begin{exercise}{\em
-Neither of the bell sounds shown in Figures~\ref{fig-bell1} and
+Neither of the bell sounds shown in Figures~\ref{fig:bell1} and
 \ref{fig:bell2} actually contain the fundamental frequency---i.e. a
 partial number of 1.0.  Yet they contain the partials at the integer
 multiples 2 and 3.  How does this affect the result?  What happens if
 you add in the fundamental?}
+\end{exercise}
+
+\begin{exercise}{\em
+Use the idea of the ``more sophisticated bell'' to synthesize sounds
+other than a bell.  In particular, try using only integral multiples
+of the fundamental frequency.}
 \end{exercise}
 
 \vspace{.1in}\hrule
@@ -339,6 +566,15 @@ Filters can be arbitrarily complex, but are characterized by a
 much of each frequency component of the input is transferred to the
 output.  Figure \ref{fig:filter-types} shows the general transfer
 function for the four most common forms of filters:
+
+\begin{figure}[hbtp]
+\centering
+\includegraphics[height=7.5in]{pics/DPlots/FilterTypes.eps}
+\vspace{-.2in}
+\caption{Transfer Functions for Four Common Filter Types}
+\label{fig:filter-types}
+\end{figure}
+
 \begin{enumerate}
 \item
 A \emph{low-pass} filter passes low frequencies and rejects
@@ -347,11 +583,11 @@ A \emph{low-pass} filter passes low frequencies and rejects
 A \emph{high-pass} filter passes high frequencies and rejects
 (i.e.\ attenuates) low frequencies.
 \item
-A \emph{band-pass} (or \emph{notch}) filter passes a particular band
-of frequencies while rejecting others.
+A \emph{band-pass} filter passes a particular band of frequencies
+while rejecting others.
 \item
-A \emph{band-reject} (or \emph{band-stop}) filter rejects a particular
-band of frequencies, while passing others.
+A \emph{band-reject} (or \emph{band-stop}, or \emph{notch}) filter
+rejects a particular band of frequencies, while passing others.
 \end{enumerate}
 It should be clear that filters can be combined in sequence or in
 parallel to achieve more complex transfer functions.  For example, a
@@ -359,47 +595,370 @@ low-pass and a high-pass filter can be combined in sequence to create
 a band-pass filter, and can be combined in parallel to create a
 band-reject filter.
 
-\begin{figure}
-...
-\caption{Transfer Functions for Four Common Filter Types}
-\end{figure}
+In the case of a low-pass or high-pass filter, the \emph{cut-off
+  frequency} is usually defined as the point at which the signal is
+attenuated by 6dB.  A similar strategy is used to define the upper and
+lower bounds of the band that is passed by a band-pass filter or
+rejected by a band-reject filter, except that the band is usually
+specified using a \emph{center frequency} (the midpoint of the band)
+and a \emph{bandwidth} {the width of the band).
 
 It is important to realize that not all filters of a particular type
 are alike.  Two low-pass filters, for example, may, of course, have
 different cutoff frequencies, but even if the cutoff frequencies are
-the same, the ``steepness'' of the cutoff curves may be different (an
-ideal step curve does not exist), and the other parts of the curve
-might not be the same---they are never completely linear, and might
-not even be monotonically increasing or decreasing.  Furthermore, all
-filters have some degree of \emph{phase distortion}, which is to say
-that the transferred phase angle can vary with frequency.
+the same, the ``steepness'' of the cutoff curves may be different (a
+filter with an ideal step curve for its transfer function does not
+exist), and the other parts of the curve might not be the same---they
+are never completely flat or even linear, and might not even be
+monotonically increasing or decreasing.  (Although the diagrams in
+Figure~\ref{fig:filter-types} at least do not show a step curve, they
+are stll over-simplified in the smoothness and flatness of the
+curves.)  Furthermore, all filters have some degree of \emph{phase
+  distortion}, which is to say that the transferred phase angle can
+vary with frequency.
 
-There is an elegant theory of filter design that can help predict and
-therefore control these characteristics, but it is beyond the scope of
-this textbook.  In the digital domain, filters are often described
-using \emph{recurrence relations} of varying degrees.  A good book on
-digital signal processing will elaborate on these issues in detail.
+In the digital domain, filters are often described using
+\emph{recurrence equations} of varying degrees, and there is an
+elegant theory of filter design that can help predict and therefore
+control the various characteristics mentioned above.  However, this
+theory is beyond the scope of this textbook.  A good book on digital
+signal processing will elaborate on these issues in detail.
 
 \subsection{Euterpea's Filters}
 \label{sec:euterpea-filters}
 
-Euterpea has a set of pre-defined filters that are adequate for most
-sound synthesis applications.  They are shown in Figure
-\ref{fig:euterpea-filters}.  
-
+Instead of designing our own filters, we will use a set of pre-defined
+filters in Euterpea that are adequate for most sound synthesis
+applications.  Their type sinatures are shown in
+Figure~\ref{fig:euterpea-filters}.  As you can see, each of the filter
+types discussed previously is included, but their use requires a bit
+more explanation.
 
 \begin{figure}
 \begin{spec}
-filterLowPass, filterHighPass :: 
+filterLowPass, filterHighPass, filterLowPassBW, filterHighPassBW :: 
   Clock p => SigFun p (Double, Double) Double
 
-filterBandPass ::
-  Clock p => Int -> Signal p (Double, Double, Double) Double
-
-filterBandStop ::
+filterBandPass, filterBandStop ::
   Clock p => Int -> SigFun p (Double, Double, Double) Double
 
-filterLowPassBW, filterHighPassBW :: 
-  Clock p => SigFun p (Double, Double) Double
+filterBandPassBW, filterBandStopBW ::
+  Clock p => SigFun p (Double, Double, Double) Double
 \end{spec}
+\caption{Euterpea's Filters}
+\label{fig:euterpea-filters}
 \end{figure}
+
+First of all, all of the filters ending in ``|BW|'' are what are called
+\emph{Butterworth filters}, which are based on a second-order filter
+design that represents a good balance of filter characteristics: a
+good cutoff steepness, little phase distortion, and a reasonably flat
+response in both the pass and reject regions.  Those filters without
+the |BW| suffix are first-order filters whose characteristics are not
+quite as good as the Butterworth filters, but are computationally more
+efficient. 
+
+In addition, the following points help explain the details of specific
+Euterpea filters:
+\begin{itemize}
+\item
+|filterLowPass| is a signal function whose input is a pair consisting
+of the signal being filtered, and the cutoff frequency (in that
+order).  Note that this means the cutoff frequency can be varied
+dynamically.  |filterHighPass|, |filterLowPassBW|, and
+|filterHighPassBW| behave analogously.
+\item
+|filterBandPassBW| is a signal function taking a triple as input: the
+signal being filtered, the center frequency of the band, and the width
+of the band, in that order.  For example:
+\begin{spec}
+...
+filterBandPassBW -< (s, 2000, 100)
+...
+\end{spec}
+will pass the frequencies in |s| that are in the range 1950 to 2050
+Hz, and reject the others.  |filterBandStop| behaves analogously.
+\item
+|filterBandPass| and |filterBandStop| also behave analogously, except
+that they take a static |Int| argument, let's call it |m|, that has
+the following effect on the magnitude of the output:
+\begin{itemize}
+\item
+|m = 0| signifies no scaling of the output signal.
+\item
+|m = 1| signifies a peak response factor of 1; i.e.\ all
+frequencies other than the center frequency are attenuated in accordance with
+a normalized response curve.
+\item
+|m = 2| raises the response factor so that the output signal's overall
+RMS value equals 1.
+\end{itemize}
+\end{itemize}
+
+\subsection{Noisy Sources}
+
+Returning to the art metaphor at the beginning of this chapter,
+filters are like the chisels and other tools that a sculptor might use
+to fashion his or her work.  But what about the block of stone that
+the sculptor begins with?  What is the sound synthesis analogy to
+that?
+
+The answer is some kind of a ``noisy signal.''  It does not have to be
+pure noise in a signal processing sense, but in general its frequency
+spectrum will be rather broad and dense.  Indeed, we have already seen
+(but not discussed) one way to do this in Euterpea: Recall the table
+generators |tableSines|, |tableSinesN|, |tableSines3|, and
+|tableSines3N|.  When used with |osc|, these can generate very dense
+series of partials, which in the limit sound like pure noise.
+
+In addition, Euterpea provides three sources of pure noise, that is,
+noise derived from a random number generator: |noiseWhite|,
+|noiseBLI|, and |noiseBLH|.  More specifically:
+\begin{enumerate}
+\item
+|noiseWhite :: Clock p => Int -> SigFun p () Double| \\
+|noiseWhite n| is a signal source that generates uniform white noise
+with an RMS value of $1/\sqrt{2}$, where |n| is the ``seed'' of the
+underlying random number generator.
+\item
+|noiseBLI :: Clock p => Int -> SigFun p Double Double| \\
+|noiseBLI n| is like |noiseWhite n| except that the signal samples are
+generated at a rate controlled by the (dynamic) input signal
+(presumably less than 44.1kHz), with interpolation performed between
+samples.  Such a signal is called ``band-limited'' because the slower
+rate prevents spectral content higher than half the rate.
+\item
+|noiseBLH :: Clock p => Int -> SigFun p Double Double| \\
+|noiseBLH| is like |noiseBLI| but does not interpolate between
+samples; rather, it ``holds'' the value fo the last sample.
+\end{enumerate}
+
+\subsection{Examples}
+
+\begin{code}
+sineTable :: Table
+sineTable = tableSinesN 4096 [1]
+
+env1 :: AudSF () Double
+env1 = envExpon 20 10 10000
+\end{code}
+
+\out{
+\end{spec}
+doAll :: IO ()
+doAll = do tLow; tHi; tLowBW; tHiBW
+           tBP; tBS; tBPBW; tBSBW
+           tBP'; tBS'; tBPBW'; tBSBW'
+           test1; test2; test3; test4 
+           test5; test6; test7; test8
+           test9
+           return ()
+\end{spec}
+}
+
+|envExpon| is better than |envLine| for sweeping a range of
+frequencies, because our ears hear pitches logarithmically.  To
+demonstrate:
+
+\begin{code}
+good = outFile "good.wav" 10 $
+       (osc sineTable 0 <<< envExpon 20 10 10000 :: AudSF () Double)
+
+bad  = outFile "bad.wav" 10 
+       (osc sineTable 0 <<< envLine  20 10 10000 :: AudSF () Double)
+\end{code} 
+%% $
+
+Helper function for filter tests:
+
+\begin{code}
+sfTest1 :: AudSF (Double,Double) Double -> Instr (Mono AudRate)
+        -- |AudSF (Double,Double) Double -> |
+        -- |Dur -> AbsPitch -> Volume -> [Double] -> AudSF () Double|
+sfTest1 sf dur ap vol [] =
+  let f = apToHz ap
+      v = fromIntegral vol / 100
+  in proc () -> do
+       a1 <- osc sineTable 0 <<< env1 -< () 
+       a2 <- sf -< (a1,f)
+       outA -< a2*v
+\end{code}
+
+Tests for low and highpass filters:
+
+\begin{code}
+tLow    =  outFile "low.wav" 10 $
+           sfTest1 filterLowPass 10 (absPitch (C,5)) 80 []
+
+tHi     =  outFile "hi.wav" 10 $
+           sfTest1 filterHighPass 10 (absPitch (C,5)) 80 []
+
+tLowBW  =  outFile "lowBW.wav" 10 $
+           sfTest1 filterLowPassBW 10 (absPitch (C,5)) 80 []
+
+tHiBW   =  outFile "hiBW.wav" 10 $
+           sfTest1 filterHighPassBW 10 (absPitch (C,5)) 80 []
+\end{code}
+
+Tests for bandpass and bandstop filters (varying center frequency):
+
+\begin{code}
+addBandWidth ::  AudSF (Double,Double,Double) Double ->
+                 AudSF (Double,Double) Double
+addBandWidth filter =
+  proc (a,f) -> do filter -< (a,f,200)
+
+tBP    =  outFile "bp.wav" 10 $
+          sfTest1 (addBandWidth (filterBandPass 1)) 10 (absPitch (C,6)) 80 []
+
+tBS    =  outFile "bs.wav" 10 $
+          sfTest1 (addBandWidth (filterBandStop 1)) 10 (absPitch (C,6)) 80 []
+
+tBPBW  =  outFile "bpBW.wav" 10 $
+          sfTest1 (addBandWidth filterBandPassBW) 10 (absPitch (C,6)) 80 []
+
+tBSBW  =  outFile "bsBW.wav" 10 $
+          sfTest1 (addBandWidth filterBandStopBW) 10 (absPitch (C,6)) 80 []
+\end{code}
+
+Pure white noise:
+
+\begin{code}
+noise1  :: Instr (Mono AudRate)
+        -- |Dur -> AbsPitch -> Volume -> [Double] -> AudSF () Double|
+noise1 dur ap vol [] = 
+  let  v = fromIntegral vol / 100
+  in proc () -> do
+       a1    <- noiseWhite 42 -< ()
+       outA  -< a1*v
+test1 = outFile "noise1.wav" 6 (noise1 6 (absPitch (C,5)) 100 []) 
+\end{code}
+
+Tests for bandpass and bandstop filters (varying bandwidth):
+
+\begin{code}
+env2 :: AudSF () Double
+env2 = envExpon 1 10 2000
+
+sfTest2  :: AudSF (Double,Double,Double) Double -> Instr (Mono AudRate)
+         -- |AudSF (Double,Double,Double) Double -> |
+         -- |Dur -> AbsPitch -> Volume -> [Double] -> AudSF () Double|
+sfTest2 sf dur ap vol [] =
+  let  f = apToHz ap
+       v = fromIntegral vol / 100
+  in proc () -> do
+       a1 <- noiseWhite 42 -< ()
+       bw <- env2 -< ()
+       a2 <- sf -< (a1,f,bw)
+       outA -< a2
+
+tBP'    =  outFile "bp'.wav" 10 $
+           sfTest2 (filterBandPass 1) 10 (absPitch (C,5)) 80 []
+
+tBS'    =  outFile "bs'.wav" 10 $
+           sfTest2 (filterBandStop 1) 10 (absPitch (C,5)) 80 []
+
+tBPBW'  =  outFile "bpBW'.wav" 10 $
+           sfTest2 filterBandPassBW 10 (absPitch (C,5)) 80 []
+
+tBSBW'  =  outFile "bsBW'.wav" 10 $
+           sfTest2 filterBandStopBW 10 (absPitch (C,5)) 80 []
+\end{code}
+
+Bandlimited noise:
+
+\begin{code}
+noise2  :: Instr (Mono AudRate)
+noise2 dur ap vol [] = 
+  let  f = apToHz ap
+       v = fromIntegral vol / 100
+  in proc () -> do
+       a1    <- noiseBLI 42 -< f
+       outA  -< a1*v
+test2 = outFile "noise2.wav" 6 (noise2 6 (absPitch (C,5)) 100 []) 
+\end{code}
+
+Simple subtractive synthesis:
+
+\begin{code}
+ss1  :: Instr (Mono AudRate)
+ss1 dur ap vol [] = 
+  let  v    = fromIntegral vol / 100
+  in proc () -> do
+       a1    <- noiseWhite 42 -< ()
+       a2    <- filterBandPass 2 -< (a1, 1000, 200)
+       outA  -< a2*v/5
+test3 = outFile "ss1.wav" 6 (ss1 6 (absPitch (C,5)) 100 []) 
+\end{code}
+
+Howling wind:
+
+\begin{code}
+wind :: Instr (Mono AudRate)
+wind dur ap vol [] = 
+  let  f = apToHz ap
+       v = fromIntegral vol / 100
+  in proc () -> do
+       a1    <- noiseWhite 42 -< ()
+       lfo1  <- osc sineTable 0 -< 0.9
+       lfo2  <- osc sineTable 0 -< 1.3
+       a2    <- filterBandPass 2 -< (a1, f + 100*(lfo1+lfo2), 200)
+       outA  -< a2*v/5
+test4 = outFile "wind.wav" 6 (wind 6 (absPitch (C,7)) 100 []) 
+\end{code}
+
+Dense partials ("buzz")
+
+\begin{code}
+buzzy  :: Instr (Mono AudRate)
+buzzy dur ap vol [] = 
+  let  f    = apToHz ap
+       v    = fromIntegral vol / 100
+  in proc () -> do
+       a1 <- oscPartials sineTable 0 -< (f,20)
+       outA -< a1*v
+test5 = outFile "buzzy.wav" 6 (buzzy 6 (absPitch (C,5)) 100 []) 
+\end{code}
+
+Dense partials filtered and Shaped:
+
+\begin{code}
+buzzy2 :: Instr (Mono AudRate)
+buzzy2 dur ap vol [] = 
+  let  f    = apToHz ap
+       v    = fromIntegral vol / 100
+       d    = fromRational dur
+  in proc () -> do
+       a1   <- oscPartials sineTable 0 -< (f,20)
+       env  <- envExponSeg [0, 1, 0.001] [0.003, d - 0.003] -< ()
+       a2   <- filterLowPass -< (a1,20000*env)
+       outA -< a2*v*env
+test6 = outFile "buzzy2.wav" 6 (buzzy2 6 (absPitch (C,5)) 100 []) 
+\end{code}
+
+Sci-Fi-1:
+
+\begin{code}
+scifi1 :: Instr (Mono AudRate)
+scifi1 dur ap vol [] = 
+  let  v    = fromIntegral vol / 100
+  in proc () -> do
+       a1 <- noiseBLH 42 -< 8
+       a2 <- osc sineTable 0 -< 600 + 200*a1
+       outA -< a2*v
+test7 = outFile "scifi1.wav" 10 (scifi1 10 (absPitch (C,5)) 100 []) 
+\end{code}
+
+Sci-Fi-2:
+
+\begin{code}
+scifi2 :: Instr (Mono AudRate)
+scifi2 dur ap vol [] = 
+  let  v    = fromIntegral vol / 100
+  in proc () -> do
+       a1 <- noiseBLI 44 -< 8
+       a2 <- osc sineTable 0 -< 600 + 200*a1
+       outA -< a2*v
+test8 = outFile "scifi2.wav" 10 (scifi2 10 (absPitch (C,5)) 100 []) 
+\end{code}
+`
