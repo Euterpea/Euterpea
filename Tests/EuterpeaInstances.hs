@@ -46,10 +46,6 @@ instance Arbitrary Dur where
         den <- choose (1,16) :: Gen Integer
         return (toRational num / toRational den)
 
-instance Bounded PitchClass where
-    minBound = Cff
-    maxBound = Bss
-
 instance Arbitrary PitchClass where
     arbitrary = arbitraryBoundedEnum
 

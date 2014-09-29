@@ -365,7 +365,7 @@ in a structure-preserving way, transform them, interpret them for
 performance purposes, and so on.  Many examples of these kinds of
 processes will be seen in this textbook.
 
-The |Control| data type is used by the |Modify| consructor to
+The |Control| data type is used by the |Modify| constructor to
 annotate a |Music| value with a \emph{tempo change}, a
 \emph{transposition}, a \emph{phrase attribute}, a \emph{player name},
 or an \emph{instrument}.  This data type is unimportant at the moment,
@@ -752,7 +752,7 @@ t251|.}
 
 \begin{exercise}{\em
 The |PitchClass| data type implies the use of standard Western
-harmony, in particulr the use of a \emph{twelve-tone equal temperament
+harmony, in particular the use of a \emph{twelve-tone equal temperament
   scale}.  But there are many other scale possibilities.  For example,
 the \emph{pentatonic blues scale} consists of five notes (thus
 ``pentatonic'') and, in the key of C, approximately corresponds to the

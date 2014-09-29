@@ -446,8 +446,8 @@ test1 = outFile "bell1.wav" 6 (bell1 6 (absPitch (C,5)) 100 [])
 
 \out{
 \begin{code}
-bell1'  :: Instr (Mono AudRate)
-bell1' dur ap vol [] = 
+bell'1  :: Instr (Mono AudRate)
+bell'1 dur ap vol [] = 
   let  f    = apToHz ap
        v    = fromIntegral vol / 100
        d    = fromRational dur
@@ -459,7 +459,7 @@ bell1' dur ap vol [] =
 tab1' = tableSines3N 4096 [(4.07,1,0), (3.76,1,0), (3,1,0),
   (2.74,1,0), (2,1,0), (1.71,1,0), (1.19,1,0), (0.92,1,0), (0.56,1,0)]
 
-test1' = outFile "bell1'.wav" 6 (bell1' 6 (absPitch (C,5)) 100 []) 
+test1' = outFile "bell'1.wav" 6 (bell'1 6 (absPitch (C,5)) 100 [])
 \end{code}
 }
 
