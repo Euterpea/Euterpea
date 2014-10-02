@@ -10,7 +10,7 @@ compatability.
 >     module Euterpea.IO.MUI.InstrumentWidgets
 >   -- The InstrumentWidgets module provides support for the piano and guitar
 >   -- MUI widgets.
->   , toUISF, convertToUISF, asyncUISF
+>   , toRealTimeArrow, async
 >   -- These conversion functions are for lifting SFs into MSFs (or UISFs).
 >   , AsyncInput(..), AsyncOutput(..)
 >   , Automaton(..), toAutomaton
@@ -20,15 +20,12 @@ compatability.
 >   , quantize, presentFFT, fftA
 >   -- These functions are used for applying and using the result of a Fast 
 >   -- Fourier Transform.
->   , uisfSourceE         -- :: IO c ->         UISF (SEvent ()) (SEvent c)
->   , uisfSinkE           -- :: (b -> IO ()) -> UISF (SEvent b)  (SEvent ())
->   , uisfPipeE           -- :: (b -> IO c) ->  UISF (SEvent b)  (SEvent c)
->   -- These three functions allow one to lift a generic IO function to a 
+>   , liftAIO       -- :: (b -> IO c) -> a b c
+>   , initialAIO    -- :: IO d -> (d -> a b c) -> a b c
+>   -- These two functions allow one to lift generic IO actions to a 
 >   -- UISF.  They should be used with care.
 > ) where
 
 > import Euterpea.IO.MUI.InstrumentWidgets
 > import Euterpea.IO.MUI.FFT
-> import FRP.UISF.UISF (toUISF, convertToUISF, asyncUISF,
->                              uisfSourceE, uisfSinkE, uisfPipeE)
 > import FRP.UISF.AuxFunctions

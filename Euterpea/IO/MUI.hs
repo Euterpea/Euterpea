@@ -43,12 +43,10 @@ import Euterpea.IO.MUI.MidiWidgets
 import Euterpea.IO.MIDI.MidiIO (initializeMidi, terminateMidi)
 import FRP.UISF
 
-import FRP.UISF.Types.MSF
-import Control.Monad.Fix
 import Control.CCA.Types
 
-instance MonadFix m => ArrowInit (MSF m) where
-    init i = MSF (h i) where h i x = return (i, MSF (h x))
+instance ArrowInit UISF where
+  init = delay
 
 
 runMUI :: Dimension -> String -> UISF () () -> IO ()

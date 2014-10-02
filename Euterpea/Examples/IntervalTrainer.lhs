@@ -3,11 +3,11 @@
 > module Euterpea.Examples.IntervalTrainer where
 
 > import Euterpea
-> import Euterpea.Experimental (uisfPipeE)
+> import Euterpea.Experimental (liftAIO)
 > import System.Random (randomRIO)
 > import Codec.Midi (Message(ProgramChange))
 
-> import FRP.UISF.AuxFunctions (concatA)
+> import FRP.UISF.AuxFunctions (concatA, evMap)
 
 
 > main = runMUI (600,700) "Interval Trainer" intervalTrainer
@@ -111,7 +111,7 @@ The main UI:
 >         e `whileIn` s = if s == state then e else Nothing
 >  
 >     -- Random intervals:
->     randIntE <- uisfPipeE mkRandInt -< snapshot_ nextE (maxInt, lowOct, range)
+>     randIntE <- evMap (liftAIO mkRandInt) -< snapshot_ nextE (maxInt, lowOct, range)
 >     interval <- hold (0,0)  -< randIntE
 >     let trigger  = snapshot randIntE (dur, instr) .|.
 >                    snapshot_ repeatE (interval, (dur, instr))

@@ -131,7 +131,7 @@ songPlayer songList = proc _ -> do
     i <- pickSong songList -< ()
     let song = fmap (\x -> snd $ songList !! x) i
     let msgs = fmap (musicToMsgs False [] . toMusic1) song
-    (out, _) <- eventBuffer -< (fmap AddData msgs, True, 1)
+    (out, _) <- eventBuffer -< maybe NoBOp MergeInBuffer  msgs
     returnA -< out
 
 pickSong :: [(String, Music Pitch)] -> UISF () (SEvent Int)

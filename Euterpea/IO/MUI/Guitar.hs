@@ -2,7 +2,7 @@
 module Euterpea.IO.MUI.Guitar where
 import FRP.UISF
 import FRP.UISF.SOE
-import FRP.UISF.UIMonad (Layout(..), nullLayout)
+import FRP.UISF.UITypes (Layout(..), nullLayout)
 import FRP.UISF.Widget
 import Euterpea.IO.MIDI
 import Euterpea.Music.Note.Music hiding (transpose)

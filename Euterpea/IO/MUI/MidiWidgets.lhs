@@ -6,14 +6,14 @@
 > , midiInM
 > , midiOutMB
 > , musicToMsgs
-> , musicToBCMsgs
+> , musicToBO
 > , selectInput,  selectOutput
 > , selectInputM, selectOutputM
-> , BufferEvent(..) -- Reexported for use with midiOutMB
+> , BufferOperation (..) -- Reexported for use with midiOutMB 
 > ) where
 
 > import FRP.UISF
-> import FRP.UISF.UISF (uisfPipeE, uisfSinkE, initialIOAction)
+> import FRP.UISF.AuxFunctions (liftAIO, initialAIO)
 > import Euterpea.IO.MIDI.MidiIO
 
 > import Control.Monad (when)
@@ -39,14 +39,14 @@ midiOut is a widget that accepts a MIDI device ID as well as a stream
 of MidiMessages and sends the MidiMessages to the device.
 
 > midiIn :: UISF DeviceID (SEvent [MidiMessage])
-> midiIn = arr Just >>> uisfPipeE f >>> arr (maybe Nothing id) where
+> midiIn = liftAIO f where
 >  f dev = do
 >   valid <- isValidInputDevice dev
 >   m <- if valid then pollMidi dev else return Nothing
 >   return $ fmap (\(_t, ms) -> map Std ms) m
  
 > midiOut :: UISF (DeviceID, SEvent [MidiMessage]) ()
-> midiOut = arr Just >>> uisfSinkE f >>> constA () where
+> midiOut = liftAIO f where
 >   f (dev, ms) = do
 >       valid <- isValidOutputDevice dev 
 >       when valid $ outputMidi dev >> maybe (return ()) 
@@ -89,19 +89,20 @@ events are handed to midiOut at the same timestep. Finally, the
 widget returns a flat that is True if the buffer is empty and False
 if the buffer is full (meaning that items are still being played).
 
-> midiOutB :: UISF (DeviceID, BufferControl MidiMessage) Bool
-> midiOutB = proc (devID, bc) -> do
->   (out, b) <- eventBuffer -< bc
->   let extraMsgs = case bc of
->           (Just Clear, _, _) -> Just clearMsgs
->           (Just (SkipAhead _), _, _) -> Just clearMsgs
->           _ -> Nothing
->   midiOut -< (devID, extraMsgs ~++ out)
+> midiOutB :: UISF (DeviceID, BufferOperation MidiMessage) Bool
+> midiOutB = proc (devID, bo) -> do
+>   (out, b) <- eventBuffer -< bo
+>   midiOut -< (devID, if shouldClear bo then Just clearMsgs ~++ out else out)
 >   returnA -< b
 >  where clearMsgs = map (\c -> Std (ControlChange c 123 0)) [0..15]
+>        shouldClear ClearBuffer = True
+>        shouldClear (SkipAheadInBuffer _) = True
+>        shouldClear (SetBufferPlayStatus _ bo) = shouldClear bo
+>        shouldClear (SetBufferTempo      _ bo) = shouldClear bo
+>        shouldClear _ = False
 
 > midiOutB' :: UISF (DeviceID, SEvent [(DeltaT, MidiMessage)]) Bool
-> midiOutB' = second (arr $ \e -> (fmap AddDataToEnd e, True, 1)) >>> midiOutB
+> midiOutB' = second (arr $ maybe NoBOp AppendToBuffer) >>> midiOutB
 
 
 The midiOutMB widget combines the power of midiOutM with midiOutB, allowing 
@@ -109,13 +110,12 @@ multiple sets of buffer controlled midi messages to be sent to different
 devices.  The Bool output is True if every buffer is empty (that is, no device 
 has any pending music to be played) and False otherwise.
 
-> midiOutMB :: UISF [(DeviceID, BufferControl MidiMessage)] Bool
+> midiOutMB :: UISF [(DeviceID, BufferOperation MidiMessage)] Bool
 > midiOutMB = delay [] >>> foldA (&&) True midiOutB
 
 > midiOutMB' :: UISF ([(DeviceID, Bool)], SEvent [(DeltaT, MidiMessage)]) Bool
 > midiOutMB' = arr fixData >>> midiOutMB where
->   fixData (lst, mmsgs) = map ((,fixMsgs mmsgs) . fst) $ filter snd lst
->   fixMsgs e = (fmap AddDataToEnd e, True, 1)
+>   fixData (lst, mmsgs) = map ((,maybe NoBOp AppendToBuffer mmsgs) . fst) $ filter snd lst
 
 
 The musicToMsgs function bridges the gap between a Music1 value and
@@ -153,8 +153,8 @@ since the last event. The arguments are as follows:
 >         else progChanges ++ zip newTimes (map snd evs) where
 >     mOrder (t1,m1) (t2,m2) = compare t1 t2
 
-> musicToBCMsgs :: Bool -> [InstrumentName] -> Music1 -> BufferControl MidiMessage
-> musicToBCMsgs inf is m = (Just $ AddDataToEnd $ musicToMsgs inf is m, True, 1)
+> musicToBO :: Bool -> [InstrumentName] -> Music1 -> BufferOperation MidiMessage
+> musicToBO inf is m = AppendToBuffer $ musicToMsgs inf is m
  
  
 ----------------------
@@ -170,7 +170,7 @@ that just the radio button index as the radio widget would return.
 > selectOutput = selectDev "Output device" output
 
 > selectDev :: String -> (DeviceInfo -> Bool) -> UISF () DeviceID
-> selectDev t f = initialIOAction getAllDevices $ \devices ->
+> selectDev t f = initialAIO getAllDevices $ \devices ->
 >   let devs = filter (\(i,d) -> f d && name d /= "Microsoft MIDI Mapper") devices
 >       defaultChoice = if null devs then (-1) else 0
 >   in  title t $ proc _ -> do
@@ -187,7 +187,7 @@ These widgets should be used with midiInM and midiOutM respectively.
 > selectOutputM = selectDevM "Output devices" output
 
 > selectDevM :: String -> (DeviceInfo -> Bool) -> UISF () [DeviceID]
-> selectDevM t f = initialIOAction getAllDevices $ \devices ->
+> selectDevM t f = initialAIO getAllDevices $ \devices ->
 >   let devs = filter (\(i,d) -> f d && name d /= "Microsoft MIDI Mapper") devices
 >   in  title t $ checkGroup $ map (\(i,d) -> (name d, i)) devs
 
