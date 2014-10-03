@@ -104,6 +104,7 @@ Library
         Euterpea.IO.Audio.Basics,
         Euterpea.IO.Audio.BasicSigFuns,
         Euterpea.IO.Audio.IO,
+        Euterpea.IO.Audio.ImportWav,
         Euterpea.IO.Audio.PortAudioChannel,
         Euterpea.IO.Audio.Render,
         Euterpea.IO.Audio.Types,
