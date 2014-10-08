@@ -49,6 +49,12 @@ HSoM/*.log
 HSoM/*.dvi
 HSoM/*.ps
 HSoM/*.pdf
+HSoM/*.aux
+HSoM/*.lof
+HSoM/*.lot
+HSoM/*.out
+HSoM/*.ptb
+HSoM/*.toc
 
 ############
 ## fftw files (should these be in the repo?)

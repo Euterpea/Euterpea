@@ -438,7 +438,7 @@ bell1 dur ap vol [] =
 
 tab1 = tableSinesN 4096 [1]
 
-test1 = outFile "bell1.wav" 6 (bell1 6 (absPitch (C,5)) 100 []) 
+bellTest1 = outFile "bell1.wav" 6 (bell1 6 (absPitch (C,5)) 100 []) 
 \end{code}
 \caption{A Bell Instrument}
 \label{fig:bell1}
@@ -459,7 +459,7 @@ bell'1 dur ap vol [] =
 tab1' = tableSines3N 4096 [(4.07,1,0), (3.76,1,0), (3,1,0),
   (2.74,1,0), (2,1,0), (1.71,1,0), (1.19,1,0), (0.92,1,0), (0.56,1,0)]
 
-test1' = outFile "bell'1.wav" 6 (bell'1 6 (absPitch (C,5)) 100 [])
+bellTest1' = outFile "bell'1.wav" 6 (bell'1 6 (absPitch (C,5)) 100 [])
 \end{code}
 }
 
@@ -505,7 +505,7 @@ mySF f d p = proc () -> do
                aenv  <- envExponSeg [0,1,0.001] [0.003,d/p-0.003] -< ()
                outA  -< s*aenv
 
-test2 = outFile "bell2.wav" 6 (bell2 6 (absPitch (C,5)) 100 []) 
+bellTest2 = outFile "bell2.wav" 6 (bell2 6 (absPitch (C,5)) 100 []) 
 \end{code}
 \caption{A More Sophisticated Bell Instrument}
 \label{fig:bell2}
@@ -761,13 +761,12 @@ frequencies, because our ears hear pitches logarithmically.  To
 demonstrate:
 
 \begin{code}
-good = outFile "good.wav" 10 $
+good = outFile "good.wav" 10 
        (osc sineTable 0 <<< envExpon 20 10 10000 :: AudSF () Double)
 
 bad  = outFile "bad.wav" 10 
        (osc sineTable 0 <<< envLine  20 10 10000 :: AudSF () Double)
-\end{code} 
-%% $
+\end{code}
 
 Helper function for filter tests:
 
