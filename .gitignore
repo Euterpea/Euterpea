@@ -55,6 +55,8 @@ HSoM/*.lot
 HSoM/*.out
 HSoM/*.ptb
 HSoM/*.toc
+HSoM/*.bbl
+HSoM/*.blg
 
 ############
 ## fftw files (should these be in the repo?)
