@@ -1,0 +1,47 @@
+Measuring Latency with HaskellOx
+
+Software needed:
+    Keyboard: Proxima Controller or other keyboard
+    MidiOx
+    Virtual MIDI ports: LoopMidi (multi-port) and/or Loopbe1 (single port only)
+    Something to do math in hex and convert to decimal
+
+Download links:
+    LoopMidi http://www.tobias-erichsen.de/software/loopmidi.html
+    Loopbe1 http://www.nerds.de/en/download.html
+    Proxima Controller http://zetacentauri.com/software_proximacontrol.htm
+    MidiOx http://www.midiox.com/
+
+Setup:
+1. Make 3 virtual MIDI ports, either 3xLoopMidi or 2xLoopMidi+Loopbe1. They will be used as 
+   follows:
+       Port 1 - output port for Proxima Controller 
+       Port 2 - the input for HaskellOx
+       Port 3 - the output for HaskellOx
+       (Note: port 1 doesn't need to be created if using a keyboard)
+2. If using proxima controller, start it and set its output to port 1. 
+3. Start two instances of Haskell Ox and set them up as follows
+       MidiOx #1: map input from port 1 to ports 2 and 3
+       MidiOx #2: map input from port 3 to the MS synth
+       HaskellOx: map input from port 2 to port 3
+       (Note: as a baseline, a 3rd isntance of MidiOx can be tested in ace of HaskellOx)
+4. Press a note in Proxima Controller or on the keybaord and watch the output in MidiOx #2.
+   You should see a pattern like the following.
+
+       Time (ticks)   Event
+       wwwwwwww       NoteOn <-- from MidiOx #1
+       xxxxxxxx       NoteOn <-- from HaskellOx
+       yyyyyyyy       NoteOff <-- from MidiOx #1
+       zzzzzzzz       NoteOff <-- from HaskellOx
+
+   The timestamps are hexadecimal and in MIDI ticks. This gives two approximate latency 
+   values from one note press 
+
+       t * toDecimal(xxxxxxxx - wwwwwwww)
+       t * toDecimal(zzzzzzzz - yyyyyyyy)
+ 
+   where t=4.16sec is the duration of a tick in MidiOx. 
+
+
+Hex values can be subtracted and converted to decimal easily with calc.exe on Windows in programmer mode (under "view"). When using a 3rd instance of MidiOx in place of HaskellOx, the latency is typically 0-1 ticks (<5ms). 
+
