@@ -81,6 +81,7 @@ Library
   exposed-modules: 
         Euterpea,
         Euterpea.Experimental,
+        Euterpea.ExperimentalPlay,
         Control.CCA.ArrowP,
         Control.SF.SF,
         Euterpea.Examples.EuterpeaExamples
