@@ -40,8 +40,10 @@ Setup:
        t * toDecimal(xxxxxxxx - wwwwwwww)
        t * toDecimal(zzzzzzzz - yyyyyyyy)
  
-   where t=4.16sec is the duration of a tick in MidiOx. 
+   where t=1.0ms is the duration of a tick in MidiOx (Euterpea's qn is 500 ticks). 
 
 
-Hex values can be subtracted and converted to decimal easily with calc.exe on Windows in programmer mode (under "view"). When using a 3rd instance of MidiOx in place of HaskellOx, the latency is typically 0-1 ticks (<5ms). 
+Hex values can be subtracted and converted to decimal easily with calc.exe on Windows in 
+programmer mode (under "view"). When using a 3rd instance of MidiOx in place of HaskellOx, 
+the latency is typically 0-1 ticks. 
 
