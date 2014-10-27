@@ -1,0 +1,23 @@
+Jitter Testing Setup
+Donya Quick
+Last mofidied: 27-Oct-2014
+
+Required software:
+- MidiOx
+- A virtual MIDI port
+
+See HaskellOx.txt for details on the above
+
+Setup:
+- Play "testValue" using different playback methods sending to a virtual MIDI port
+- Have MidiOx map from the virtual port to the MS synth
+- When playback finishes, right click on the monitor and select "copy all"
+- Paste the output into a text editor. Strip everything from the output except note on/off 
+  events and get rid of any leading spaces before the hex timestamps. Save as a txt file.
+- Call analyzeFile1 or analyzeFile2 on the txt file.
+
+See JitterTest.lhs for information on analyzeFile1/2.
+See PlayS.lhs for various playback implementations tested using the above approach.
+
+
+
