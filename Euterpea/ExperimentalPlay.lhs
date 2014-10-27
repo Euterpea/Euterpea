@@ -1,6 +1,6 @@
 Special playback functions
 Created by Donya Quick
-Last modified: 22-Oct-2014
+Last modified: 27-Oct-2014
 
 Experimental playback implementation.
 
@@ -220,6 +220,15 @@ is handled separately.
 >             newChan = snd $ last cMapNoP 
 >         in  if length cMapNoP < cLim - 1 then linearCP cLim pChan i cMap
 >         else (newChan, (i, newChan) : (take (length cMapNoP - 1) cMapNoP)++extra)
+
+
+A predefined policy will send instruments to user-defined channels. If new
+instruments are found that are not accounted for, an error is thrown.
+
+> predefinedCP :: ChannelMap -> ChannelMapFun
+> predefinedCP cMapFixed i _ = case lookup i cMapFixed of 
+>     Nothing -> error (show i ++ " is not included in the channel map.")
+>     Just c -> (c, cMapFixed)
 
 -------------------------------
  | NFData instances for Midi |
