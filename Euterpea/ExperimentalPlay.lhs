@@ -5,12 +5,13 @@ Last modified: 27-Oct-2014
 Experimental playback implementation.
 
 > module Euterpea.ExperimentalPlay (
->     play', -- new implementation of play
->     playC, -- custom playback implementation to replace playA, playS, playDev, etc.
->     devices, -- function that prints available MIDI device information
->     musicToMsgs', -- music to MIDI message conversion
->     linearCP, -- linear channel assignment policy
->     dynamicCP -- dynamic channel assignment policy
+>     play' -- new implementation of play
+>     ,playC -- custom playback implementation to replace playA, playS, playDev, etc.
+>     ,devices -- function that prints available MIDI device information
+>     ,musicToMsgs' -- music to MIDI message conversion
+>     ,linearCP -- linear channel assignment policy
+>     ,dynamicCP -- dynamic channel assignment policy
+>     ,defParams
 >     ) where
 > import Codec.Midi hiding (Tempo)
 > import Control.DeepSeq
