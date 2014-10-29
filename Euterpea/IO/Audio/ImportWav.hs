@@ -1,6 +1,6 @@
 {-# LANGUAGE Arrows #-}
 
-module Euterpea.IO.Audio.ImportWav (wavSF) where
+module Euterpea.IO.Audio.ImportWav (wavSF,wavSFInf,wavSFStereo,wavSFStereoInf) where
 
 import Prelude hiding (init)
 import Euterpea.IO.Audio.Basics (outA)
@@ -32,19 +32,40 @@ listArrow nil binit = proc _ -> do
     rec bs <- init binit -< drop 1 bs
     outA -< if null bs then nil else head bs
 
--- | This function accepts a file path that points to a mono wav file 
+-- | This function accepts a file path that points to a mono wav file
 --   encoded at AudRate and returns an AudSF that plays that wav file.
 wavSF :: FilePath -> IO (AudSF () Double)
 wavSF filename = do
     (lst, sr) <- wavToList filename
     return $ listArrow 0 lst
 
--- | This function accepts a file path that points to a steroe wav file 
+-- | This function accepts a file path that points to a mono wav file
+--   encoded at AudRate and returns an AudSF that plays that wav file.
+--   and keeps playing that wav file forever
+wavSFInf :: FilePath -> IO (AudSF () Double)
+wavSFInf filename = do
+    (lst, sr) <- wavToList filename
+    return $ listArrow 0 (cycle lst)
+
+-- | This function accepts a file path that points to a steroe wav file
 --   encoded at AudRate and returns an AudSF that plays that wav file.
 wavSFStereo :: FilePath -> IO (AudSF () (Double,Double))
 wavSFStereo filename = do
     (lst, sr) <- wavToList filename
     return $ listArrow (0,0) (tupleList lst)
+    where
+      tupleList :: [a] -> [(a,a)]
+      tupleList [] = []
+      tupleList [x] = []
+      tupleList (x:x':xs) = (x, x') : tupleList xs
+
+-- | This function accepts a file path that points to a steroe wav file
+--   encoded at AudRate and returns an AudSF that plays that wav file.
+--   and keeps playing that wav file forever
+wavSFStereoInf :: FilePath -> IO (AudSF () (Double,Double))
+wavSFStereoInf filename = do
+    (lst, sr) <- wavToList filename
+    return $ listArrow (0,0) (cycle $ tupleList lst)
     where
       tupleList :: [a] -> [(a,a)]
       tupleList [] = []
