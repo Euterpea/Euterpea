@@ -11,6 +11,7 @@ Experimental playback implementation.
 >     ,musicToMsgs' -- music to MIDI message conversion
 >     ,linearCP -- linear channel assignment policy
 >     ,dynamicCP -- dynamic channel assignment policy
+>     ,predefinedCP -- user-specified channel map (for MUIs)
 >     ,defParams
 >     ) where
 > import Codec.Midi hiding (Tempo)
