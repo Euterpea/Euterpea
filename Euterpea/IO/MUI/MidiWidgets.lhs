@@ -21,7 +21,8 @@
 >                                 eventBuffer, BufferControl, BufferEvent(..))
 
 > import Control.Arrow
-> import Control.Monad (when)
+> import Control.Monad (when, join)
+> import Data.Maybe
 
 > -- These four lines are just for musicToMsgs
 > import Euterpea.IO.MIDI.GeneralMidi (toGM)
@@ -44,7 +45,7 @@ midiOut is a widget that accepts a MIDI device ID as well as a stream
 of MidiMessages and sends the MidiMessages to the device.
 
 > midiIn :: UISF DeviceID (SEvent [MidiMessage])
-> midiIn = arr Just >>> uisfPipeE f >>> arr (maybe Nothing id) where
+> midiIn = arr Just >>> uisfPipeE f >>> arr join where
 >  f dev = do
 >   valid <- isValidInputDevice dev
 >   m <- if valid then pollMidi dev else return Nothing
@@ -142,10 +143,10 @@ since the last event. The arguments are as follows:
 > musicToMsgs inf is m = 
 >     let p = perform defPMap defCon m -- obtain the performance
 >         instrs = if null is && not inf then nub $ map eInst p else is
->         chan e = 1 + case elemIndex (eInst e) instrs of 
->                          Just i -> i
->                          Nothing -> error ("Instrument "++show (eInst e)++
->                                     "is not assigned to a channel.")                               
+>         chan e = 1 + fromMaybe
+>                        (error ("Instrument " ++ show (eInst e) ++
+>                                "is not assigned to a channel."))
+>                        (elemIndex (eInst e) instrs)
 >         f e = (eTime e, ANote (chan e) (ePitch e) (eVol e) (fromRational $ eDur e))
 >         f2 e = [(eTime e, Std (NoteOn (chan e) (ePitch e) (eVol e))), 
 >                (eTime e + eDur e, Std (NoteOff (chan e) (ePitch e) (eVol e)))]

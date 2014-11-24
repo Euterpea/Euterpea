@@ -63,3 +63,8 @@ HSoM/*.blg
 ############
 fftw3.dll
 fftw3.h
+
+############
+## Testing
+############
+Tests/error.log

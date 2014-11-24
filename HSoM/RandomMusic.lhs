@@ -185,22 +185,22 @@ for each of othem.
 \begin{figure}
 \centering
 \subfigure[Linear]{
-\includegraphics[scale=0.9]{Pics/linear.eps}
+\includegraphics[scale=0.9]{pics/linear.eps}
 }
 \subfigure[Exponential]{
-\includegraphics[scale=0.9]{Pics/exponential.eps}
+\includegraphics[scale=0.9]{pics/exponential.eps}
 }
 \subfigure[Bilateral exponential]{
-\includegraphics[scale=0.9]{Pics/bilexp.eps}
+\includegraphics[scale=0.9]{pics/bilexp.eps}
 }
 \subfigure[Gaussian]{
-\includegraphics[scale=0.9]{Pics/gaussian.eps}
+\includegraphics[scale=0.9]{pics/gaussian.eps}
 }
 \subfigure[Cauchy]{
-\includegraphics[scale=0.9]{Pics/cauchy.eps}
+\includegraphics[scale=0.9]{pics/cauchy.eps}
 }
 \subfigure[Poisson]{
-\includegraphics[scale=0.9]{Pics/poisson.eps}
+\includegraphics[scale=0.9]{pics/poisson.eps}
 }
 \caption{Various Probability Density Functions}
 \label{fig:distributions}

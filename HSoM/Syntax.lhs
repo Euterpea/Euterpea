@@ -337,7 +337,7 @@ lists of arguments given to |apPairs|.}
 \begin{figure*}
 \centerline{
 \epsfysize=0.75in 
-\epsfbox{Pics/glue.eps}
+\epsfbox{pics/glue.eps}
 }
 \caption{Gluing Two Functions Together}
 \label{fig:glue}

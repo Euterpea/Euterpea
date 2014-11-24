@@ -93,3 +93,4 @@ hs.close()
 print "Running tests on {} thread(s)...".format(num_threads)
 
 subprocess.call(["ghc", "-e", "main", "RunAllTests.hs", "+RTS", "-N" + str(num_threads)])
+

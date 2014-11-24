@@ -18,9 +18,7 @@ import qualified Data.Char as Char
 --Also, this is an ugly hack that can't stay
 --it's mostly to test the new key events
 toUpper :: Char -> Char
-toUpper c = case lookup c keyMap of
-                Just c' -> c'
-                Nothing -> Char.toUpper c
+toUpper c = fromMaybe (Char.toUpper c) (lookup c keyMap)
             where keyMap = [('`', '~'), ('1', '!'), ('2', '@'), ('3', '#'), ('4', '$'),
                             ('5', '%'), ('6', '^'), ('7', '&'), ('8', '*'), ('9', '('),
                             ('0', ')'), ('-', '_'), ('=', '+'), ('[', '{'), (']', '}'),
@@ -60,7 +58,7 @@ drawString down ((x, y), (w, h)) =
 
 drawHead :: Int -> UISF () ()
 drawHead n = topDown $ constA (repeat ()) >>>
-             concatA (map (\k -> mkBasicWidget layout (draw k)) [n,n-1..1]) >>>
+             concatA (map (mkBasicWidget layout . draw) [n,n-1..1]) >>>
              constA ()
     where draw k ((x,y),(w,h)) = withColor Black $ line (x, y + h `div` 2 + 5 * (3 - k)) (x + w, y + h `div` 2)
           layout = Layout 0 0 fw fh fw fh
@@ -128,7 +126,7 @@ mkKeys free ((c,kt,ap):ckas) = proc (pluck, instr) -> do
 
 -- Creates the whole string, including the response to the strum key
     
-mkString :: ([Char], Pitch, Char) -> UISF InstrumentData (SEvent [(AbsPitch, Bool, Midi.Velocity)])
+mkString :: (String, Pitch, Char) -> UISF InstrumentData (SEvent [(AbsPitch, Bool, Midi.Velocity)])
 mkString (frets, freePitch, p) = leftRight $ proc insData -> do
     isPluck <- pluckString p -< ()
     msgs <- mkKeys freeap (zip3 frets [1..] [freeap+1..]) -< (isPluck, insData)
