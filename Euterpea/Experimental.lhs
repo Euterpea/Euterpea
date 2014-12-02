@@ -26,6 +26,8 @@ compatability.
 >   , initialAIO    -- :: IO d -> (d -> a b c) -> a b c
 >   -- These two functions allow one to lift generic IO actions to a 
 >   -- UISF.  They should be used with care.
+>   , uisfSource, uisfSink, uisfPipe
+>   , uisfSourceE, uisfSinkE, uisfPipeE
 > ) where
 
 > import Euterpea.IO.MUI.InstrumentWidgets
