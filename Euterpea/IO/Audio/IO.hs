@@ -1,12 +1,14 @@
-{-# LANGUAGE BangPatterns, ExistentialQuantification, 
-    ScopedTypeVariables, FlexibleContexts, Arrows #-}
+{-# LANGUAGE ExistentialQuantification, ScopedTypeVariables,
+    FlexibleContexts #-}
 
 module Euterpea.IO.Audio.IO (
     outFile,  outFileNorm, 
---    outFileA, outFileNormA, RecordStatus, 
+    playSignal, playSignalNorm,
+ -- outFileA, outFileNormA, RecordStatus, 
     maxSample) where
 
 import Prelude hiding (init)
+<<<<<<< HEAD
 import Control.CCA.Types
 import Control.CCA.ArrowP
 import Control.Arrow
@@ -14,19 +16,20 @@ import Control.Arrow
 import Control.SF.SF
 import Control.Concurrent.MonadIO
 
+=======
+>>>>>>> development
 import Euterpea.IO.Audio.Types hiding (Signal)
+import Euterpea.IO.Audio.PortAudioChannel
 
+import Control.CCA.ArrowP
+import Control.Concurrent.MonadIO
+import Control.Exception
+import Control.Monad
+import Control.SF.SF
 import Codec.Wav
-import Data.Audio
 import Data.Array.Unboxed
+import Data.Audio
 import Data.Int
-import Data.IORef
-import Foreign.C
-import Foreign.Marshal.Array
-import Foreign.Marshal.Utils
-import Foreign.Ptr
-import Foreign.Storable
---import Sound.RtAudio
 
 type Signal clk a b = ArrowP SF clk a b
 
@@ -56,9 +59,9 @@ outFileNorm = outFileHelp normList
 
 outFileHelp :: forall a p. (AudioSample a, Clock p) => 
             ([Double] -> [Double]) -- ^ Post-processing function.
-         -> String              -- ^ Filename to write to.
-         -> Double              -- ^ Duration of the wav in seconds.
-         -> Signal p () a       -- ^ Signal representing the sound.
+         -> String                 -- ^ Filename to write to.
+         -> Double                 -- ^ Duration of the wav in seconds.
+         -> Signal p () a          -- ^ Signal representing the sound.
          -> IO ()
 outFileHelp f filepath dur sf = 
   let sr          = rate (undefined :: p)
@@ -73,6 +76,7 @@ outFileHelp f filepath dur sf =
                     sampleData    = array }
   in exportFile filepath aud
 
+<<<<<<< HEAD
 
 {-
 data RecordStatus = Pause | Record | Clear | Write
@@ -122,6 +126,34 @@ writeWav f filepath sr numChannels adat =
 
 
   
+=======
+{- RealTime Audio -}
+
+-- | Plays a signal to the default speaker
+playSignal :: forall a p. (AudioSample a, Clock p) => 
+              Double              -- ^ Duration to play in seconds.
+           -> Signal p () a       -- ^ Signal representing the sound.
+           -> IO ()
+playSignal     = playSignalHelp id
+
+-- | Like playSignal, but normalizes the audio stream before playing it.
+-- Note: This will compute the entire audio before it starts playing.
+playSignalNorm :: forall a p. (AudioSample a, Clock p) => 
+                  Double              -- ^ Duration to play in seconds.
+               -> Signal p () a       -- ^ Signal representing the sound.
+               -> IO ()
+playSignalNorm = playSignalHelp normList
+
+playSignalHelp :: forall a p. (AudioSample a, Clock p) => 
+                  ([Double] -> [Double]) -- ^ Post-processing function.
+               -> Double                 -- ^ Duration to play in seconds.
+               -> Signal p () a          -- ^ Signal representing the sound.
+               -> IO ()
+playSignalHelp f dur sf = bracket (openChannel 512 sr) closeChannel 
+      (\c -> mapM_ (writeChannel c) dat) -- This is equivalent to ((flip mapM_) dat) . writeChannel
+    where sr    = rate (undefined :: p)
+          dat   = f (toSamples dur sf)
+>>>>>>> development
 
 toSamples :: forall a p. (AudioSample a, Clock p) =>
              Double -> Signal p () a -> [Double]
@@ -135,45 +167,3 @@ toSamples dur sf =
 maxSample :: forall a p. (AudioSample a, Clock p) =>
              Double -> Signal p () a -> Double
 maxSample dur sf = maximum (map abs (toSamples dur sf))
-
-
-{-
-chunk !nFrames !(i, f) ref buf = nFrames `seq` i `seq` f `seq` aux nFrames i 
-    where aux !n !i = x `seq` i `seq` i' `seq`
-                       if n == 0 then do
-                                  writeIORef ref i
-                                  return ()
-                       else do
-                        pokeElemOff buf (fromIntegral nFrames-n) (realToFrac x)
-                        aux (n-1) i'
-              where (x, i') = f ((), i)
-{-# INLINE [0] chunk #-}
-
-chunkify !i !f !secs = do
-  --userData <- new i
-  ref <- newIORef i
-  let cb :: RtAudioCallback 
-      cb oBuf iBuf nFrames nSecs status userData = do
-                      
-                      lastState <- readIORef ref
-                      -- Fill output buffer with nFrames of samples
-                      chunk (fromIntegral nFrames) (lastState,f) ref oBuf
-                      if secs < (realToFrac nSecs) then return 2 else return 0
-                              
-                                                          
-  mkAudioCallback cb                                 
-
-
-
-playPure :: Show b => Double -> (b, ((), b) -> (Double, b)) -> IO ()
-playPure !secs !(i, f) = do
-  rtaCloseStream
-  rtaInitialize
-  dev <- rtaGetDefaultOutputDevice
-  callback <- chunkify i f secs
-  with (StreamParameters dev 1 0) (\params -> do
-         rtaOpenStream params nullPtr float64 44100 4096 callback nullPtr nullPtr)
-  rtaStartStream
-  return ()
-  
--}

@@ -22,7 +22,7 @@ as good as any other computer music language, with the goal of being
 able to develop real-time applications, using both MIDI and a 
 high-performance back-end for real-time audio.  
 
-See Liense for licensing information.
+See License for licensing information.
 
 Homepage: http://haskell.cs.yale.edu/
 

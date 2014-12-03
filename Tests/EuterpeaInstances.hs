@@ -46,10 +46,6 @@ instance Arbitrary Dur where
         den <- choose (1,16) :: Gen Integer
         return (toRational num / toRational den)
 
-instance Bounded PitchClass where
-    minBound = Cff
-    maxBound = Bss
-
 instance Arbitrary PitchClass where
     arbitrary = arbitraryBoundedEnum
 
@@ -255,4 +251,4 @@ instance Arbitrary (Context Note1) where
 -}
                 
 instance Arbitrary (Player Note1) where
-    arbitrary = elements [defPlayer, fancyPlayer]
+    arbitrary = elements [defPlayer]

@@ -100,10 +100,13 @@ exists, an error is thrown.
 
 > defaultOutput :: (DeviceID -> a -> IO b) -> a -> IO b
 > defaultOutput f a = do
->   i <- getDefaultOutputDeviceID
->   case i of
->     Nothing -> error "No MIDI output device found"
->     Just i  -> f i a
+>   n <- countDevices
+>   case n of
+>     0 -> error "No MIDI devices on system"
+>     _ -> do i <- getDefaultOutputDeviceID
+>             case i of
+>               Nothing -> error "No MIDI output device found"
+>               Just i  -> f i a
 > 
 > defaultInput :: (DeviceID -> a -> IO b) -> a -> IO b
 > defaultInput f a = do
@@ -223,8 +226,8 @@ It is accessed as a helper function for outputMidi and deliverMidiEvent.
 >         x <- midiOutRealTime' devId -- Changes made by Donya Quick: this line used to pattern match against Just.
 >         pChan <- makePriorityChannel
 >         case x of Just (mout,stop) -> do -- Case statement added.
->         				modifyIORef outDevMap ((devId,(pChan,mout,stop)):)
->         				return (pChan,mout,stop)
+>                       modifyIORef outDevMap ((devId,(pChan,mout,stop)):)
+>                       return (pChan,mout,stop)
 >                   Nothing -> return (pChan, const (return ()), return ()) -- Nothing case added
 
 

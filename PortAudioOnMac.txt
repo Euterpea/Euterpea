@@ -1,0 +1,9 @@
+So far, we've only tested this with OS X 10.9.
+
+Installing the portaudio dependencies is simple. Just run:
+
+    > brew install portaudio
+
+Of course, you should make sure you have Homebrew installed
+first. This might work with Macports, too... if anyone uses
+that successfully, let us know!

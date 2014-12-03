@@ -55,3 +55,8 @@ HSoM/*.pdf
 ############
 fftw3.dll
 fftw3.h
+
+############
+## Testing
+############
+Tests/error.log
