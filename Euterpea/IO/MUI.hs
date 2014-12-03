@@ -7,8 +7,10 @@ module Euterpea.IO.MUI
   , setSize             -- :: Dimension -> UISF a b -> UISF a b
   , setLayout           -- :: Layout -> UISF a b -> UISF a b
   , pad                 -- :: (Int, Int, Int, Int) -> UISF a b -> UISF a b
-  , runMUI'             -- :: String -> UISF () () -> IO ()
-  , runMUI              -- :: Dimension -> String -> UISF () () -> IO ()
+  , defaultMUIParams    -- :: UIParams
+  , UIParams (..)       -- :: UISF () () -> IO ()
+  , runMUI              -- :: UIParams -> UISF () () -> IO ()
+  , runMUI'             -- :: UISF () () -> IO ()
   , getTime             -- :: UISF () Time
     -- Widgets
   , label               -- :: String -> UISF a a
@@ -48,12 +50,13 @@ import Control.CCA.Types
 instance ArrowInit UISF where
   init = delay
 
+defaultMUIParams = defaultUIParams { uiInitialize = initializeMidi, uiClose = terminateMidi, uiTitle = "MUI" }
 
-runMUI :: Dimension -> String -> UISF () () -> IO ()
-runMUI size title uisf = initializeMidi >> runUI size title uisf >> terminateMidi
+runMUI :: UIParams -> UISF () () -> IO ()
+runMUI = runUI
 
-runMUI' :: String -> UISF () () -> IO ()
-runMUI' title uisf = initializeMidi >> runUI' title uisf >> terminateMidi
+runMUI' :: UISF () () -> IO ()
+runMUI' = runUI defaultMUIParams
 
 
 
