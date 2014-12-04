@@ -138,6 +138,7 @@ playSignalNorm :: forall a p. (AudioSample a, Clock p) =>
                -> IO ()
 playSignalNorm = playSignalHelp normList
 
+--this only works for mono signals right now
 playSignalHelp :: forall a p. (AudioSample a, Clock p) =>
                   ([Double] -> [Double]) -- ^ Post-processing function.
                -> Double                 -- ^ Duration to play in seconds.
