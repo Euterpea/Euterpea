@@ -10,7 +10,7 @@
 > import FRP.UISF.AuxFunctions (concatA, evMap)
 
 
-> main = runMUI (600,700) "Interval Trainer" intervalTrainer
+> main = runMUI (defaultMUIParams {uiSize=(600,700), uiTitle="Interval Trainer"}) intervalTrainer
 
 > -- music theory name for intervals:
 > intNameList :: [String]

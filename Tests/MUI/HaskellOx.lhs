@@ -95,7 +95,7 @@ SOURCE CODE
 
 Using check boxes to rout midi output. 
 
-> haskellOx = runMUI(300, 300) "HaskellOx" $ proc _ -> do
+> haskellOx = runMUI (defaultMUIParams {uiSize=(300,300), uiTitle="HaskellOx", uiTickDelay=0}) $ proc _ -> do
 >   mi <- selectInputM-< ()
 >   m <- midiInM -< mi
 >   mo <- selectOutputM -< ()

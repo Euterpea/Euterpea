@@ -55,7 +55,7 @@ When a Midi input event occurs, the input message and the currently
 selected index to the list of chords is sent to the toChord function,
 and the resulting chord is sent to the output device.
 
-> buildChord = runMUI (500,500) "Chord Builder" $ leftRight $ proc _ -> do
+> buildChord = runMUI (defaultMUIParams {uiSize=(500,500), uiTitle="Chord Builder"}) $ leftRight $ proc _ -> do
 >   (mi,mo) <- topDown (selectInput &&& selectOutput) -< ()
 >   m <- midiIn -< mi
 >   i <- topDown $ title "Extension" $ radio (fst (unzip chordIntervals)) 0 -< ()
@@ -104,7 +104,7 @@ musical note:
 Finally, to play the note, we simply send the current population to 
 popToNote, and send the result to the selected Midi output device.  
 
-> bifurcate = runMUI (300,500) "Bifurcate!" $ proc _ -> do
+> bifurcate = runMUI (defaultMUIParams {uiSize=(300,500), uiTitle="Bifurcate!"}) $ proc _ -> do
 >   mo <- selectOutput -< ()
 >   f  <- title "Frequency" $ withDisplay (hSlider (1, 10) 1) -< ()
 >   r  <- title "Growth rate" $ withDisplay (hSlider (2.4, 4.0) 2.4) -< ()
@@ -143,7 +143,7 @@ decayed signal is fed into the vdelay signal function along with
 the amount of time to delay (the inverse of the echo frequency, 
 which is given by the other slider f).
 
-> echo = runMUI (500,500) "Echo" $ proc _ -> do
+> echo = runMUI (defaultMUIParams {uiSize=(500,500), uiTitle="Echo"}) $ proc _ -> do
 >   mi <- selectInput  -< ()
 >   mo <- selectOutput -< ()
 >   m <- midiIn -< mi
