@@ -178,4 +178,5 @@ string3 = ("4rfv__________", (D,4), '0')
 string2 = ("5tgb__________", (A,3), '9')
 string1 = ("6yhn__________", (E,3), '8')
 
+sixString :: GuitarKeyMap
 sixString = reverse [string1, string2, string3, string4, string5, string6]

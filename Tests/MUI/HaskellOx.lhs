@@ -90,10 +90,21 @@ SOURCE CODE
 > import FRP.UISF.AuxFunctions -- previously Control.SF.AuxFunctions
 > import Control.Arrow
 
+> import Euterpea.Experimental (runMIDI)
+
 
 > main = haskellOx
 
 Using check boxes to rout midi output. 
+
+> haskellOx2 = runMUI' $ proc _ -> do
+>     mi <- selectInputM  -< ()
+>     mo <- selectOutputM -< ()
+>     t <- runMIDI sf -< (mo, mi)
+>     returnA -< ()
+>   where
+>     -- (SF (outputdevicelist, SEvent [MidiMessage]) (c,[(DeviceID, SEvent [MidiMessage])]))
+>     sf = arr $ \(lst, e) -> ((), map (\d -> (d,e)) lst)
 
 > haskellOx = runMUI (defaultMUIParams {uiSize=(300,300), uiTitle="HaskellOx", uiTickDelay=0}) $ proc _ -> do
 >   mi <- selectInputM-< ()

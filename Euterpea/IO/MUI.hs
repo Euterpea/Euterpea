@@ -1,7 +1,7 @@
 module Euterpea.IO.MUI 
   ( -- UI functions
     UISF 
-  , convertToUISF       -- :: NFData b => Integer -> Int -> SF a b -> UISF a ([b], Bool)
+  , asyncV              -- :: NFData b => Integer -> Int -> SF a b -> UISF a ([b], Bool)
   , Dimension           -- type Dimension = (Int, Int)
   , topDown, bottomUp, leftRight, rightLeft    -- :: UISF a b -> UISF a b
   , setSize             -- :: Dimension -> UISF a b -> UISF a b
