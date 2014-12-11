@@ -40,7 +40,8 @@ compatability.
 
 > import Euterpea.IO.MIDI.MidiIO hiding (Time)
 > import Control.Monad (when)
-> import Control.Arrow (arr, (>>>))
+> import Control.Arrow (arr, (>>>), first)
+> import Control.Concurrent (killThread)
 
 
 The below function is useful for making use of asyncUISF*
@@ -57,8 +58,8 @@ The below function is useful for directly asynchronizing AudSFs and CtrSFs in UI
 > clockedSFToUISF buffer ~(ArrowP sf) = let r = rate (undefined :: c) 
 >   in asyncUISFV r buffer (toAutomaton sf)
 
-> runMIDI :: (NFData b, NFData c) => (SF (b, SEvent [MidiMessage]) (c,[(DeviceID, SEvent [MidiMessage])])) -> UISF (b, [DeviceID]) [c]
-> runMIDI sf = asyncC' addThreadId (iAction . snd, oAction) sf' where
+> runMIDI :: (NFData b, NFData c) => (SF (b, SEvent [MidiMessage]) (c, SEvent [MidiMessage])) -> UISF (b, ([DeviceID],[DeviceID])) [c]
+> runMIDI sf = asyncC' (addTerminationProc . killThread) (iAction . fst . snd, oAction) sf' where
 >   iAction [] = return Nothing
 >   iAction (dev:devs) = do
 >     valid <- isValidInputDevice dev
@@ -72,12 +73,9 @@ The below function is useful for directly asynchronizing AudSFs and CtrSFs in UI
 >     when valid $ outputMidi dev >> maybe (return ()) 
 >                  (mapM_ $ \m -> deliverMidiEvent dev (0, m)) ms
 >     oAction rst
->   sf' = toAutomaton $ arr (\((b,ids),mms) -> (b,mms)) >>> sf
+>   sf' = toAutomaton $ arr (\((b,(idevs,odevs)),mms) -> ((b,mms),odevs)) >>> first sf >>>
+>           arr (\((c,mms),odevs) -> (c, map (\d -> (d,mms)) odevs))
 
-We can easily return Nothing instead of running the input action.  Therefore, maybe 
-asyncC' should have an "init" value and output the value that will be sent to iAction 
-on the next tick.  Downside: although performance is still great, there is an illusion 
-that the data you have is a tick behind.
 
 
 

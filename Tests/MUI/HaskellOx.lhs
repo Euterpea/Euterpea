@@ -100,11 +100,11 @@ Using check boxes to rout midi output.
 > haskellOx2 = runMUI' $ proc _ -> do
 >     mi <- selectInputM  -< ()
 >     mo <- selectOutputM -< ()
->     t <- runMIDI sf -< (mo, mi)
+>     _ <- runMIDI sf -< ((), (mi, mo))
 >     returnA -< ()
 >   where
 >     -- (SF (outputdevicelist, SEvent [MidiMessage]) (c,[(DeviceID, SEvent [MidiMessage])]))
->     sf = arr $ \(lst, e) -> ((), map (\d -> (d,e)) lst)
+>     sf = arr id
 
 > haskellOx = runMUI (defaultMUIParams {uiSize=(300,300), uiTitle="HaskellOx", uiTickDelay=0}) $ proc _ -> do
 >   mi <- selectInputM-< ()
