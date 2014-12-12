@@ -103,7 +103,7 @@ Using check boxes to rout midi output.
 >     _ <- runMIDI sf -< ((), (mi, mo))
 >     returnA -< ()
 >   where
->     -- (SF (outputdevicelist, SEvent [MidiMessage]) (c,[(DeviceID, SEvent [MidiMessage])]))
+>     -- SF (b, SEvent [MidiMessage]) (c, SEvent [MidiMessage])
 >     sf = arr id
 
 > haskellOx = runMUI (defaultMUIParams {uiSize=(300,300), uiTitle="HaskellOx", uiTickDelay=0}) $ proc _ -> do
@@ -114,7 +114,7 @@ Using check boxes to rout midi output.
 >   returnA -< () where
 >   f = map fst . filter snd
 
-> mProc :: [DeviceID] -> SEvent [MidiMessage] -> [(DeviceID, BufferOperation MidiMessage)]
+> mProc :: [deviceid] -> SEvent [MidiMessage] -> [(deviceid, BufferOperation MidiMessage)]
 > mProc outDevs msgs = map (\d -> (d, ztStamp msgs)) outDevs where
 >     ztStamp Nothing = NoBOp
 >     ztStamp (Just ms) = AppendToBuffer $ map (\m -> (0,m)) ms

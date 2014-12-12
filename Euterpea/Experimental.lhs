@@ -58,20 +58,18 @@ The below function is useful for directly asynchronizing AudSFs and CtrSFs in UI
 > clockedSFToUISF buffer ~(ArrowP sf) = let r = rate (undefined :: c) 
 >   in asyncUISFV r buffer (toAutomaton sf)
 
-> runMIDI :: (NFData b, NFData c) => (SF (b, SEvent [MidiMessage]) (c, SEvent [MidiMessage])) -> UISF (b, ([DeviceID],[DeviceID])) [c]
+> runMIDI :: (NFData b, NFData c) => (SF (b, SEvent [MidiMessage]) (c, SEvent [MidiMessage])) -> UISF (b, ([InputDeviceID],[OutputDeviceID])) [c]
 > runMIDI sf = asyncC' (addTerminationProc . killThread) (iAction . fst . snd, oAction) sf' where
 >   iAction [] = return Nothing
->   iAction (dev:devs) = do
->     valid <- isValidInputDevice dev
->     m <- if valid then pollMidi dev else return Nothing
+>   iAction (idev:devs) = do
+>     m <- pollMidi idev
 >     let ret = fmap (\(_t, ms) -> map Std ms) m
 >     rst <- iAction devs
 >     return $ ret ~++ rst
 >   oAction [] = return ()
->   oAction ((dev, ms):rst) = do
->     valid <- isValidOutputDevice dev 
->     when valid $ outputMidi dev >> maybe (return ()) 
->                  (mapM_ $ \m -> deliverMidiEvent dev (0, m)) ms
+>   oAction ((odev, ms):rst) = do
+>     outputMidi odev
+>     maybe (return ()) (mapM_ $ \m -> deliverMidiEvent odev (0, m)) ms
 >     oAction rst
 >   sf' = toAutomaton $ arr (\((b,(idevs,odevs)),mms) -> ((b,mms),odevs)) >>> first sf >>>
 >           arr (\((c,mms),odevs) -> (c, map (\d -> (d,mms)) odevs))

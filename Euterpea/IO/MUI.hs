@@ -30,9 +30,10 @@ module Euterpea.IO.MUI
   , realtimeGraph       -- :: RealFrac a => Layout -> Time -> Color -> UISF (Time, [(a,Time)]) ()
   , histogram           -- :: RealFrac a => Layout -> UISF (Event [a]) ()
   , listbox             -- :: (Eq a, Show a) => UISF ([a], Int) Int
-  , midiIn              -- :: UISF DeviceID (SEvent [MidiMessage])
-  , midiOut             -- :: UISF (DeviceID, SEvent [MidiMessage]) ()
-  , selectInput, selectOutput    -- :: UISF () DeviceID
+  , midiIn              -- :: UISF (Maybe InputDeviceID) (SEvent [MidiMessage])
+  , midiOut             -- :: UISF (Maybe OutputDeviceID, SEvent [MidiMessage]) ()
+  , selectInput         -- :: UISF () (Maybe InputDeviceID)
+  , selectOutput        -- :: UISF () (Maybe OutputDeviceID)
   , canvas              -- :: Dimension -> UISF (Event Graphic) ()
   , canvas'             -- :: Layout -> (a -> Dimension -> Graphic) -> UISF (Event a) ()
   -- Widget Utilities

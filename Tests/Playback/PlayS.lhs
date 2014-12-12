@@ -45,10 +45,8 @@ PLAYING TO DIFFERENT DEVICES
 Function to list all available devices:
 
 > devices = do
->   devs <- getAllDevices
->   let devsIn = filter (input.snd) devs
->       devsOut = filter (output.snd) devs
->       f (devid, devname) = "  "++show devid ++ "\t" ++ name devname ++ "\n"
+>   (devsIn, devsOut) <- getAllDevices
+>   let f (devid, devname) = "  "++show devid ++ "\t" ++ name devname ++ "\n"
 >       strIn = concatMap f devsIn
 >       strOut = concatMap f devsOut
 >   putStrLn "\nInput devices: " >> putStrLn strIn 
@@ -57,12 +55,12 @@ Function to list all available devices:
 Original device-specific playback version: 
 (fails on long delays, just like "play") 
 
-> playDev :: Performable a => DeviceID -> Music a -> IO ()
+> playDev :: Performable a => OutputDeviceID -> Music a -> IO ()
 > playDev devID m = playM' devID $ testMidi m
 
 Redefinition of playM to support the above.
 
-> playM' :: DeviceID -> Midi -> IO ()
+> playM' :: OutputDeviceID -> Midi -> IO ()
 > playM' devID midi = do 
 >   initialize
 >   playMidi devID midi 
@@ -71,12 +69,12 @@ Redefinition of playM to support the above.
 
 Strict-timing version:
 
-> playDevS1 :: Performable a => DeviceID -> Music a -> IO ()
+> playDevS1 :: Performable a => OutputDeviceID -> Music a -> IO ()
 > playDevS1 devID m = 
 >     let x = testMidi m
 >     in  x `deepseq` playM' devID x
 
-> playDevS2 :: (Performable a, NFData a) => DeviceID -> Music a -> IO ()
+> playDevS2 :: (Performable a, NFData a) => OutputDeviceID -> Music a -> IO ()
 > playDevS2 devID m = m `deepseq`
 >     let x = testMidi m
 >     in  x `deepseq` playM' devID x
@@ -92,7 +90,7 @@ Infinite playback functions
 
 Versions of the above to play to different devices:
 
-> playInfDev, playInfDevD :: Performable a => DeviceID -> Music a -> IO ()
+> playInfDev, playInfDevD :: Performable a => OutputDeviceID -> Music a -> IO ()
 > playInfDev = playInf' 1.0 (linear 16 9)
 > playInfDevD = playInf' 1.0 (dynamic 16 9)
 
@@ -102,7 +100,7 @@ closing the MIDI output. Often 1.0sec is enought to avoid clipping with the
 default Windows synth. Other synthesizers with better latency will not need
 such a big delay, if any.
 
-> playInf' ::  Performable a => Euterpea.Time -> ChannelMapFun -> DeviceID -> Music a -> IO ()
+> playInf' ::  Performable a => Euterpea.Time -> ChannelMapFun -> OutputDeviceID -> Music a -> IO ()
 > playInf' dSec cp devID m = handleCtrlC $ do
 >     initializeMidi
 >     playRec devID $ musicToMsgs' cp m 
@@ -112,7 +110,7 @@ such a big delay, if any.
 >     handleCtrlC :: IO a -> IO a
 >     handleCtrlC op = onException op terminateMidi
 
-> playS' ::  (NFData a, Performable a) => ChannelMapFun -> DeviceID -> Music a -> IO ()
+> playS' ::  (NFData a, Performable a) => ChannelMapFun -> OutputDeviceID -> Music a -> IO ()
 > playS' cp devID m = m `deepseq`
 >     let msgs = musicToMsgs' cp m
 >     in  msgs `deepseq` do
@@ -121,7 +119,7 @@ such a big delay, if any.
 >         terminateMidi
 >         return ()
 
-> playSL, playSD ::  (NFData a, Performable a) => DeviceID -> Music a -> IO ()
+> playSL, playSD ::  (NFData a, Performable a) => OutputDeviceID -> Music a -> IO ()
 > playSL = playS' (linear 16 9)
 > playSD = playS' (dynamic 16 9)
 
