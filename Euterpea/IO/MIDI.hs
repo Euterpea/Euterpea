@@ -4,13 +4,15 @@ module Euterpea.IO.MIDI
   , module Euterpea.IO.MIDI.GeneralMidi
 --  , fromGM              -- :: Int -> InstrumentName
 --  , toGM                -- :: InstrumentName -> Int
-  , defaultOutput         -- :: (DeviceID -> a -> IO b) -> a -> IO b
-  , defaultInput          -- :: (DeviceID -> a -> IO b) -> a -> IO b
-  , playMidi              -- :: DeviceID -> Midi -> IO ()
+  , defaultOutput         -- :: (OutputDeviceID -> a -> IO b) -> a -> IO b
+  , defaultInput          -- :: (InputDeviceID -> a -> IO b) -> a -> IO b
+  , playMidi              -- :: OutputDeviceID -> Midi -> IO ()
   , MidiMessage(..)       -- data MidiMessage = ANote { .. } | Std Message
   , Message(..)           -- data Message           (from Codec.Midi)
   , DeviceInfo(..)        -- data DeviceInfo        (from Sound.PortMidi)
-  , DeviceID              -- type DeviceID = Int    (from Sound.PortMidi)
+  , OutputDeviceID        -- newtype OutputDeviceID
+  , InputDeviceID         -- newtype InputDeviceID
+  --, DeviceID              -- type DeviceID = Int    (from Sound.PortMidi)
   --, exportMidiFile -- :: FilePath -> Midi -> IO ()
   --, writeMidi -- :: (Performable a) => FilePath -> Music a -> IO ()
   --, writeMidiA -- :: (Performable a) => FilePath -> PMap Note1 -> Context Note1 -> Music a -> IO ()

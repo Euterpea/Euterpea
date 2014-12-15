@@ -12,9 +12,8 @@ compatability.
 >     module Euterpea.IO.MUI.InstrumentWidgets
 >   -- The InstrumentWidgets module provides support for the piano and guitar
 >   -- MUI widgets.
->   , convertToUISF, asyncUISF, clockedSFToUISF
+>   , asyncUISFV, asyncUISFE, clockedSFToUISF, runMIDI
 >   -- These conversion functions are for lifting SFs into UISFs.
->   , AsyncInput(..), AsyncOutput(..)
 >   , Automaton(..), toAutomaton
 >   -- The async function allows a signal function to run asynchronously.  
 >   -- This can be especially useful for a hard computation that needs to be 
@@ -39,7 +38,13 @@ compatability.
 > import Euterpea.IO.Audio.Types
 > import Control.DeepSeq
 
-The below function is useful for making use of convertToUISF and asyncUISF 
+> import Euterpea.IO.MIDI.MidiIO hiding (Time)
+> import Control.Monad (when)
+> import Control.Arrow (arr, (>>>), first)
+> import Control.Concurrent (killThread)
+
+
+The below function is useful for making use of asyncUISF*
 which both make use of Automatons rather than SFs.
 NOTE: Actually, SF and Automaton (->) are the same thing.  Perhaps we should 
       replace our definition of SF with just a type synonym instead.
@@ -51,5 +56,24 @@ The below function is useful for directly asynchronizing AudSFs and CtrSFs in UI
 
 > clockedSFToUISF :: forall a b c . (NFData b, Clock c) => Double -> SigFun c a b -> UISF a [(b, Time)]
 > clockedSFToUISF buffer ~(ArrowP sf) = let r = rate (undefined :: c) 
->   in convertToUISF r buffer (toAutomaton sf)
+>   in asyncUISFV r buffer (toAutomaton sf)
+
+> runMIDI :: (NFData b, NFData c) => (SF (b, SEvent [MidiMessage]) (c, SEvent [MidiMessage])) -> UISF (b, ([InputDeviceID],[OutputDeviceID])) [c]
+> runMIDI sf = asyncC' (addTerminationProc . killThread) (iAction . fst . snd, oAction) sf' where
+>   iAction [] = return Nothing
+>   iAction (idev:devs) = do
+>     m <- pollMidi idev
+>     let ret = fmap (\(_t, ms) -> map Std ms) m
+>     rst <- iAction devs
+>     return $ ret ~++ rst
+>   oAction [] = return ()
+>   oAction ((odev, ms):rst) = do
+>     outputMidi odev
+>     maybe (return ()) (mapM_ $ \m -> deliverMidiEvent odev (0, m)) ms
+>     oAction rst
+>   sf' = toAutomaton $ arr (\((b,(idevs,odevs)),mms) -> ((b,mms),odevs)) >>> first sf >>>
+>           arr (\((c,mms),odevs) -> (c, map (\d -> (d,mms)) odevs))
+
+
+
 

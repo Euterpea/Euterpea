@@ -29,12 +29,12 @@ ui2   =   leftRight $
     title "Pitch" display -< pitch ap
 
 --mui2  =  runMUI' "Simple MUI (left-to-right layout)" ui2
-ui3  ::  UISF () ()
-ui3  =   proc _ -> do
-    ap <- title "Absolute Pitch" (hiSlider 1 (0,100) 0) -< ()
-    title "Pitch" display -< pitch ap
-    uap <- unique -< ap
-    midiOut -< (0, fmap (\k-> [ANote 0 k 100 0.1]) uap)
+--ui3  ::  UISF () ()
+--ui3  =   proc _ -> do
+--    ap <- title "Absolute Pitch" (hiSlider 1 (0,100) 0) -< ()
+--    title "Pitch" display -< pitch ap
+--    uap <- unique -< ap
+--    midiOut -< (0, fmap (\k-> [ANote 0 k 100 0.1]) uap)
 
 --mui3  = runMUI' "Pitch Player" ui3
 

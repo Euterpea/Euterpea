@@ -25,7 +25,6 @@ Experimental playback implementation.
 > import Euterpea.Music.Note.Music
 > import Euterpea.Music.Note.Performance
 > import Sound.PortMidi
-> import System.IO.Unsafe (unsafePerformIO)
 
 --------------------------
  | User-Level Functions |
@@ -38,7 +37,7 @@ Playback parameter data type.
 >     ctxt :: Context Note1, -- context
 >     strict :: Bool, -- strict timing (False for infinite values)
 >     chanPolicy :: ChannelMapFun, -- channel assignment policy
->     devID :: Maybe DeviceID, -- output device (Nothing means to use the OS default)
+>     devID :: Maybe OutputDeviceID, -- output device (Nothing means to use the OS default)
 >     closeDelay :: Time -- delay in seconds to avoid truncated notes
 >     }
 
@@ -63,10 +62,8 @@ Getting a list of all MIDI input and output devices, showing both
 their device IDs and names. 
 
 > devices = do
->   devs <- getAllDevices
->   let devsIn = filter (input.snd) devs
->       devsOut = filter (output.snd) devs
->       f (devid, devname) = "  "++show devid ++ "\t" ++ name devname ++ "\n"
+>   (devsIn, devsOut) <- getAllDevices
+>   let f (devid, devname) = "  "++show devid ++ "\t" ++ name devname ++ "\n"
 >       strIn = concatMap f devsIn
 >       strOut = concatMap f devsOut
 >   putStrLn "\nInput devices: " >> putStrLn strIn 
@@ -86,22 +83,14 @@ note, even if there is a long computation delay prior to any sound.
 >     let x = toMidi (fst $ perfDur (pmap p) (ctxt p) m) defUpm 
 >     in  x `deepseq` playM' (devID p) x
 
-> playM' :: Maybe DeviceID -> Midi -> IO ()
+> playM' :: Maybe OutputDeviceID -> Midi -> IO ()
 > playM' devID midi = handleCtrlC $ do 
 >     initialize
->     dev <- handleDev devID
->     playMidi dev midi 
+>     (maybe (defaultOutput playMidi) playMidi devID) midi
 >     terminate
 >     return () where
 >     handleCtrlC :: IO a -> IO a
 >     handleCtrlC op = onException op terminate
-
-> handleDev :: Maybe DeviceID -> IO DeviceID
-> handleDev (Just dev) = return dev
-> handleDev Nothing = do
->     i <- getDefaultOutputDeviceID
->     case i of Just devID -> return devID
->               Nothing -> error "No default MIDI device found."
 
 
 Infinite playback: arbitrarily long music values can be played, although 
@@ -112,8 +101,7 @@ consuming to compute. Infinite parallelism is not supported.
 > playInf :: Performable a => PlayParams -> Music a -> IO ()
 > playInf p m = handleCtrlC $ do
 >     initializeMidi
->     dev <- handleDev $ devID p
->     playRec dev $ musicToMsgs' p m 
+>     (maybe (defaultOutput playRec) playRec (devID p)) $ musicToMsgs' p m
 >     threadDelay $ round (closeDelay p * 1000000)
 >     terminateMidi
 >     return () where
@@ -126,10 +114,10 @@ consuming to compute. Infinite parallelism is not supported.
 >     let mNow = x : takeWhile ((<=0).fst) ms
 >         mLater = drop (length mNow - 1) ms
 >     in  doMidiOut dev (Just $ mNow) >> playRec dev mLater where
->     doMidiOut dev ms = do
->         valid <- isValidOutputDevice dev 
->         when valid $ outputMidi dev >> maybe (return ()) 
->                      (mapM_ (\(t,m) -> deliverMidiEvent dev (0, m))) ms
+>     doMidiOut dev Nothing = outputMidi dev
+>     doMidiOut dev (Just ms) = do
+>         outputMidi dev
+>         mapM_ (\(t,m) -> deliverMidiEvent dev (0, m)) ms
 >     toMicroSec x = round (x * 1000000)
 
 
