@@ -21,9 +21,7 @@
 > import Control.Arrow
 > import Control.Monad (when)
 > import Data.Maybe
-=======
 > import Control.Monad (when, liftM)
->>>>>>> 0ac61e567bf5e7c98a46aa4f3d1d72bc5f4f8452
 
 > -- These four lines are just for musicToMsgs
 > import Euterpea.IO.MIDI.GeneralMidi (toGM)
@@ -51,23 +49,13 @@ of MidiMessages and sends the MidiMessages to the device.
 >  f (Just dev) = do
 >   m <- pollMidi dev
 >   return $ fmap (\(_t, ms) -> map Std ms) m
-<<<<<<< HEAD
 
-> midiOut :: UISF (DeviceID, SEvent [MidiMessage]) ()
-> midiOut = liftAIO f where
->   f (dev, ms) = do
->       valid <- isValidOutputDevice dev
->       when valid $ outputMidi dev >> maybe (return ())
->                    (mapM_ $ \m -> deliverMidiEvent dev (0, m)) ms
-=======
- 
 > midiOut :: UISF (Maybe OutputDeviceID, SEvent [MidiMessage]) ()
 > midiOut = liftAIO f where
 >   f (Nothing, _) = return ()
 >   f (Just dev, Nothing) = outputMidi dev
 >   f (Just dev, Just ms) = do
 >       outputMidi dev >> mapM_ (\m -> deliverMidiEvent dev (0, m)) ms
->>>>>>> 0ac61e567bf5e7c98a46aa4f3d1d72bc5f4f8452
 
 
 The midiInM widget takes input from multiple devices and combines

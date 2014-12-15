@@ -1,6 +1,6 @@
-module Euterpea.IO.MUI 
+module Euterpea.IO.MUI
   ( -- UI functions
-    UISF 
+    UISF
   , asyncV              -- :: NFData b => Integer -> Int -> SF a b -> UISF a ([b], Bool)
   , Dimension           -- type Dimension = (Int, Int)
   , topDown, bottomUp, leftRight, rightLeft    -- :: UISF a b -> UISF a b
@@ -58,6 +58,3 @@ runMUI = runUI
 
 runMUI' :: UISF () () -> IO ()
 runMUI' = runUI defaultMUIParams
-
-
-
