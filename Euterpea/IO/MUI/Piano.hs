@@ -1,14 +1,12 @@
 {-# LANGUAGE Arrows #-}
 module Euterpea.IO.MUI.Piano where
-import Euterpea.IO.MUI.UIMonad
-import Euterpea.IO.MUI.Widget
-import Euterpea.IO.MUI.UISF
-import Euterpea.IO.MUI.SOE
+import FRP.UISF
+import FRP.UISF.SOE
+import FRP.UISF.UITypes (Layout(..), nullLayout)
+import FRP.UISF.Widget
 import Euterpea.IO.MIDI
 import Euterpea.Music.Note.Music hiding (transpose)
 import Euterpea.Music.Note.Performance
-import Control.SF.AuxFunctions
-import Control.Arrow
 import Euterpea.IO.MUI.InstrumentBase
 import qualified Codec.Midi as Midi
 import Data.Maybe
@@ -155,8 +153,8 @@ mkKey c kt = mkWidget iState d process draw where
     process kd (kb,_) bbx evt = (kb'', (kb'', notation kd), kb /= kb'') where
         kb'  = if isJust (pressed kd) then kb { song = fromJust $ pressed kd } else kb
         kb'' = case evt of
-            Key (CharKey c') down ms ->
-                if detectKey c' (shift ms)
+            Key c' ms down ->
+                if detectKey c' (hasShiftModifier ms)
                 then kb' { keypad = down, vel = 127 }
                 else kb'
             Button pt True down -> case (mouse kb', down, insideKey kt pt bbx) of 

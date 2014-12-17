@@ -2,12 +2,12 @@
 module Euterpea.Examples.Instruments where
 import Euterpea
 import Euterpea.Experimental
-import Control.SF.AuxFunctions ((~++))
+import FRP.UISF.AuxFunctions ((~++))
 
 -- Here is a demonstration of the guitar and piano widgets available in Euterpea.
 
 instrumentDemo :: IO ()
-instrumentDemo = runUIEx (1038,706) "Instrument Demo" $ proc _ -> do
+instrumentDemo = runMUI (defaultMUIParams {uiSize=(1038,706), uiTitle="Instrument Demo"}) $ proc _ -> do
     devId <- selectOutput -< ()
     -- The song player is a standard component that plays back a music value. The string is used
     -- as a display name.

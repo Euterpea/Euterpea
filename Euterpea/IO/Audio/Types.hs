@@ -34,7 +34,7 @@ class AudioSample a where
     zero :: a
     mix :: a -> a -> a
     collapse :: a -> [Double]
-    numChans :: a -> Int   
+    numChans :: a -> Int
       -- allows us to reify the number of channels from the type.
 
 instance AudioSample Double where
@@ -83,12 +83,12 @@ instance (Unlifted a, Unlifted b, Unlifted c) => Unlifted (a,b,c) where
     expose (a, b, c) s = expose a (expose b (expose c s))
     {-# INLINE expose #-}
 
-instance (Unlifted a, Unlifted b, Unlifted c, Unlifted d) 
+instance (Unlifted a, Unlifted b, Unlifted c, Unlifted d)
     => Unlifted (a,b,c,d) where
     expose (a, b, c,d) s = expose a (expose b (expose c (expose d s)))
     {-# INLINE expose #-}
 
-instance (Unlifted a, Unlifted b, Unlifted c, Unlifted d, Unlifted e) 
+instance (Unlifted a, Unlifted b, Unlifted c, Unlifted d, Unlifted e)
     => Unlifted (a,b,c,d,e) where
     expose (a, b, c,d,e) s = expose a (expose b (expose c (expose d (expose e s))))
     {-# INLINE expose #-}

@@ -93,7 +93,7 @@ versions of the unit generators.
 > import Control.CCA.ArrowP
 > import Control.CCA.Types
 > import Control.CCA.CCNF
-> import Control.SF.AuxFunctions (SEvent, constA)
+> import FRP.UISF.AuxFunctions (SEvent, constA)
 > import Data.Array.Base (unsafeAt)
 > import Data.Array.Unboxed
 

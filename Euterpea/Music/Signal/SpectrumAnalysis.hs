@@ -6,7 +6,7 @@
 module Euterpea.Music.Signal.SpectrumAnalysis where
 
 import Euterpea
-import Control.SF.AuxFunctions (fftA)
+import Euterpea.Experimental (fftA)
 
 import Data.Complex (Complex ((:+)), polar)
 import Data.Maybe (listToMaybe, catMaybes)

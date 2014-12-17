@@ -3,14 +3,14 @@
 > module Euterpea.Examples.IntervalTrainer where
 
 > import Euterpea
-> import Euterpea.Experimental (uisfPipeE)
+> import Euterpea.Experimental (liftAIO)
 > import System.Random (randomRIO)
 > import Codec.Midi (Message(ProgramChange))
 
-> import Control.SF.AuxFunctions ((=>>), (->>), (.|.), snapshot, snapshot_, concatA)
+> import FRP.UISF.AuxFunctions (concatA, evMap)
 
 
-> main = runUIEx (600,700) "Interval Trainer" intervalTrainer
+> main = runMUI (defaultMUIParams {uiSize=(600,700), uiTitle="Interval Trainer"}) intervalTrainer
 
 > -- music theory name for intervals:
 > intNameList :: [String]
@@ -111,7 +111,7 @@ The main UI:
 >         e `whileIn` s = if s == state then e else Nothing
 >  
 >     -- Random intervals:
->     randIntE <- uisfPipeE mkRandInt -< snapshot_ nextE (maxInt, lowOct, range)
+>     randIntE <- evMap (liftAIO mkRandInt) -< snapshot_ nextE (maxInt, lowOct, range)
 >     interval <- hold (0,0)  -< randIntE
 >     let trigger  = snapshot randIntE (dur, instr) .|.
 >                    snapshot_ repeatE (interval, (dur, instr))
@@ -183,3 +183,18 @@ at 60 BPM a whole note is 1 sec
 
 ANote :: Channel -> Key -> Velocity -> Time -> MidiMessage
 
+--------------------------------------
+-- Yampa-style utilities
+--------------------------------------
+
+> (=>>) :: SEvent a -> (a -> b) -> SEvent b
+> (=>>) = flip fmap
+> (->>) :: SEvent a -> b -> SEvent b
+> (->>) = flip $ fmap . const
+> (.|.) :: SEvent a -> SEvent a -> SEvent a
+> (.|.) = flip $ flip maybe Just
+> 
+> snapshot :: SEvent a -> b -> SEvent (a,b)
+> snapshot = flip $ fmap . flip (,)
+> snapshot_ :: SEvent a -> b -> SEvent b
+> snapshot_ = flip $ fmap . const -- same as ->>
