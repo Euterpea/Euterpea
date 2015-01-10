@@ -8,6 +8,7 @@
 >   defaultOutput, defaultInput,
 >   playMidi, 
 >   MidiMessage (ANote, Std), 
+>   getTimeNow,
 >   DeviceInfo(..), InputDeviceID, OutputDeviceID, Message(..), Time
 > ) where
 

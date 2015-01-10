@@ -1,5 +1,4 @@
-> {-# LANGUAGE Arrows, TupleSections #-}
-> {-# LANGUAGE DoRec, Arrows #-}
+> {-# LANGUAGE RecursiveDo, Arrows, TupleSections #-}
 
 Donya Quick
 Last modified: 21-Sept-2014
@@ -90,7 +89,7 @@ SOURCE CODE
 > import FRP.UISF.AuxFunctions -- previously Control.SF.AuxFunctions
 > import Control.Arrow
 
-> import Euterpea.Experimental (runMIDI)
+> import Euterpea.Experimental (runMidiM)
 
 
 > main = haskellOx
@@ -100,11 +99,14 @@ Using check boxes to rout midi output.
 > haskellOx2 = runMUI' $ proc _ -> do
 >     mi <- selectInputM  -< ()
 >     mo <- selectOutputM -< ()
->     _ <- runMIDI sf -< ((), (mi, mo))
+>     t <- runMidiMB sf -< ((), (mi, mo))
+>     -- t <- runMidiMFlood (arr id) -< ((), (mi, mo)) -- using this line does not require the where clause
+>     display -< length t
 >     returnA -< ()
 >   where
->     -- SF (b, SEvent [MidiMessage]) (c, SEvent [MidiMessage])
->     sf = arr id
+>     sf = second $ arr $ \(idevs, odevs) -> mProc odevs (joinInputMMS idevs)
+>     joinInputMMS :: [(InputDeviceID, SEvent [MidiMessage])] -> SEvent [MidiMessage]
+>     joinInputMMS = foldl (flip ((~++) . snd)) Nothing
 
 > haskellOx = runMUI (defaultMUIParams {uiSize=(300,300), uiTitle="HaskellOx", uiTickDelay=0}) $ proc _ -> do
 >   mi <- selectInputM-< ()

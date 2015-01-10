@@ -118,6 +118,7 @@ Library
         Euterpea.IO.MUI.FFT,
         Euterpea.IO.MUI.Guitar,
         Euterpea.IO.MUI.Piano,
+        Euterpea.IO.MUI.UISFCompat,
         Euterpea.IO.MUI,
         Euterpea.Music.Note.MoreMusic,
         Euterpea.Music.Note.Music,
@@ -133,6 +134,6 @@ Library
         template-haskell, 
         monadIO, deepseq,
         pure-fft,
-        stm
+        stm, arrows >= 0.4
   if (impl(ghc >= 6.10))
     build-depends: base >= 4 && < 5, syb, ghc-prim

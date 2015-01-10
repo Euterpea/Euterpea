@@ -6,13 +6,12 @@ to include in the project as a whole.  One should not rely on the features
 found here as they may be removed or changed without thought to backwards 
 compatability.
 
-> {-# LANGUAGE ExistentialQuantification, ScopedTypeVariables #-}
-
 > module Euterpea.Experimental (
 >     module Euterpea.IO.MUI.InstrumentWidgets
 >   -- The InstrumentWidgets module provides support for the piano and guitar
 >   -- MUI widgets.
->   , asyncUISFV, asyncUISFE, clockedSFToUISF, runMIDI
+>   , asyncUISFV, asyncUISFE, clockedSFToUISF
+>   , runMidi, runMidiM, runMidiMFlood, runMidiMB, runMidiMBFlood
 >   -- These conversion functions are for lifting SFs into UISFs.
 >   , Automaton(..), toAutomaton
 >   -- The async function allows a signal function to run asynchronously.  
@@ -29,50 +28,12 @@ compatability.
 >   , uisfSourceE, uisfSinkE, uisfPipeE
 > ) where
 
+> import Euterpea.IO.MUI.UISFCompat
 > import Euterpea.IO.MUI.InstrumentWidgets
+> import Euterpea.IO.MUI.MidiWidgets
 > import Euterpea.IO.MUI.FFT
 > import FRP.UISF.AuxFunctions
 > import FRP.UISF.UISF
-> import Control.SF.SF
-> import Control.CCA.ArrowP
-> import Euterpea.IO.Audio.Types
-> import Control.DeepSeq
-
-> import Euterpea.IO.MIDI.MidiIO hiding (Time)
-> import Control.Monad (when)
-> import Control.Arrow (arr, (>>>), first)
-> import Control.Concurrent (killThread)
-
-
-The below function is useful for making use of asyncUISF*
-which both make use of Automatons rather than SFs.
-NOTE: Actually, SF and Automaton (->) are the same thing.  Perhaps we should 
-      replace our definition of SF with just a type synonym instead.
-
-> toAutomaton :: forall a b . SF a b -> Automaton (->) a b
-> toAutomaton ~(SF f) = Automaton $ \a -> let (b, sf) = f a in (b, toAutomaton sf)
-
-The below function is useful for directly asynchronizing AudSFs and CtrSFs in UISF.
-
-> clockedSFToUISF :: forall a b c . (NFData b, Clock c) => Double -> SigFun c a b -> UISF a [(b, Time)]
-> clockedSFToUISF buffer ~(ArrowP sf) = let r = rate (undefined :: c) 
->   in asyncUISFV r buffer (toAutomaton sf)
-
-> runMIDI :: (NFData b, NFData c) => (SF (b, SEvent [MidiMessage]) (c, SEvent [MidiMessage])) -> UISF (b, ([InputDeviceID],[OutputDeviceID])) [c]
-> runMIDI sf = asyncC' (addTerminationProc . killThread) (iAction . fst . snd, oAction) sf' where
->   iAction [] = return Nothing
->   iAction (idev:devs) = do
->     m <- pollMidi idev
->     let ret = fmap (\(_t, ms) -> map Std ms) m
->     rst <- iAction devs
->     return $ ret ~++ rst
->   oAction [] = return ()
->   oAction ((odev, ms):rst) = do
->     outputMidi odev
->     maybe (return ()) (mapM_ $ \m -> deliverMidiEvent odev (0, m)) ms
->     oAction rst
->   sf' = toAutomaton $ arr (\((b,(idevs,odevs)),mms) -> ((b,mms),odevs)) >>> first sf >>>
->           arr (\((c,mms),odevs) -> (c, map (\d -> (d,mms)) odevs))
 
 
 

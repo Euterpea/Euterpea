@@ -12,6 +12,7 @@
 > import Control.Arrow
 > import Control.CCA.Types
 > import Control.CCA.ArrowP
+> import Control.Arrow.Operations
 
 
 > newtype SF a b = SF { runSF :: (a -> (b, SF a b)) }
@@ -96,6 +97,9 @@
 >       f i x = 
 >         let (y, i') = g (x, i)
 >         in (y, SF (f i'))
+
+> instance ArrowCircuit SF where
+>   delay = init
 
 > run :: SF a b -> [a] -> [b]
 > run (SF f) (x:xs) =

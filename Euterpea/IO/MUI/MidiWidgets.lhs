@@ -1,10 +1,11 @@
-> {-# LANGUAGE DoRec, Arrows, TupleSections #-}
+> {-# LANGUAGE RecursiveDo, Arrows, TupleSections #-}
 
 > module Euterpea.IO.MUI.MidiWidgets (
 >   midiIn
 > , midiOut
 > , midiInM
 > , midiOutMB
+> , runMidi, runMidiM, runMidiMFlood, runMidiMB, runMidiMBFlood
 > , musicToMsgs
 > , musicToBO
 > , selectInput,  selectOutput
@@ -13,16 +14,23 @@
 > ) where
 
 > import FRP.UISF
-> import FRP.UISF.AuxFunctions (liftAIO, initialAIO)
+> import FRP.UISF.AuxFunctions (liftAIO, initialAIO, eventBuffer')
 > import Euterpea.IO.MIDI.MidiIO
 
-> import Control.Monad (when, liftM)
+> import Control.Monad (liftM)
 
-> -- These four lines are just for musicToMsgs
+> -- These four imports are just for musicToMsgs
 > import Euterpea.IO.MIDI.GeneralMidi (toGM)
 > import Euterpea.Music.Note.Performance (Music1, Event (..), perform, defPMap, defCon)
 > import Euterpea.Music.Note.Music (InstrumentName)
 > import Data.List (nub, elemIndex, sortBy)
+
+> -- These three imports are for the runMidi functions
+> import Euterpea.IO.MUI.UISFCompat
+> import Control.SF.SF
+> import Control.DeepSeq
+
+
 
 
 ============================================================
@@ -116,6 +124,108 @@ has any pending music to be played) and False otherwise.
 > midiOutMB' :: UISF ([(OutputDeviceID, Bool)], SEvent [(DeltaT, MidiMessage)]) Bool
 > midiOutMB' = arr fixData >>> midiOutMB where
 >   fixData (lst, mmsgs) = map ((,maybe NoBOp AppendToBuffer mmsgs) . fst) $ filter snd lst
+
+
+-------------
+ | runMidi | 
+-------------
+The following functions are experimental functions for doing all Midi 
+behavior at once in an external thread.  There are mutiple versions 
+corresponding to Multiple input/output (M), Batch (B), and message 
+flooding (Flood).
+
+> runMidi :: NFData b
+>         => SF (b, SEvent [MidiMessage]) 
+>               (c, SEvent [MidiMessage])
+>         -> UISF (b, (Maybe InputDeviceID, Maybe OutputDeviceID)) [c]
+> runMidi sf = asyncC' uisfAsyncThreadHandler (iAction . fst . snd, oAction) sf' where
+>   iAction Nothing = return Nothing
+>   iAction (Just idev) = do
+>     m <- pollMidi idev
+>     return $ fmap (\(_t, ms) -> map Std ms) m
+>   oAction (Nothing, _) = return ()
+>   oAction (Just odev, ms) = do
+>     outputMidi odev
+>     maybe (return ()) (mapM_ $ \m -> deliverMidiEvent odev (0, m)) ms
+>   sf' = toAutomaton $ arr (\((b,(idev,odev)),mms) -> ((b,mms),odev)) >>> first sf >>>
+>           arr (\((c,mms),odev) -> (c, (odev, mms)))
+
+> runMidiM :: NFData b
+>          => SF (b, ([(InputDeviceID, SEvent [MidiMessage])], [OutputDeviceID]))
+>                (c, [(OutputDeviceID, SEvent [MidiMessage])])
+>          -> UISF (b, ([InputDeviceID],[OutputDeviceID])) [c]
+> runMidiM sf = asyncC' uisfAsyncThreadHandler (iAction . fst . snd, oAction) sf' where
+>   iAction [] = return []
+>   iAction (idev:devs) = do
+>     m <- pollMidi idev
+>     let ret = fmap (\(_t, ms) -> map Std ms) m
+>     rst <- iAction devs
+>     return $ (idev, ret):rst
+>   oAction [] = return ()
+>   oAction ((odev, ms):rst) = do
+>     outputMidi odev
+>     maybe (return ()) (mapM_ $ \m -> deliverMidiEvent odev (0, m)) ms
+>     oAction rst
+>   sf' = toAutomaton $ arr (\((b,(idevs,odevs)),mms) -> (b,(mms,odevs))) >>> sf
+
+> runMidiMFlood :: NFData b
+>               => SF (b, SEvent [MidiMessage])
+>                     (c, SEvent [MidiMessage])
+>               -> UISF (b, ([InputDeviceID],[OutputDeviceID])) [c]
+> runMidiMFlood = runMidiFloodHelper runMidiM
+
+> runMidiMB :: NFData b
+>           => SF (b, ([(InputDeviceID, SEvent [MidiMessage])], [OutputDeviceID]))
+>                 (c, [(OutputDeviceID, BufferOperation MidiMessage)])
+>           -> UISF (b, ([InputDeviceID],[OutputDeviceID])) [(c, Bool)] --([c], Bool)
+> runMidiMB sf = asyncC' uisfAsyncThreadHandler (iAction . fst . snd, oAction) sf' where
+>                   -- >>> arr (\lst -> let (cs, bools) = unzip lst in (cs, and bools)) >>> delay ([],True) where
+>   iAction idevs = do
+>     t <- getTimeNow
+>     mms <- iAction' idevs
+>     return (mms, t)
+>   iAction' [] = return []
+>   iAction' (idev:devs) = do
+>     m <- pollMidi idev
+>     let ret = fmap (\(_t, ms) -> map Std ms) m
+>     rst <- iAction' devs
+>     return $ (idev, ret):rst
+>   oAction [] = return ()
+>   oAction ((odev, ms):rst) = do
+>     outputMidi odev
+>     maybe (return ()) (mapM_ $ \m -> deliverMidiEvent odev (0, m)) ms
+>     oAction rst
+>   sf' = toAutomaton $ arr (\((b,(idevs,odevs)),(mms, t)) -> ((b,(mms,odevs)), t)) >>> first sf
+>           >>> arr (\((c, bos), t) -> (c, (map (,t) bos))) >>> second (foldA cons ([], True) buffer)
+>           >>> arr (\(c, (lst, bool)) -> ((c, bool), lst))
+>   cons (e, b) (lst, b') = (e:lst, b && b')
+>   buffer = proc ((dev, bo), t) -> do
+>       (out, b) <- eventBuffer' -< (bo, t)
+>       returnA -< ((dev, if shouldClear bo then Just clearMsgs ~++ out else out), b)
+>   clearMsgs = map (\c -> Std (ControlChange c 123 0)) [0..15]
+>   shouldClear ClearBuffer = True
+>   shouldClear (SkipAheadInBuffer _) = True
+>   shouldClear (SetBufferPlayStatus _ bo) = shouldClear bo
+>   shouldClear (SetBufferTempo      _ bo) = shouldClear bo
+>   shouldClear _ = False
+
+
+> runMidiMBFlood :: NFData b
+>                => SF (b, SEvent [MidiMessage])
+>                      (c, BufferOperation MidiMessage)
+>                -> UISF (b, ([InputDeviceID],[OutputDeviceID])) [(c, Bool)] --([c], Bool)
+> runMidiMBFlood = runMidiFloodHelper runMidiMB
+
+> runMidiFloodHelper :: Arrow a =>
+>      (a (b, ([(idev, SEvent [m])], [odev])) (c, [(odev, mms)]) -> t)
+>      -> a (b, SEvent [m]) (c, mms) -> t
+> runMidiFloodHelper runner sf = runner sf' where
+>   sf' = arr (\(b, (idevs, odevs)) -> ((b, foldl (flip ((~++) . snd)) Nothing idevs), odevs)) >>> first sf >>> 
+>           arr (\((c, mms), odevs) -> (c, map (\d -> (d, mms)) odevs))
+
+
+
+
 
 
 The musicToMsgs function bridges the gap between a Music1 value and
