@@ -13,6 +13,7 @@ Experimental playback implementation.
 >     ,dynamicCP -- dynamic channel assignment policy
 >     ,predefinedCP -- user-specified channel map (for MUIs)
 >     ,defParams
+>     ,PlayParams(..)
 >     ) where
 > import Codec.Midi hiding (Tempo)
 > import Control.DeepSeq
