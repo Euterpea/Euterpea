@@ -34,7 +34,7 @@ description:
 extra-source-files:
 	ReadMe.txt,
         ArrowWrap.hs,
-        Examples/EnableGUI.hs,
+        Euterpea/Examples/EnableGUI.hs,
 	HSoM/HSoM.lhs,
         HSoM/Preface.lhs,
         HSoM/Intro.lhs,
@@ -63,7 +63,7 @@ extra-source-files:
         HSoM/Bitans.lhs,
         HSoM/Patterns.lhs,
         HSoM/myFormat.fmt,
-        HSoM/soe.bib
+        HSoM/HSoM.bib
 
 Test-Suite test-euterpea
     type:           exitcode-stdio-1.0
