@@ -9,7 +9,8 @@
 >   playMidi, 
 >   MidiMessage (ANote, Std), 
 >   getTimeNow,
->   DeviceInfo(..), InputDeviceID, OutputDeviceID, Message(..), Time
+>   DeviceInfo(..), InputDeviceID, OutputDeviceID, Message(..), Time,
+>   unsafeInputID, unsafeOutputID,
 > ) where
 
 > import Codec.Midi (Time, Channel, Key, Velocity, 
@@ -53,6 +54,12 @@
 >   deriving (Eq, Show, NFData)
 > newtype OutputDeviceID = OutputDeviceID DeviceID
 >   deriving (Eq, Show, NFData)
+
+> unsafeInputID :: Int -> Maybe InputDeviceID
+> unsafeInputID = Just . InputDeviceID
+
+> unsafeOutputID :: Int -> Maybe OutputDeviceID
+> unsafeOutputID = Just . OutputDeviceID
 
 ----------
  | Time | 
