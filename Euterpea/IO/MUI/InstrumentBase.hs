@@ -1,14 +1,10 @@
 {-# LANGUAGE Arrows #-}
 module Euterpea.IO.MUI.InstrumentBase where
 import qualified Codec.Midi as Midi
+import FRP.UISF
 import Data.Maybe
 import Control.Arrow
 import Control.Monad
-import Control.SF.AuxFunctions
-import Euterpea.IO.MUI.SOE
-import Euterpea.IO.MUI.UIMonad
-import Euterpea.IO.MUI.UISF
-import Euterpea.IO.MUI.Widget
 import Euterpea.IO.MUI.MidiWidgets (musicToMsgs)
 import Euterpea.IO.MIDI
 import Euterpea.Music.Note.Music hiding (transpose)
@@ -135,7 +131,7 @@ songPlayer songList = proc _ -> do
     i <- pickSong songList -< ()
     let song = fmap (\x -> snd $ songList !! x) i
     let msgs = fmap (musicToMsgs False [] . toMusic1) song
-    (out, _) <- eventBuffer -< (fmap AddData msgs, True, 1)
+    (out, _) <- eventBuffer -< maybe NoBOp MergeInBuffer  msgs
     returnA -< out
 
 pickSong :: [(String, Music Pitch)] -> UISF () (SEvent Int)

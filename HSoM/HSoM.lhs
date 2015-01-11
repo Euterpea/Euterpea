@@ -10,6 +10,7 @@
 \usepackage{amsmath}
 \usepackage{nicefrac}
 \usepackage{hyperref}
+\usepackage{suffix}
 
 %% pdftex]
 
@@ -97,6 +98,24 @@
                       \parashade[1.0]{roundcorners}{\gdef\outlineboxwidth{.5}
                         {#1}}
                       \end{quote}}
+
+%% The following few commands are for supporting chapter authors
+%% code was taken from:
+%% http://tex.stackexchange.com/questions/156862/displaying-author-for-each-chapter-in-book
+\newcommand\chapterauthor[1]{\authortoc{#1}\printchapterauthor{#1}}
+
+\newcommand{\printchapterauthor}[1]{
+  {\parindent0pt\vspace*{-25pt}
+  \linespread{1.1}\large\scshape#1
+  \par\nobreak\vspace*{35pt}}
+}
+\newcommand{\authortoc}[1]{
+  \addtocontents{toc}{\vskip-10pt}
+  \addtocontents{toc}{
+    \protect\contentsline{chapter}
+    {\hskip1.3em\mdseries\scshape\protect\scriptsize#1}{}{}}
+  \addtocontents{toc}{\vskip5pt}
+}
 
 \begin{document}
 

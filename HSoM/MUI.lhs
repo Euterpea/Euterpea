@@ -12,6 +12,7 @@
 }
 
 \chapter{Musical User Interface}
+\chapterauthor{Daniel Winograd-Cort}
 \label{ch:MUI}
 
 \begin{code}
@@ -19,7 +20,6 @@
 
 module Euterpea.Examples.MUI where
 import Euterpea
-import Control.Arrow
 import Data.Maybe (mapMaybe)
 
 \end{code}
@@ -27,7 +27,7 @@ import Data.Maybe (mapMaybe)
 This module is not part of the standard Euterpea module hierarchy
 (i.e.\ those modules that get imported by the header command ``|import
 Euterpea|''), but it can be found in the |Examples| folder in the
-Euterpea distribution, and can be imported into another modile by the
+Euterpea distribution, and can be imported into another module by the
 header command:
 \begin{spec}
 import Euterpea.Examples.MUI
@@ -44,25 +44,34 @@ import Euterpea.Examples.MUI
 %% sections---for example, |(,42)| is the same as the function
 %% |\x->(x,42)|.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%                        Introduction                         %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Introduction}
 
 Many music software packages have a graphical user interface (aka
 ``GUI'') that provides varying degrees of functionality to the user.
 In Euterpea a basic set of widgets is provided that are collectively
-referred to as the \emph{musical user interface}, or MUI.\footnote{The
-  Euterpea MUI is related to the arrow-based GUI library \emph{Fruit}
-  \cite{fruit,courtney-phd}.}  This interface is quite different from
+referred to as the \emph{musical user interface}, or MUI.  
+This interface is quite different from
 the GUI interfaces found in most conventional languages, and is built
 around the concepts of \emph{signal functions} and \emph{arrows}
-\cite{AFP2002,Hughes2000}.  Signal functions are an abstraction of the
+\cite{AFP2002,Hughes2000}.\footnote{The
+  Euterpea MUI is built using the arrow-based GUI library \emph{UISF}, 
+  which is its own standalone package.  UISF, in turn, borrows concepts 
+  from \emph{Fruit} \cite{fruit,courtney-phd}.}  
+Signal functions are an abstraction of the
 time-varying values inherent in an interactive system such as a GUI or
 Euterpea's MUI.  Signal functions are provided for creating graphical
-sliders, pushbuttons, and so on for input, and textual displays and
-graphic images for output (in the future, other kinds of graphic input
-and output, including virtual keyboards, plots, and so on, will be
-introduced).  In addition to these graphical widgets, the MUI also
+sliders, pushbuttons, and so on for input; textual displays, 
+graphs, and graphic images for output; and textboxes, virtual keyboards, 
+and more for combinations of input and output.  
+In addition to these graphical widgets, the MUI also
 provides an interface to standard MIDI input and output devices.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Introduction - Basic Concepts                               %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Basic Concepts}
 
 A \emph{signal} is a time-varying quantity.  Conceptually, at least,
@@ -127,6 +136,9 @@ up a signal processing diagram.
 %% and then describe in more detail how signals are manipulated once this
 %% concrete representation is in hand.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Introduction - The Type of a Signal Function                %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{The Type of a Signal Function}
 \label{sec:sigfun-type}
 
@@ -183,6 +195,9 @@ fact arrows are more general than monads, and in particular the
 composition of signal functions does not have to be completely linear,
 as will be illustrated shortly.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Introduction - |proc| Declarations                          %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{|proc| Declarations}
 
 Arrows and arrow syntax will be described in more detail in
@@ -235,6 +250,9 @@ themselves.
 %% syntactic expansion will be described in more detail in
 %% Chapter~\ref{ch:arrows}.  
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Introduction - Four Useful Functions                        %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Four Useful Functions}
 \label{sec:useful-funs}
 
@@ -271,12 +289,98 @@ function can be written more succinctly as either |arr (+1) >>> sigfun| or
 |sigfun <<< arr (+1)|.
 
 The functions |(>>>)|, |(<<<)|, and |arr| are actually generic
-operators on arrows, and thus to use them one must import them from
-the |Arrow| library, as follows:
+operators on arrows, and thus to use them one may import them from
+the |Arrow| library.  However, Euterpea reexports them automatically 
+so we need not do this.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Introduction - Events                                       %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Events}
+\label{sec:events}
+
+Although signals are a nice abstraction of time-varying entities, and
+the world is arguably full of such entities, there are some things
+that happen at discrete points in time, like a mouse click, or a MIDI
+keyboard press, and so on.  We call these \emph{events}.  To represent
+events, and have them coexist with signals, recall the |Maybe| type
+defined in the Standard Prelude:
 \begin{spec}
-import Control.Arrow ((>>>),(<<<),arr)
+data Maybe a = Nothing | Just a
+\end{spec}
+Conceptually, we define an event simply as a value of type |Maybe a|,
+for some type |a|.  We say that the value associated with an event is
+``attached to'' or ``carried by'' that event.
+
+However, to fit this into the signal function paradigm, we imagine
+\emph{signals of events}---in other words, \emph{event streams}.  So a
+signal function that takes events of type |Maybe T1| as input, and
+emits events of type |Maybe T2|, would have type |SF (Maybe T1) (Maybe
+T2)|.  When there is no event, an event stream will have the
+instantaneous value |Nothing|, and when an event occurs, it will have
+the value |Just x| for some value x.
+
+For convenience Euterpea defines a type synonym for events:
+\begin{spec}
+type SEvent a = Maybe a
+\end{spec}
+The name |SEvent| is used to distinguish it from performance |Event|
+as defined in Chapter~\ref{ch:performance}. ``|SEvent|'' can be read
+as ``signal event.''
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Introduction - Feedback                                     %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Feedback}
+
+If we think about signal functions and arrows as signal processing 
+diagrams, then so far, we have only considered how to connect them 
+so that the streams all flow in the same direction.  However, there 
+may be times that we want to feed an output of one signal function 
+back in as one of its inputs, thus creating a loop.
+
+%% TODO: This might be a good place to have a diagram of a loop
+
+How can a signal function depend on its own output?  At some point 
+in the loop, we need to introduce a \emph{delay} function.  Euterpea 
+has a few different delay function that we will decribe in more detail 
+later in this chapter (Section~\ref{ch:mui:sec:delays}), but for now, 
+we will casually introduce the simplest of these: |fcdelay|.
+\begin{spec}
+fcdelay :: b -> DeltaT -> SF b b
+\end{spec}
+The name |fcdelay| stands for ``fixed continuous delay'', and it 
+delays a continuous signal for a fixed amount of time.  (Note that 
+|DeltaT| is a type synonym for |Double| and represents a change in 
+time, or $\delta t$.)  Thus, the signal function |fcdelay b t| will 
+delay its input signal for |t| seconds, emitting the constant signal 
+|b| for the first |t| seconds.
+
+With a delay at the ready, we can create a loop in a signal function 
+by using the |rec| keyword in the arrow syntax.  This keyword behaves 
+much like it does in monadic |do| syntax and allows us to use a signal 
+before we have defined it.
+
+For instance, we can create a signal function that will count how many 
+seconds have gone by since it started running:
+\begin{spec}
+secondCounter :: SF () Integer
+secondCounter = proc () -> do
+  rec count <- fcdelay 0 1 -< count + 1
+  outA -< count
 \end{spec}
 
+\syn{The |rec| keyword comes from an extension to arrows called 
+  \emph{arrow loop}.  To use the same ability outside of the arrow 
+  syntax requires the |loop| operator:
+\begin{spec}
+loop :: SF (b, d) (c, d) -> SF b c
+\end{spec}}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Introduction - [Advanced] Why Arrows?                       %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{[Advanced] Why Arrows?}
 
 It is possible, and fairly natural, to define signal functions
@@ -318,6 +422,10 @@ Chapter \ref{ch:arrows}.
 %% of continous quantities, as discussed earlier.  It is often important,
 %% in a given context, to know what that sampling rate is.
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%                       The UISF Arrow                        %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{The UISF Arrow}
 \label{sec:UI}
 
@@ -336,6 +444,9 @@ instead of having values of type |SF a b|, we will use values of type
 (meaning its implementation is hidden) and, being an instance of the
 |Arrow| class, can be used with arrow syntax.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% The UISF Arrow - Graphical Input and Output Widgets         %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Graphical Input and Output Widgets}
 
 Euterpea's basic widgets are shown in Figure \ref{fig:widgets}.  Note
@@ -348,18 +459,21 @@ we elaborate in more detail below:
 \begin{figure}
 \cbox{
 \begin{spec}
-label              :: String -> UISF () ()
-display            :: Show a => UISF a ()
-displayStr         :: UISF String ()
-withDisplay        :: Show b => UISF a b -> UISF a b
-textbox            :: String -> UISF String String
-button             :: String -> UISF () Bool
-checkbox           :: String -> Bool -> UISF () Bool
-radio              :: [String] -> Int -> UISF () Int
-hSlider,vSlider    :: (RealFrac a) => (a, a) -> a -> UISF () a
-hiSlider,viSlider  :: (Integral a) => a -> (a, a) -> a -> UISF () a
+label                :: String -> UISF a a
+displayStr           :: UISF String ()
+display              :: Show a => UISF a ()
+withDisplay          :: Show b => UISF a b -> UISF a b
+textbox              :: UISF String String
+textboxE             :: String -> UISF (SEvent String) String
+radio                :: [String] -> Int -> UISF () Int
+button               :: String -> UISF () Bool
+checkbox             :: String -> Bool -> UISF () Bool
+checkGroup           :: [(String, a)] -> UISF () [a]
+listbox              :: (Eq a, Show a) => UISF ([a], Int) Int
+hSlider, vSlider     :: RealFrac a => (a, a) -> a -> UISF () a
+hiSlider, viSlider   :: Integral a => a -> (a, a) -> a -> UISF () a
 \end{spec}}
-\caption{MUI Input/Output Widgets}
+\caption{Basic MUI Input/Output Widgets}
 \label{fig:widgets}
 \end{figure}
 
@@ -373,7 +487,7 @@ label :: String -> UISF () ()
 \item
 Alternatively, a time-varying string can be be displayed using:
 \begin{spec}
-displaySTR :: UISF String ()
+displayStr :: UISF String ()
 \end{spec}
 
 For convenience, Euterpea defines the following useful variations of
@@ -397,21 +511,30 @@ displays the value of its time-varying output.
 A textbox that functions for both input and output can be created
 using:
 \begin{spec}
-textbox :: String -> UISF String String
+textbox              :: UISF String String
 \end{spec}
 A |textbox| in Euterpea is notable because it is ``bidirectional.''
 That is, the time-varying input is displayed, and the user can
 interact with it by typing or deleting, the result being the
 time-varying output.  In practice, the textbox is used almost
-exclusively with the |rec| keyword, a part of the arrow syntax that
-allows defining recursive signals.  For example, a code snippet from a
+exclusively with the |rec| keyword and a |delay| operator.  
+For example, a code snippet from a
 MUI that uses |textbox| may look like this:
 \begin{spec}
-rec str <- textbox "Initial text" -< str
+rec str <- textbox <<< delay "Initial text" -< str
 \end{spec}
 
+Because of this common usage, there is a variant of the textbox:
+\begin{spec}
+textboxE             :: String -> UISF (SEvent String) String
+\end{spec}
+A |textboxE| widget encapsulates the recursion and delay internally.  
+Thus, its initial value is given by its static argument, and its input 
+stream is an event stream that will update the displayed text when there 
+is an event and leave it unchanged otherwise.
+
 \item
-|button|, |checkbox|, and |radio| are three kinds of ``pushbuttons.''
+|radio|, |button|, and |checkbox| are three kinds of ``pushbuttons.''
 A |button| (or |checkbox|) is pressed and unpressed (or checked
 and \newline
 unchecked) independently of others.  In contrast, a |radio| button is
@@ -421,6 +544,20 @@ string argument to these functions is the label attached to the
 button.  |radio| takes a list of strings, each being the label of one
 of the buttons in the mutually-exclusive group; indeed the length of
 the list determines how many buttons are in the group.
+
+The |checkGroup| widget creates a group of |checkbox|es.  As its static 
+argument, it takes a list of pairs of strings and values.  For each pair, 
+one |checkbox| is created with the associated string as its label.  Rather 
+than simply returning |True| or |False| for each checked box, it returns a 
+list of the values associated with each label as its output stream.
+
+\item
+The |listbox| widget creates a pane with selectable text entries.  
+The input stream is the list of entries as well as which entry is 
+currently selected, and the output stream is the index of the newly 
+selected entry.  In many ways, this widget functions much like the 
+|radio| widget except that it is stylistically different, it is dynamic, 
+and, like the |textbox| widget, it is bidirectional.
 
 \item
 |hSlider|, |vSlider|, |hiSlider| and |viSlider| are four kinds of
@@ -455,12 +592,11 @@ ui0  = hiSlider 1 (0,100) 0 >>> arr pitch >>> display
 
 We can execute this example using the function:
 \begin{spec}
-runUI   ::  String -> UI () () -> IO ()
+runMUI'   ::  UI () () -> IO ()
 \end{spec}
-where the string argument is a title displayed in the window holding
-the widget.  So our first running example of a MUI is:
+So our first running example of a MUI is:
 \begin{code}
-mui0 = runUI "Simple MUI" ui0
+mui0 = runMUI' ui0
 
 \end{code}
 The resulting MUI, once the slider has been moved a bit, is shown in
@@ -481,7 +617,11 @@ Figure \ref{fig:simple-mui}(a).
 \label{fig:simple-mui}
 \end{figure}
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% The UISF Arrow - Widget Transformers                        %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Widget Transformers}
+\label{ch:mui:sec:wt}
 
 Figure \ref{fig:layout-widgets} shows a set of ``widget
 transformers''---functions that take UISF values as input, and return
@@ -522,14 +662,16 @@ ui1 =   setLayout (makeLayout (Fixed 150) (Fixed 150)) $
     ap <- title "Absolute Pitch" (hiSlider 1 (0,100) 0) -< ()
     title "Pitch" display -< pitch ap
 
-mui1  =  runUI "Simple MUI (sized and titled)" ui1
+mui1  =  runMUI' ui1
 
 \end{code} %% $
 This MUI is shown in Figure \ref{fig:simple-mui}(b).
+
 \item
 |pad (w,n,e,s) ui| adds |w| pixels of space to the ``west'' of the UISF
 |ui|, and |n|, |e|, and |s| pixels of space to the north, east, and
 south, respectively.  
+
 \item
 The remaining four functions are used to control the relative layout
 of the widgets within a UISF.  By default widgets are arranged
@@ -542,95 +684,31 @@ ui2   =   leftRight $
     ap <- title "Absolute Pitch" (hiSlider 1 (0,100) 0) -< ()
     title "Pitch" display -< pitch ap
 
-mui2  =  runUI "Simple MUI (left-to-right layout)" ui2
+mui2  =  runMUI' ui2
 
-\end{code} %% $
+\end{code}
 This MUI is shown in Figure \ref{fig:simple-mui}(c).  
 \end{itemize}
 
 Widget transformers can be nested (as demonstrated in some later
 examples), so a fair amount of flexibility is available.
 
-\section{Events and Mediators}
-\label{sec:events}
 
-Although signals are a nice abstraction of time-varying entities, and
-the world is arguably full of such entities, there are some things
-that happen at discrete points in time, like a mouse click, or a MIDI
-keyboard press, and so on.  We call these \emph{events}.  To represent
-events, and have them coexist with signals, recall the |Maybe| type
-defined in the Standard Prelude:
-\begin{spec}
-data Maybe a = Nothing | Just a
-\end{spec}
-Conceptually, we define an event simply as a value of type |Maybe a|,
-for some type |a|.  We say that the value associated with an event is
-``attached to'' or ``carried by'' that event.
-
-However, to fit this into the signal function paradigm, we imagine
-\emph{signals of events}---in other words, \emph{event streams}.  So a
-signal function that takes events of type |Maybe T1| as input, and
-emits events of type |Maybe T2|, would have type |SF (Maybe T1) (Maybe
-T2)|.  When there is no event, an event stream will have the
-instantaneous value |Nothing|, and when an event occurs, it will have
-the value |Just x| for some value x.
-
-For convenience Euterpea defines a type synonym for events:
-\begin{spec}
-type SEvent a = Maybe a
-\end{spec}
-The name |SEvent| is used to distinguish it from performance |Event|
-as defined in Chapter~\ref{ch:performance}. ``|SEvent|'' can be read
-as ``signal event.''
-
-\subsection{Mediators}
-
-In order to use event streams in the context of continuous signals,
-Euterpea defines a set of functions that mediate between the
-continuous and the discrete.  These ``mediators,'' as well as some
-function that deal exclusively with events, are shown in
-Figure~\ref{fig:mediators} along with their type signatures and brief
-descriptions.  Their use will be better understood through some
-examples that follow.
-
-\begin{figure}
-%% in signal processing this is called an ``edge
-%% detector,'' and thus the name chosen here.
-\cbox{\small
-\begin{spec}
-unique :: Eq a => UISF a (Event a)
-  -- generates an event whenever the input changes
-
-edge :: UISF Bool (Event ())
-  -- generates an event whenever the input changes from |False| to |True|
-
-accum :: a -> UISF (Event (a -> a)) a
-  -- |accum x| starts with the value |x|, but then applies the function 
-  -- attached to the first event to |x| to get the next value, and so on.
-
-mergeE :: (a -> a -> a) -> Event a -> Event a -> Event a
-  -- |mergeE f e1 e2| merges two events, using |f| to resolve two |Just| values
-
-hold :: b -> UISF (Event b) b
-  -- |hold x| begins as value |x|, but changes to the subsequent values
-  -- attached to each of its input events
-
-now :: UISF () (Event ())
-  -- creates a single event ``right now''
-\end{spec}}
-\caption{Mediators Between the Continuous and the Discrete}
-\label{fig:mediators}
-\end{figure}
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% The UISF Arrow - MIDI Input and Output                      %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{MIDI Input and Output}
+% TODO: This (and the deviceID) section may need to be rewritten
+% FIXME: Even if it stays basically the same, the following code uses 
+%        the "unique" mediator, which hasn't been introduced yet.
 
 An important application of events in Euterpea is real-time,
 interactive MIDI.  There are two UISF signal functions that handle
 MIDI, one for input and the other for output, but neither of them
 displays anything graphically:
 \begin{spec}
-midiIn   :: UISF DeviceID (Event [MidiMessage])
-midiOut  :: UISF (DeviceID, Event [MidiMessage]) ()
+midiIn   :: UISF DeviceID (SEvent [MidiMessage])
+midiOut  :: UISF (DeviceID, SEvent [MidiMessage]) ()
 \end{spec}
 Except for the |DeviceID| (about which more will be said shortly),
 these signal functions are fairly straightforward: |midiOut| takes a
@@ -700,7 +778,7 @@ ui3  =   proc _ -> do
     uap <- unique -< ap
     midiOut -< (0, fmap (\k-> [ANote 0 k 100 0.1]) uap)
 
-mui3  = runUI "Pitch Player" ui3
+mui3  = runMUI' "Pitch Player" ui3
 
 \end{code}
 Note the use of the mediator |unique| to generate an event whenever
@@ -716,6 +794,9 @@ of |Functor|.  Therefore, since |EventS| is a type synonym for
 the functional argument to the value ``attached to'' the event, which
 in this case is an absolute pitch.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% The UISF Arrow - MIDI Device IDs                            %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{MIDI Device IDs}
 
 Note in the previous example that the |DeviceID| argument to |midiOut|
@@ -751,7 +832,7 @@ ui4   =   proc _ -> do
     uap <- unique -< ap
     midiOut -< (devid, fmap (\k-> [ANote 0 k 100 0.1]) uap)
 
-mui4  = runUI "Pitch Player with MIDI Device Select" ui4
+mui4  = runMUI' "Pitch Player with MIDI Device Select" ui4
 
 \end{code}
 
@@ -770,7 +851,7 @@ ui5   = proc _ -> do
     m   <- midiIn        -< mi
     midiOut -< (mo, m)
 
-mui5  = runUI "MIDI Input / Output UI" ui5
+mui5  = runMUI' "MIDI Input / Output UI" ui5
 
 \end{code}
 
@@ -785,18 +866,184 @@ getDeviceIDs = topDown $
 
 \end{code} %% $
 
-\subsection{Timers and Delays}
-\label{sec:timers}
 
-%% There is no implicit notion of time in the MUI, i.e.\ no implicit
-%% notion of elapsed time, the time of day, or whatever.  Anything that
-%% depends on the notion of time must take a time signal explicitly as an
-%% argument.  For this purpose, Euterpea defines the following signal
-%% source that outputs the current time:
-%% \begin{spec}
-%% time :: UISF () Time
-%% \end{spec}
-%% where |Time| is a type synonym for |Double|.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% The UISF Arrow - Putting It All Together                    %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Putting It All Together}
+\label{sec:runui}
+
+Recall that a Haskell program must eventually be a value of type |IO
+()|, and thus we need a function to turn a |UISF| value into a |IO|
+value---i.e.\ the UISF needs to be ``run.''  We can do this using one of
+the following two functions, the first of which we have already been
+using:
+\begin{spec}
+runMUI'    ::              UISF () () -> IO ()
+runMUI     :: UIParams ->  UISF () () -> IO ()
+\end{spec}
+Executing |runMUI' ui| or |runMUI params ui| will create a single MUI 
+window whose behavior is governed by the argument |ui :: UISF () ()|.  
+The additional |UIParams| argument of |runMUI| 
+contains parameters that can affect the 
+appearance and performance of the MUI window that is created.  
+There is a default value of |UIParams| that is typical for regular 
+MUI usage, and |runMUI'| is defined using it:
+\begin{spec}
+defaultMUIParams :: UIParams
+runMUI' = runMUI defaultMUIParams
+\end{spec}
+When using |runMUI|, it is advisable to simply modify the 
+default value rather than building a whole new |UIParams| value.  The 
+easiest way to do this is with Haskell's \emph{record syntax}.
+
+There are many fields of data in a value of type |UIParams|, but we 
+will focus only on the |uiTitle| and |uiSize|, which will control the 
+value displayed in the title bar of the graphical window and the initial 
+size of the window respectively.  Thus, the title is a |String| 
+value and the size is a |Dimension| value (where |Dimension| is a type 
+synonym for |(Int, Int)|, which in turn represents a width and height 
+measured in pixels).  By default, the size is |(300,300)| and the title 
+is |"MUI"|, but we can change these like so:
+\begin{code}
+mui'5 = runMUI  (defaultMUIParams 
+                    {  uiTitle  = "MIDI Input / Output UI", 
+                       uiSize   = (200,200)})
+                ui5
+\end{code}
+This version of |mui5| (from the previous subsection) will run 
+identically to the original except for the fact that its title 
+will read ``MIDI Input / Output UI'' and its initial size will 
+be smaller.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%                 Non-Widget Signal Functions                 %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Non-Widget Signal Functions}
+
+All of the signal functions we have seen so far are effectful widgets.  
+That is, they all do something graphical or audible when they are 
+used.  For regular computation, we have been using pure functions 
+(which we can insert arbitrarily in arrow syntax or lift with |arr| 
+otherwise).  However, there are signal functions that are important 
+and useful which have no visible effects.  We will look at a few 
+different types of these signal functions in this section.
+
+\syn{Note that the mediators and folds in the next two subsections 
+are generic signal functions, and are not restricted to use only 
+in MUIs.  To highlight this, we present them with the |SF| type 
+rather than the |UISF| type.  They can be (and often are) used in 
+MUIs.
+
+The timers and delay functions in Subsection~\ref{ch:mui:sec:delays} 
+require the MUI's internal notion of time, and so we present those 
+directly with the |UISF| type.}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Non-Widget Signal Functions - Mediators                     %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Mediators}
+
+In order to use event streams in the context of continuous signals,
+Euterpea defines a set of functions that mediate between the
+continuous and the discrete.  These ``mediators,'' as well as some
+functions that deal exclusively with events, are shown in
+Figure~\ref{fig:mediators} along with their type signatures and brief
+descriptions.  Their use will be better understood through some
+examples that follow.
+
+\begin{figure}
+%% in signal processing this is called an ``edge
+%% detector,'' and thus the name chosen here.
+\cbox{\small
+\begin{spec}
+unique :: Eq a => SF a (SEvent a)
+  -- generates an event whenever the input changes
+
+edge :: SF Bool (SEvent ())
+  -- generates an event whenever the input changes from |False| to |True|
+
+accum :: a -> SF (SEvent (a -> a)) a
+  -- |accum x| starts with the value |x|, but then applies the function 
+  -- attached to the first event to |x| to get the next value, and so on
+
+mergeE :: (a -> a -> a) -> SEvent a -> SEvent a -> SEvent a
+  -- |mergeE f e1 e2| merges two events, using |f| to resolve two |Just| values
+
+hold :: b -> SF (SEvent b) b
+  -- |hold x| begins as value |x|, but changes to the subsequent values
+  -- attached to each of its input events
+
+now :: SF () (SEvent ())
+  -- creates a single event ``right now''
+
+evMap :: SF b c -> UISF (SEvent b) (SEvent c)
+  -- lifts a continuous signal function into one that handles events
+\end{spec}}
+\caption{Mediators Between the Continuous and the Discrete}
+\label{fig:mediators}
+\end{figure}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Non-Widget Signal Functions - Folds                         %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Folds}
+
+In traditional functional prgramming, a folding, or reducing, operation 
+is one that joins together a set of data.  The typical case would be 
+an operation that operates over a list of data, such as a function that 
+sums all elements of a list of numbers.
+
+There are a few different ways given in Euterpea to fold together 
+signal functions to create new ones:
+\begin{spec}
+maybeA :: SF () c -> SF b c -> SF (Maybe b) c
+concatA :: [SF b c] -> SF [b] [c]
+runDynamic :: SF b c -> SF [b] [c]
+\end{spec}
+
+\begin{itemize}
+\item
+|maybeA| is a fold over the |Maybe| (or |SEvent|) data type.  The 
+signal function |maybeA n j| accepts as input a stream of |Maybe b| 
+values; at any given moment, if those values are |Nothing|, then the 
+signal function behaves like |n|, and if they are |Just b|, then it 
+behaves like |j|.
+
+\item
+The |concatA| fold takes a list of signal functions and converts them 
+to a single signal function whose streaming values are themselves 
+lists.  For example, perhaps we want to display a bunch of buttons 
+to a user in a MUI window.  Rather than coding them in one at a time, 
+we can use |concatA| to fold them into one operation that will return 
+their results altogether in a list.  In essence, we are 
+\emph{concat}enating the signal functions together.
+
+\item
+The |runDynamic| signal function is similar to |concatA| except that 
+it takes a single signal function as an argument rather than a list.  
+What, then, does it fold over?  Instead of folding over the static 
+signal function list, it folds over the |[b]| list that it accepts 
+as its input streaming argument.
+\end{itemize}
+
+|concatA| and |runDynamic| are definitely similar, but they are also 
+subtly different.  With |concatA|, there can be many different signal 
+functions that are grouped together, but with |runDynamic|, there is 
+only one.  However, |runDynamic| may have a variable number of 
+internally running signal functions at runtime because that number 
+depends on a streaming argument.  |concatA| is fixed once it is 
+created.
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Non-Widget Signal Functions - Timers and Delays             %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Timers and Delays}
+\label{ch:mui:sec:delays}
 
 The Euterpea MUI has an implicit notion of elapsed time.  The current
 elapsed time can be accessed explicitly by this signal source:
@@ -808,9 +1055,9 @@ where |Time| is a type synonym for |Double|.
 But some MUI widgets depend on the time implicitly.  For example, the
 following pre-defined signal function creates a \emph{timer}:
 \begin{spec}
-timer :: UISF Double (SEvent ())
+timer :: UISF DeltaT (SEvent ())
 \end{spec}
-For example, |timer -< i| takes a signal |i| that represents the timer
+In practice, |timer -< i| takes a signal |i| that represents the timer
 interval (in seconds), and generates an event stream, where each pair
 of consecutive events is separated by the timer interval.  Note that
 the timer interval is itself a signal, so the timer output can have
@@ -826,8 +1073,8 @@ that, instead of playing a note every time the absolute pitch changes,
 we will output a note continuously, at a rate controlled by a second
 slider:
 \begin{code}
-ui6   ::  UISF () ()
-ui6   =   proc _ -> do
+ui6 ::  UISF () ()
+ui6 =   proc _ -> do
     devid   <- selectOutput -< ()
     ap      <- title "Absolute Pitch" (hiSlider 1 (0,100) 0) -< ()
     title "Pitch" display -< pitch ap
@@ -835,72 +1082,79 @@ ui6   =   proc _ -> do
     tick    <- timer -< 1/f
     midiOut -< (devid, fmap (const [ANote 0 ap 100 0.1]) tick)
 
-mui6  = runUI "Pitch Player with Timer" ui6
+-- Pitch Player with Timer
+mui6  = runMUI ui6
 
 \end{code}
 Note that the rate of |tick|s is controlled by the second slider---a
 larger slider value causes a smaller time between ticks, and thus a
 higher frequency, or tempo.
 
-%% \item |snapshot_| uses the timer output to control the sample rate of
-%%   the absolute pitch.
-%% \item As before, The expression |... =>> (\k-> [ANote 0 55 64 0.1])|
-%%   replaces each event carrying absolute pitch |k| with an |ANote|
-%%   message.
-%% \item Those messages are then sent to the selected output MIDI device.
-
-As another example of a widget that uses time implicitly, an event
-stream can be delayed by a given (variable) amount of time using the
-following signal function:
+The |genEvents| signal function is very similar to |timer|, in that 
+it will generate specific, recurring events, but it differs in that 
+those events contain data based on an input list:
 \begin{spec}
-vdelay :: UISF (Double, Event b) (Event b)
+genEvents :: [b] -> UISF DeltaT (SEvent b)
 \end{spec}
-The first element of the input pair specifies the amount of delay (in
-seconds) to be applied to the second element.  ``|vdelay|'' can be
-read ``variable delay.''
+Just like |timer|, this signal function will output events 
+at a variable frequency, but each successive event will contain 
+the next value in the given list.  When every value of the list 
+|lst| has been emitted, |genEvents lst| will never again produce 
+an event.
 
-If a variable delay is not needed, the more efficient |fdelay|
-(``fixed delay'') can be used:
+Another way in which a widget can use time implictly is in a 
+\emph{delay}.  Euterpea comes with four different delaying widgets, 
+which each serve a specific role depending on whether the streams 
+are continuous or event-based and if the delay is a fixed length or 
+can be variable:
+\cbox{
 \begin{spec}
-fdelay :: Double -> UISF (Event b) (Event b)
-\end{spec}
+fcdelay  :: b -> DeltaT -> UISF b b
+fdelay   :: DeltaT -> UISF (SEvent b) (SEvent b)
+vdelay   :: UISF (DeltaT, SEvent b) (SEvent b)
+vcdelay  :: DeltaT -> b -> UISF (DeltaT, b) b
+\end{spec}}
 
-%% Introduce |delay| here as well
+To start, we will examine the most straightforward one: 
+|fcdelay b t| will emit the constant value |b| for the first |t| 
+seconds of the output stream and will from then on emit its input 
+stream delayed by |t| seconds.  The name comes from ``fixed continuous 
+delay.''
 
-%% why are vdelay and fdelay defined only on event streams?
+One potential problem with |fcdelay| is that it makes no guarantees 
+that every instantaneous value on the input stream will be seen in the 
+output stream.  This should not be a problem for continuous signals, 
+but for an event stream, it could mean that entire events are accidentally 
+skipped over.  Therefore, there is a specialized delay for event streams:
+|fdelay t| guarantees that every input event will be emitted, but in 
+order to achieve this, it is not as strict about timing---that is, 
+some events may end up being over delayed.  Due to the nature of 
+events, we no longer need an initial value for output: for the first 
+|t| second, there will simply be no events emitted.
 
-\section{A Graphical Canvas}
-\label{sec:canvas}
+We can make both of the above delay widgets a little more complicated 
+by introducing the idea of a variable delay.  For instance, we can 
+expand the capabilities of |fdelay| into |vdelay|.  
+Now, the delay time is part of the signal, and it can change 
+dynamically.  Regardless, this event-based version will still 
+guarantee that every input event will be emitted.  ``|vdelay|'' 
+can be read ``variable delay.''
 
-\begin{spec}
-canvas             :: Dimension -> UISF (Event Graphic) ()
-\end{spec}
+For the variable continuous version, we must add one extra input 
+parameter to prevent a possible space leak.  Thus, the first argument 
+to |vcdelay| is 
+the maximum amount that the widget can delay.  Due to the variable 
+nature of |vcdelay|, some portions of the input signal may be omitted 
+entirely from the output signal while others may even be outputted 
+more than once.  Thus, once again, it is higly advised to use 
+|vdelay| rather than |vcdelay| when dealing with event-based signals.
 
-|canvas| creates a graphical canvas on which images can be drawn.
 
-Details TBD.
 
-\section{Putting It All Together}
-\label{sec:runui}
 
-Recall that a Haskell program must eventually be a value of type |IO
-()|, and thus we need a function to turn a |UISF| value into a |IO|
-value---i.e.\ the UISF needs to be ``run.''  We can do this using one of
-the following two functions, the first of which we have already been
-using:
-\begin{spec}
-runUI    ::               String -> UISF () () -> IO ()
-runUIEx  :: Dimension ->  String -> UISF () () -> IO ()
-
-type Dimension = (Int,Int)
-\end{spec}
-Both of these functions take a string argument that is displayed in
-the title bar of the graphical window that is generated.  |runUIEx|
-additionally takes the dimensions of the window as an argument
-(measured in pixels).  Executing |runUI s ui| or |runUIEx d s ui| will
-create a single MUI window whose behavior is governed by the argument
-|ui :: UISF () ()|.
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%                      Musical Examples                       %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Musical Examples}
 
 In this section we work through three larger musical examples that use
@@ -977,7 +1231,7 @@ buildChord = leftRight $
                    radio (fst (unzip chordIntervals)) 0 -< ()
     midiOut -< (mo, fmap (toChord i) m)
 
-chordBuilder = runUIEx (600,400) "Chord Builder" buildChord
+chordBuilder = runMUI (600,400) "Chord Builder" buildChord
 
 \end{code} %% $
 Figure \ref{fig:chordbuilder} shows this MUI in action.
@@ -1058,7 +1312,7 @@ bifurcateUI = proc _ -> do
     _     <- title "Population" $ display -< pop
     midiOut -< (mo, fmap (const (popToNote pop)) tick)
 
-bifurcate = runUIEx (300,500) "Bifurcate!" $ bifurcateUI
+bifurcate = runMUI (300,500) "Bifurcate!" $ bifurcateUI
 
 \end{code}
 
@@ -1109,7 +1363,7 @@ echoUI = proc _ -> do
 
     midiOut -< (mo, m')
 
-echo = runUIEx (500,500) "Echo" echoUI
+echo = runMUI (500,500) "Echo" echoUI
 
 \end{code}  %% $
 
@@ -1131,8 +1385,131 @@ decay dur r m =
        _                   -> Nothing
 \end{code}
 
-\section{General I/O From Within a MUI}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%             Special Purpose and Custom Widgets              %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Special Purpose and Custom Widgets}
+
+Although the widgets and signal functions described so far 
+enable the creation of many basic MUIs, there are times when 
+something more specific is required.  
+Thus, in this section, we will look at some more special purpose 
+widgets as well as some functions that aid in the creation of custom 
+widgets.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Custom Widgets - Realtime graphs, histograms                %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Realtime graphs, histograms}
+
+So far, the only way to display the value of a stream in the MUI is 
+to use the |display| widget.  Although this is often enough, there 
+may be times when another view is more enlightening.  For instance, 
+if the stream represents a sound wave, then rather than displaying the 
+instantaneous values of the wave as numbers, we may wish to see them 
+graphed.
+
+Euterpea provides support for a few different widgets that will graph 
+streaming data visually.  
+\begin{spec}
+realtimeGraph       :: RealFrac a => Layout -> Time -> Color -> UISF [(a,Time)] ()
+histogram           :: RealFrac a => Layout -> UISF (SEvent [a]) ()
+histogramWithScale  :: RealFrac a => Layout -> UISF (SEvent [(a,String)]) ()
+\end{spec}
+Note that each of these three functions requires a |Layout| argument 
+(recall the |Layout| data type from Section~\ref{ch:mui:sec:wt}); 
+this is because the layout of a graph is not as easily inferred as that 
+for, say, a button.
+
+We will walk through the descriptions of each of these widgets:
+\begin{itemize}
+\item
+|realtimeGraph l t c| will produce a graph widget with layout 
+|l|.  This graph will accept as input a stream of events of pairs 
+of values and time\footnote{These events are represented as a list 
+  rather than using the |SEvent| type because there may be more than 
+  one event at the same time.  The absense of any events would be 
+  indicated by an empty list.}.
+The values are plotted vertically in color |c|, and the horizontal 
+axis represents time, where the width of the graph represents an 
+amount of time |t|.
+
+\item
+The histogram widgets take as input events that each contain a complete 
+set of data.  The data are plotted as a histogram within the given 
+layout.  For the histogram with the scale, each value must be paired 
+with a |String| representing its label, and the labels are printed 
+under the plot.
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Custom Widgets - More MIDI Widgets                          %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{More MIDI Widgets}
+This may be filled in later with midiOutMB and other similar stuff, 
+but I will refrain from writing about them until I know if they're 
+going to stay in Euterpea.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Custom Widgets - Instruments                                %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Instruments}
+Euterpea provides two special widgets that create virtual instruments 
+that the user can interact with: a piano and a guitar.
+\begin{spec}
+guitar  :: GuitarKeyMap  -> Midi.Channel 
+        -> UISF (InstrumentData, SEvent [MidiMessage]) (SEvent [MidiMessage])
+piano   :: PianoKeyMap   -> Midi.Channel 
+        -> UISF (InstrumentData, SEvent [MidiMessage]) (SEvent [MidiMessage])
+\end{spec}
+
+There are actually a whole bunch of helper functions that go along 
+with these.  However, all of this is in Experimental right now, so 
+I don't know how I should write about it here.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Custom Widgets - A Graphical Canvas                         %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{A Graphical Canvas}
+\label{sec:canvas}
+
+\begin{spec}
+canvas             :: Dimension -> UISF (SEvent Graphic) ()
+\end{spec}
+
+|canvas| creates a graphical canvas on which images can be drawn.
+
+Details TBD.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Custom Widgets - [Advanced] mkWidget                        %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{[Advanced] mkWidget}
+Even more advanced than canvas.  Perhaps this need not be documented 
+in HSoM
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%                       Advanced Topics                       %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Advanced Topics}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Advanced Topics - Banana brackets                           %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Banana brackets}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Advanced Topics - General I/O From Within a MUI             %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{General I/O From Within a MUI}
 \label{sec:mui-general-io}
+
 
 [This section needs further elaboration]
 
@@ -1188,6 +1565,19 @@ infinite, and the list is for instrument channels in the infinite case.
 (Perhaps this should just be one argument of type |Maybe
 [InstrumentName]|?)
 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Advanced Topics - Asynchrony                                %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Asynchrony}
+(and tying in with SigFuns -- "In Chapter 19, you will learn about SigFuns ..., we can tie them into MUIs like so")
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%                          Exercises                          %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \vspace{.1in}\hrule
 
 \begin{exercise}{\em

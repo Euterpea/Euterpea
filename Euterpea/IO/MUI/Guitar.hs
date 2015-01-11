@@ -1,14 +1,12 @@
 {-# LANGUAGE Arrows #-}
 module Euterpea.IO.MUI.Guitar where
-import Euterpea.IO.MUI.UIMonad
-import Euterpea.IO.MUI.Widget
-import Euterpea.IO.MUI.UISF
-import Euterpea.IO.MUI.SOE
+import FRP.UISF
+import FRP.UISF.SOE
+import FRP.UISF.UITypes (Layout(..), nullLayout)
+import FRP.UISF.Widget
 import Euterpea.IO.MIDI
 import Euterpea.Music.Note.Music hiding (transpose)
 import Euterpea.Music.Note.Performance
-import Control.SF.AuxFunctions
-import Control.Arrow
 import Euterpea.IO.MUI.InstrumentBase
 import qualified Codec.Midi as Midi
 import Data.Maybe
@@ -18,9 +16,7 @@ import qualified Data.Char as Char
 --Also, this is an ugly hack that can't stay
 --it's mostly to test the new key events
 toUpper :: Char -> Char
-toUpper c = case lookup c keyMap of
-                Just c' -> c'
-                Nothing -> Char.toUpper c
+toUpper c = fromMaybe (Char.toUpper c) (lookup c keyMap)
             where keyMap = [('`', '~'), ('1', '!'), ('2', '@'), ('3', '#'), ('4', '$'),
                             ('5', '%'), ('6', '^'), ('7', '&'), ('8', '*'), ('9', '('),
                             ('0', ')'), ('-', '_'), ('=', '+'), ('[', '{'), (']', '}'),
@@ -60,7 +56,7 @@ drawString down ((x, y), (w, h)) =
 
 drawHead :: Int -> UISF () ()
 drawHead n = topDown $ constA (repeat ()) >>>
-             concatA (map (\k -> mkBasicWidget layout (draw k)) [n,n-1..1]) >>>
+             concatA (map (mkBasicWidget layout . draw) [n,n-1..1]) >>>
              constA ()
     where draw k ((x,y),(w,h)) = withColor Black $ line (x, y + h `div` 2 + 5 * (3 - k)) (x + w, y + h `div` 2)
           layout = Layout 0 0 fw fh fw fh
@@ -97,8 +93,8 @@ mkKey c kt = mkWidget iState d process draw where
     process kd (kb,_) box evt = (kb'', (kb'', notation kd), kb /= kb'') where
         kb' = if isJust (pressed kd) then kb { song = fromJust $ pressed kd } else kb
         kb'' = case evt of
-            Key (CharKey c') down ms ->
-                if detectKey c' (shift ms)
+            Key c' ms down ->
+                if detectKey c' (hasShiftModifier ms)
                 then kb' { keypad = down, vel = 127 }
                 else kb'
             Button pt True down ->
@@ -128,7 +124,7 @@ mkKeys free ((c,kt,ap):ckas) = proc (pluck, instr) -> do
 
 -- Creates the whole string, including the response to the strum key
     
-mkString :: ([Char], Pitch, Char) -> UISF InstrumentData (SEvent [(AbsPitch, Bool, Midi.Velocity)])
+mkString :: (String, Pitch, Char) -> UISF InstrumentData (SEvent [(AbsPitch, Bool, Midi.Velocity)])
 mkString (frets, freePitch, p) = leftRight $ proc insData -> do
     isPluck <- pluckString p -< ()
     msgs <- mkKeys freeap (zip3 frets [1..] [freeap+1..]) -< (isPluck, insData)
@@ -148,7 +144,7 @@ pluckString c = mkWidget False nullLayout process draw where
     process _ s _ evt = (s', s', s /= s') where
         s' = case evt of
             Button pt True down -> down
-            Key (CharKey c') down _ ->
+            Key c' _ down ->
                 down && c == c'
             otherwise -> s
 
@@ -182,4 +178,5 @@ string3 = ("4rfv__________", (D,4), '0')
 string2 = ("5tgb__________", (A,3), '9')
 string1 = ("6yhn__________", (E,3), '8')
 
+sixString :: GuitarKeyMap
 sixString = reverse [string1, string2, string3, string4, string5, string6]

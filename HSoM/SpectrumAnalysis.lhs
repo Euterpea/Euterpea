@@ -20,7 +20,7 @@
 module Euterpea.Music.Signal.SpectrumAnalysis where
 
 import Euterpea
-import Control.SF.AuxFunctions (fftA)
+import Euterpea.Experimental (fftA)
 
 import Data.Complex (Complex ((:+)), polar)
 import Data.Maybe (listToMaybe, catMaybes)
@@ -920,7 +920,7 @@ fftEx = proc _ -> do
       fftData <- fftA 100 256 -< s
       outA -< (s, fftData)
 
-t0 = runUIEx (500, 600) "fft Test" fftEx
+t0 = runMUI (500, 600) "fft Test" fftEx
 \end{spec}
 \caption{A Real-Time Display of FFT Results}
 \label{fig:fft-mui}
@@ -941,7 +941,7 @@ t0 = runUIEx (500, 600) "fft Test" fftEx
 %%         fft   <- fftA 100 (rate (undefined :: CtrRate)) 8 -< s
 %%         outA  -< (s, fft)
 
-%% t0 = runUIEx (500,600) "fft Test" fftEx
+%% t0 = runMUI (500,600) "fft Test" fftEx
 
 \section{Further Pragmatics}
 

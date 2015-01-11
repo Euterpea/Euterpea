@@ -1,33 +1,36 @@
-> {-# LANGUAGE DoRec, Arrows, TupleSections #-}
+> {-# LANGUAGE RecursiveDo, Arrows, TupleSections #-}
 
 > module Euterpea.IO.MUI.MidiWidgets (
 >   midiIn
 > , midiOut
 > , midiInM
 > , midiOutMB
+> , runMidi, runMidiM, runMidiMFlood, runMidiMB, runMidiMBFlood
 > , musicToMsgs
-> , musicToBCMsgs
+> , musicToBO
 > , selectInput,  selectOutput
 > , selectInputM, selectOutputM
-> , BufferEvent(..) -- Reexported for use with midiOutMB
+> , BufferOperation (..) -- Reexported for use with midiOutMB 
 > ) where
 
-> import Euterpea.IO.MUI.SOE
-> import Euterpea.IO.MUI.UIMonad
-> import Euterpea.IO.MUI.UISF
-> import Euterpea.IO.MUI.Widget
+> import FRP.UISF
+> import FRP.UISF.AuxFunctions (liftAIO, initialAIO, eventBuffer')
 > import Euterpea.IO.MIDI.MidiIO
-> import Control.SF.AuxFunctions (SEvent, DeltaT, constA, (~++), delay, foldA, 
->                                 eventBuffer, BufferControl, BufferEvent(..))
 
-> import Control.Arrow
-> import Control.Monad (when)
+> import Control.Monad (liftM)
 
-> -- These four lines are just for musicToMsgs
+> -- These four imports are just for musicToMsgs
 > import Euterpea.IO.MIDI.GeneralMidi (toGM)
 > import Euterpea.Music.Note.Performance (Music1, Event (..), perform, defPMap, defCon)
 > import Euterpea.Music.Note.Music (InstrumentName)
 > import Data.List (nub, elemIndex, sortBy)
+
+> -- These three imports are for the runMidi functions
+> import Euterpea.IO.MUI.UISFCompat
+> import Control.SF.SF
+> import Control.DeepSeq
+
+
 
 
 ============================================================
@@ -43,28 +46,28 @@ stream of MidiMessages that that device is producing.
 midiOut is a widget that accepts a MIDI device ID as well as a stream 
 of MidiMessages and sends the MidiMessages to the device.
 
-> midiIn :: UISF DeviceID (SEvent [MidiMessage])
-> midiIn = arr Just >>> uisfPipeE f >>> arr (maybe Nothing id) where
->  f dev = do
->   valid <- isValidInputDevice dev
->   m <- if valid then pollMidi dev else return Nothing
+> midiIn :: UISF (Maybe InputDeviceID) (SEvent [MidiMessage])
+> midiIn = liftAIO f where
+>  f Nothing = return Nothing
+>  f (Just dev) = do
+>   m <- pollMidi dev
 >   return $ fmap (\(_t, ms) -> map Std ms) m
  
-> midiOut :: UISF (DeviceID, SEvent [MidiMessage]) ()
-> midiOut = arr Just >>> uisfSinkE f >>> constA () where
->   f (dev, ms) = do
->       valid <- isValidOutputDevice dev 
->       when valid $ outputMidi dev >> maybe (return ()) 
->                    (mapM_ $ \m -> deliverMidiEvent dev (0, m)) ms
+> midiOut :: UISF (Maybe OutputDeviceID, SEvent [MidiMessage]) ()
+> midiOut = liftAIO f where
+>   f (Nothing, _) = return ()
+>   f (Just dev, Nothing) = outputMidi dev
+>   f (Just dev, Just ms) = do
+>       outputMidi dev >> mapM_ (\m -> deliverMidiEvent dev (0, m)) ms
 
  
 The midiInM widget takes input from multiple devices and combines 
 it into a single stream. 
 
-> midiInM :: UISF [DeviceID] (SEvent [MidiMessage])
-> midiInM = delay [] >>> foldA (~++) Nothing midiIn
+> midiInM :: UISF [InputDeviceID] (SEvent [MidiMessage])
+> midiInM = foldA (~++) Nothing (arr Just >>> midiIn)
 
-> midiInM' :: UISF [(DeviceID, Bool)] (SEvent [MidiMessage])
+> midiInM' :: UISF [(InputDeviceID, Bool)] (SEvent [MidiMessage])
 > midiInM' = arr (map fst . filter snd) >>> midiInM
 
 
@@ -73,10 +76,10 @@ the events through a single midiOut. The same messages are sent to
 each device. The midiOutM is designed to be hooked up to a stream like
 that from a checkGroup.
 
-> midiOutM :: UISF [(DeviceID, SEvent [MidiMessage])] ()
-> midiOutM = delay [] >>> foldA const () midiOut
+> midiOutM :: UISF [(OutputDeviceID, SEvent [MidiMessage])] ()
+> midiOutM = foldA const () (arr (first Just) >>> midiOut)
 
-> midiOutM' :: UISF ([(DeviceID, Bool)], SEvent [MidiMessage]) ()
+> midiOutM' :: UISF ([(OutputDeviceID, Bool)], SEvent [MidiMessage]) ()
 > midiOutM' = arr fixData >>> midiOutM where
 >   fixData (lst, mmsgs) = map ((,mmsgs) . fst) $ filter snd lst
 
@@ -94,19 +97,20 @@ events are handed to midiOut at the same timestep. Finally, the
 widget returns a flat that is True if the buffer is empty and False
 if the buffer is full (meaning that items are still being played).
 
-> midiOutB :: UISF (DeviceID, BufferControl MidiMessage) Bool
-> midiOutB = proc (devID, bc) -> do
->   (out, b) <- eventBuffer -< bc
->   let extraMsgs = case bc of
->           (Just Clear, _, _) -> Just clearMsgs
->           (Just (SkipAhead _), _, _) -> Just clearMsgs
->           _ -> Nothing
->   midiOut -< (devID, extraMsgs ~++ out)
+> midiOutB :: UISF (Maybe OutputDeviceID, BufferOperation MidiMessage) Bool
+> midiOutB = proc (devID, bo) -> do
+>   (out, b) <- eventBuffer -< bo
+>   midiOut -< (devID, if shouldClear bo then Just clearMsgs ~++ out else out)
 >   returnA -< b
 >  where clearMsgs = map (\c -> Std (ControlChange c 123 0)) [0..15]
+>        shouldClear ClearBuffer = True
+>        shouldClear (SkipAheadInBuffer _) = True
+>        shouldClear (SetBufferPlayStatus _ bo) = shouldClear bo
+>        shouldClear (SetBufferTempo      _ bo) = shouldClear bo
+>        shouldClear _ = False
 
-> midiOutB' :: UISF (DeviceID, SEvent [(DeltaT, MidiMessage)]) Bool
-> midiOutB' = second (arr $ \e -> (fmap AddDataToEnd e, True, 1)) >>> midiOutB
+> midiOutB' :: UISF (Maybe OutputDeviceID, SEvent [(DeltaT, MidiMessage)]) Bool
+> midiOutB' = second (arr $ maybe NoBOp AppendToBuffer) >>> midiOutB
 
 
 The midiOutMB widget combines the power of midiOutM with midiOutB, allowing 
@@ -114,13 +118,114 @@ multiple sets of buffer controlled midi messages to be sent to different
 devices.  The Bool output is True if every buffer is empty (that is, no device 
 has any pending music to be played) and False otherwise.
 
-> midiOutMB :: UISF [(DeviceID, BufferControl MidiMessage)] Bool
-> midiOutMB = delay [] >>> foldA (&&) True midiOutB
+> midiOutMB :: UISF [(OutputDeviceID, BufferOperation MidiMessage)] Bool
+> midiOutMB = foldA (&&) True (arr (first Just) >>> midiOutB)
 
-> midiOutMB' :: UISF ([(DeviceID, Bool)], SEvent [(DeltaT, MidiMessage)]) Bool
+> midiOutMB' :: UISF ([(OutputDeviceID, Bool)], SEvent [(DeltaT, MidiMessage)]) Bool
 > midiOutMB' = arr fixData >>> midiOutMB where
->   fixData (lst, mmsgs) = map ((,fixMsgs mmsgs) . fst) $ filter snd lst
->   fixMsgs e = (fmap AddDataToEnd e, True, 1)
+>   fixData (lst, mmsgs) = map ((,maybe NoBOp AppendToBuffer mmsgs) . fst) $ filter snd lst
+
+
+-------------
+ | runMidi | 
+-------------
+The following functions are experimental functions for doing all Midi 
+behavior at once in an external thread.  There are mutiple versions 
+corresponding to Multiple input/output (M), Batch (B), and message 
+flooding (Flood).
+
+> runMidi :: NFData b
+>         => SF (b, SEvent [MidiMessage]) 
+>               (c, SEvent [MidiMessage])
+>         -> UISF (b, (Maybe InputDeviceID, Maybe OutputDeviceID)) [c]
+> runMidi sf = asyncC' uisfAsyncThreadHandler (iAction . fst . snd, oAction) sf' where
+>   iAction Nothing = return Nothing
+>   iAction (Just idev) = do
+>     m <- pollMidi idev
+>     return $ fmap (\(_t, ms) -> map Std ms) m
+>   oAction (Nothing, _) = return ()
+>   oAction (Just odev, ms) = do
+>     outputMidi odev
+>     maybe (return ()) (mapM_ $ \m -> deliverMidiEvent odev (0, m)) ms
+>   sf' = toAutomaton $ arr (\((b,(idev,odev)),mms) -> ((b,mms),odev)) >>> first sf >>>
+>           arr (\((c,mms),odev) -> (c, (odev, mms)))
+
+> runMidiM :: NFData b
+>          => SF (b, ([(InputDeviceID, SEvent [MidiMessage])], [OutputDeviceID]))
+>                (c, [(OutputDeviceID, SEvent [MidiMessage])])
+>          -> UISF (b, ([InputDeviceID],[OutputDeviceID])) [c]
+> runMidiM sf = asyncC' uisfAsyncThreadHandler (iAction . fst . snd, oAction) sf' where
+>   iAction [] = return []
+>   iAction (idev:devs) = do
+>     m <- pollMidi idev
+>     let ret = fmap (\(_t, ms) -> map Std ms) m
+>     rst <- iAction devs
+>     return $ (idev, ret):rst
+>   oAction [] = return ()
+>   oAction ((odev, ms):rst) = do
+>     outputMidi odev
+>     maybe (return ()) (mapM_ $ \m -> deliverMidiEvent odev (0, m)) ms
+>     oAction rst
+>   sf' = toAutomaton $ arr (\((b,(idevs,odevs)),mms) -> (b,(mms,odevs))) >>> sf
+
+> runMidiMFlood :: NFData b
+>               => SF (b, SEvent [MidiMessage])
+>                     (c, SEvent [MidiMessage])
+>               -> UISF (b, ([InputDeviceID],[OutputDeviceID])) [c]
+> runMidiMFlood = runMidiFloodHelper runMidiM
+
+> runMidiMB :: NFData b
+>           => SF (b, ([(InputDeviceID, SEvent [MidiMessage])], [OutputDeviceID]))
+>                 (c, [(OutputDeviceID, BufferOperation MidiMessage)])
+>           -> UISF (b, ([InputDeviceID],[OutputDeviceID])) [(c, Bool)] --([c], Bool)
+> runMidiMB sf = asyncC' uisfAsyncThreadHandler (iAction . fst . snd, oAction) sf' where
+>                   -- >>> arr (\lst -> let (cs, bools) = unzip lst in (cs, and bools)) >>> delay ([],True) where
+>   iAction idevs = do
+>     t <- getTimeNow
+>     mms <- iAction' idevs
+>     return (mms, t)
+>   iAction' [] = return []
+>   iAction' (idev:devs) = do
+>     m <- pollMidi idev
+>     let ret = fmap (\(_t, ms) -> map Std ms) m
+>     rst <- iAction' devs
+>     return $ (idev, ret):rst
+>   oAction [] = return ()
+>   oAction ((odev, ms):rst) = do
+>     outputMidi odev
+>     maybe (return ()) (mapM_ $ \m -> deliverMidiEvent odev (0, m)) ms
+>     oAction rst
+>   sf' = toAutomaton $ arr (\((b,(idevs,odevs)),(mms, t)) -> ((b,(mms,odevs)), t)) >>> first sf
+>           >>> arr (\((c, bos), t) -> (c, (map (,t) bos))) >>> second (foldA cons ([], True) buffer)
+>           >>> arr (\(c, (lst, bool)) -> ((c, bool), lst))
+>   cons (e, b) (lst, b') = (e:lst, b && b')
+>   buffer = proc ((dev, bo), t) -> do
+>       (out, b) <- eventBuffer' -< (bo, t)
+>       returnA -< ((dev, if shouldClear bo then Just clearMsgs ~++ out else out), b)
+>   clearMsgs = map (\c -> Std (ControlChange c 123 0)) [0..15]
+>   shouldClear ClearBuffer = True
+>   shouldClear (SkipAheadInBuffer _) = True
+>   shouldClear (SetBufferPlayStatus _ bo) = shouldClear bo
+>   shouldClear (SetBufferTempo      _ bo) = shouldClear bo
+>   shouldClear _ = False
+
+
+> runMidiMBFlood :: NFData b
+>                => SF (b, SEvent [MidiMessage])
+>                      (c, BufferOperation MidiMessage)
+>                -> UISF (b, ([InputDeviceID],[OutputDeviceID])) [(c, Bool)] --([c], Bool)
+> runMidiMBFlood = runMidiFloodHelper runMidiMB
+
+> runMidiFloodHelper :: Arrow a =>
+>      (a (b, ([(idev, SEvent [m])], [odev])) (c, [(odev, mms)]) -> t)
+>      -> a (b, SEvent [m]) (c, mms) -> t
+> runMidiFloodHelper runner sf = runner sf' where
+>   sf' = arr (\(b, (idevs, odevs)) -> ((b, foldl (flip ((~++) . snd)) Nothing idevs), odevs)) >>> first sf >>> 
+>           arr (\((c, mms), odevs) -> (c, map (\d -> (d, mms)) odevs))
+
+
+
+
 
 
 The musicToMsgs function bridges the gap between a Music1 value and
@@ -158,8 +263,8 @@ since the last event. The arguments are as follows:
 >         else progChanges ++ zip newTimes (map snd evs) where
 >     mOrder (t1,m1) (t2,m2) = compare t1 t2
 
-> musicToBCMsgs :: Bool -> [InstrumentName] -> Music1 -> BufferControl MidiMessage
-> musicToBCMsgs inf is m = (Just $ AddDataToEnd $ musicToMsgs inf is m, True, 1)
+> musicToBO :: Bool -> [InstrumentName] -> Music1 -> BufferOperation MidiMessage
+> musicToBO inf is m = AppendToBuffer $ musicToMsgs inf is m
  
  
 ----------------------
@@ -170,30 +275,32 @@ of radio buttons corresponding to the available input and output devices
 respectively.  The output is the DeviceID for the chosen device rather 
 that just the radio button index as the radio widget would return.
 
-> selectInput, selectOutput :: UISF () DeviceID
-> selectInput = selectDev "Input device" input
-> selectOutput = selectDev "Output device" output
+> selectInput  :: UISF () (Maybe InputDeviceID)
+> selectOutput :: UISF () (Maybe OutputDeviceID)
+> selectInput  = selectDev "Input device"  (liftM fst $ getAllDevices)
+> selectOutput = selectDev "Output device" (liftM snd $ getAllDevices)
 
-> selectDev :: String -> (DeviceInfo -> Bool) -> UISF () DeviceID
-> selectDev t f = initialIOAction getAllDevices $ \devices ->
->   let devs = filter (\(i,d) -> f d && name d /= "Microsoft MIDI Mapper") devices
+> selectDev :: String -> IO [(deviceid, DeviceInfo)] -> UISF () (Maybe deviceid)
+> selectDev t getDevs = initialAIO getDevs $ \devices ->
+>   let devs = filter (\(i,d) -> name d /= "Microsoft MIDI Mapper") devices
 >       defaultChoice = if null devs then (-1) else 0
 >   in  title t $ proc _ -> do
 >       r <- radio (map (name . snd) devs) defaultChoice -< ()
->       returnA -< if r == -1 then r else fst (devs !! r)
+>       returnA -< if r == -1 then Nothing else Just $ fst (devs !! r)
 
 
 The selectInputM and selectOutputM widgets use checkboxes instead of 
 radio buttons to allow the user to select multiple inputs and outputs.
 These widgets should be used with midiInM and midiOutM respectively.
 
-> selectInputM, selectOutputM :: UISF () [DeviceID]
-> selectInputM = selectDevM "Input devices" input
-> selectOutputM = selectDevM "Output devices" output
+> selectInputM  :: UISF () [InputDeviceID]
+> selectOutputM :: UISF () [OutputDeviceID]
+> selectInputM  = selectDevM "Input devices"  (liftM fst $ getAllDevices)
+> selectOutputM = selectDevM "Output devices" (liftM snd $ getAllDevices)
 
-> selectDevM :: String -> (DeviceInfo -> Bool) -> UISF () [DeviceID]
-> selectDevM t f = initialIOAction getAllDevices $ \devices ->
->   let devs = filter (\(i,d) -> f d && name d /= "Microsoft MIDI Mapper") devices
+> selectDevM :: String -> IO [(deviceid, DeviceInfo)] -> UISF () [deviceid]
+> selectDevM t getDevs = initialAIO getDevs $ \devices ->
+>   let devs = filter (\(i,d) -> name d /= "Microsoft MIDI Mapper") devices
 >   in  title t $ checkGroup $ map (\(i,d) -> (name d, i)) devs
 
 

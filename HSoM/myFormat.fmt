@@ -29,6 +29,8 @@
 %format -<     = "\mathbin{-\!\!\!\prec}"
 %format >>>    = "\mathbin{>\!\!\!>\!\!\!>}"
 %format <<<    = "\mathbin{<\!\!\!<\!\!\!<}"
+%format proc   = "\mathbf{proc}"
+%format rec    = "\mathbf{rec}"
 %format e1
 %format e2
 %format e3
@@ -149,12 +151,13 @@
 %format ui4
 %format ui5
 %format ui6
-%format muio
+%format mui0
 %format mui1
 %format mui2
 %format mui3
 %format mui4
 %format mui5
+%format mui'5
 %format mui6
 %format n1
 %format n2

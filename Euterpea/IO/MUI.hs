@@ -1,15 +1,16 @@
 module Euterpea.IO.MUI 
   ( -- UI functions
     UISF 
-  , convertToUISF       -- :: NFData b => Integer -> Int -> SF a b -> UISF a ([b], Bool)
+  , asyncV              -- :: NFData b => Integer -> Int -> SF a b -> UISF a ([b], Bool)
   , Dimension           -- type Dimension = (Int, Int)
-  , Rect                -- type Rect = (Point, Dimension)
   , topDown, bottomUp, leftRight, rightLeft    -- :: UISF a b -> UISF a b
   , setSize             -- :: Dimension -> UISF a b -> UISF a b
   , setLayout           -- :: Layout -> UISF a b -> UISF a b
   , pad                 -- :: (Int, Int, Int, Int) -> UISF a b -> UISF a b
-  , runUI               -- :: String -> UISF () () -> IO ()
-  , runUIEx             -- :: Dimension -> String -> UISF () () -> IO ()
+  , defaultMUIParams    -- :: UIParams
+  , UIParams (..)       -- :: UISF () () -> IO ()
+  , runMUI              -- :: UIParams -> UISF () () -> IO ()
+  , runMUI'             -- :: UISF () () -> IO ()
   , getTime             -- :: UISF () Time
     -- Widgets
   , label               -- :: String -> UISF a a
@@ -29,9 +30,10 @@ module Euterpea.IO.MUI
   , realtimeGraph       -- :: RealFrac a => Layout -> Time -> Color -> UISF (Time, [(a,Time)]) ()
   , histogram           -- :: RealFrac a => Layout -> UISF (Event [a]) ()
   , listbox             -- :: (Eq a, Show a) => UISF ([a], Int) Int
-  , midiIn              -- :: UISF DeviceID (SEvent [MidiMessage])
-  , midiOut             -- :: UISF (DeviceID, SEvent [MidiMessage]) ()
-  , selectInput, selectOutput    -- :: UISF () DeviceID
+  , midiIn              -- :: UISF (Maybe InputDeviceID) (SEvent [MidiMessage])
+  , midiOut             -- :: UISF (Maybe OutputDeviceID, SEvent [MidiMessage]) ()
+  , selectInput         -- :: UISF () (Maybe InputDeviceID)
+  , selectOutput        -- :: UISF () (Maybe OutputDeviceID)
   , canvas              -- :: Dimension -> UISF (Event Graphic) ()
   , canvas'             -- :: Layout -> (a -> Dimension -> Graphic) -> UISF (Event a) ()
   -- Widget Utilities
@@ -40,8 +42,22 @@ module Euterpea.IO.MUI
   , Color (..)          -- data Color = Black | Blue | Green | Cyan | Red | Magenta | Yellow | White
   ) where
 
-import Euterpea.IO.MUI.UIMonad
-import Euterpea.IO.MUI.UISF
-import Euterpea.IO.MUI.Widget
 import Euterpea.IO.MUI.MidiWidgets
-import Euterpea.IO.MUI.SOE (Color (..))
+import Euterpea.IO.MIDI.MidiIO (initializeMidi, terminateMidi)
+import FRP.UISF
+
+import Control.CCA.Types
+
+instance ArrowInit UISF where
+  init = delay
+
+defaultMUIParams = defaultUIParams { uiInitialize = initializeMidi, uiClose = terminateMidi, uiTitle = "MUI" }
+
+runMUI :: UIParams -> UISF () () -> IO ()
+runMUI = runUI
+
+runMUI' :: UISF () () -> IO ()
+runMUI' = runUI defaultMUIParams
+
+
+
