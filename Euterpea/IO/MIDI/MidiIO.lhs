@@ -55,11 +55,11 @@
 > newtype OutputDeviceID = OutputDeviceID DeviceID
 >   deriving (Eq, Show, NFData)
 
-> unsafeInputID :: Int -> Maybe InputDeviceID
-> unsafeInputID = Just . InputDeviceID
+> unsafeInputID :: Int -> InputDeviceID
+> unsafeInputID = InputDeviceID
 
-> unsafeOutputID :: Int -> Maybe OutputDeviceID
-> unsafeOutputID = Just . OutputDeviceID
+> unsafeOutputID :: Int -> OutputDeviceID
+> unsafeOutputID = OutputDeviceID
 
 ----------
  | Time | 
