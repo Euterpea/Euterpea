@@ -105,9 +105,14 @@ names to and from modules.  Rather than introduce them all at once,
 they will be introduced as needed in future chapters.
 
 \begin{figure*}
-\centerline{
-\epsfysize=7in 
-\epsfbox{pics/ChildSong6.eps}
+\IfFileExists{pics/ChildSong6.eps}{
+ \centerline{
+ \epsfysize=7in
+ \epsfbox{pics/ChildSong6.eps}}
+}{
+% We use a parbox here to make sure that the figure takes up a full page,
+% just like ChildSong6, so that page numbers will remain consistent.
+ \parbox[c][8in][c]{\textwidth}{\center{\framebox[1.1\width]{Image omitted due to respository space issues.}}}
 }
 \caption{Excerpt from Chick Corea's \emph{Children's Songs No.\ 6}}
 \label{fig:childsong6}
