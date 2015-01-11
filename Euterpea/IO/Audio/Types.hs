@@ -2,7 +2,6 @@
 
 module Euterpea.IO.Audio.Types where
 
-import Control.CCA.Types
 import Control.CCA.CCNF
 import Control.CCA.ArrowP
 import Control.SF.SF

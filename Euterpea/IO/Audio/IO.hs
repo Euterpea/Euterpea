@@ -1,5 +1,5 @@
 {-# LANGUAGE BangPatterns, ExistentialQuantification, 
-    ScopedTypeVariables, FlexibleContexts, Arrows #-}
+    ScopedTypeVariables, FlexibleContexts #-}
 
 module Euterpea.IO.Audio.IO (
     outFile,  outFileNorm, 
@@ -7,25 +7,24 @@ module Euterpea.IO.Audio.IO (
     maxSample) where
 
 import Prelude hiding (init)
-import Control.CCA.Types
 import Control.CCA.ArrowP
-import Control.Arrow
-
 import Control.SF.SF
-import Control.Concurrent.MonadIO
-
 import Euterpea.IO.Audio.Types hiding (Signal)
 
 import Codec.Wav
 import Data.Audio
 import Data.Array.Unboxed
 import Data.Int
-import Data.IORef
-import Foreign.C
-import Foreign.Marshal.Array
-import Foreign.Marshal.Utils
-import Foreign.Ptr
-import Foreign.Storable
+
+--import Data.IORef
+--import Foreign.C
+--import Foreign.Marshal.Array
+--import Foreign.Marshal.Utils
+--import Foreign.Ptr
+--import Foreign.Storable
+--import Control.CCA.Types
+--import Control.Arrow
+--import Control.Concurrent.MonadIO
 --import Sound.RtAudio
 
 type Signal clk a b = ArrowP SF clk a b

@@ -8,10 +8,6 @@ import Euterpea.IO.Audio.Types
 import Control.Arrow
 import Control.CCA.ArrowP
 import Control.CCA.Types
-import Control.CCA.CCNF
-import Language.Haskell.TH
-import Language.Haskell.TH.Instances
-import Language.Haskell.TH.Syntax
  
 outA :: forall a b . (ArrowInit a) => a b b
 outA = arr' [| id |] id

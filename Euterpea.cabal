@@ -70,7 +70,6 @@ Test-Suite test-euterpea
     Hs-Source-Dirs: Tests
     Main-Is:        RunAllTests.hs
     Ghc-Options:    -threaded
-    test-module:    AllTests
     build-depends:  base, Euterpea, 
                     QuickCheck >= 2.6, Cabal >= 1.9.2, 
                     ansi-terminal

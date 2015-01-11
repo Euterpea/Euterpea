@@ -52,6 +52,7 @@ pr2 p =
                      m1 :+:
                      tempo (3/2) m2)
 
+mkLn :: Int -> p -> Dur -> Music p
 mkLn n p d = line $ take n $ repeat $ note d p
 pr12  :: Music Pitch
 pr12  = pr1 (C,4) :=: pr2 (G,4)
@@ -85,6 +86,7 @@ takeM d (m1 :+: m2)           =  let  m'1  = takeM d m1
                                  in m'1 :+: m'2
 takeM d (Modify (Tempo r) m)  = tempo r (takeM (d*r) m)
 takeM d (Modify c m)          = Modify c (takeM d m)
+cut :: Dur -> Music a -> Music a
 cut = takeM
 dropM :: Dur -> Music a -> Music a
 dropM d m | d <= 0            = m
@@ -132,6 +134,7 @@ mergeLD ld1@(d1:ds1) ld2@(d2:ds2) =
   if d1<d2  then  d1 : mergeLD ds1 ld2
             else  d2 : mergeLD ld1 ds2
 minL :: LazyDur -> Dur -> Dur
+minL []      d' = d'
 minL [d]     d' = min d d'
 minL (d:ds)  d' = if d < d' then minL ds d' else d'
 takeML :: LazyDur -> Music a -> Music a
@@ -209,6 +212,7 @@ data PercussionSound =
 
 perc :: PercussionSound -> Dur -> Music Pitch
 perc ps dur = note dur (pitch (fromEnum ps + 35))
+funkGroove :: Music Pitch
 funkGroove
   =  let  p1  = perc LowTom         qn
           p2  = perc AcousticSnare  en
@@ -246,6 +250,8 @@ rep ::  (Music a -> Music a) -> (Music a -> Music a) -> Int
         -> Music a -> Music a
 rep f g 0 m  = rest 0
 rep f g n m  = m :=: g (rep f g (n-1) (f m))
+run,  cascade,  cascades,  final :: Music Pitch
+run', cascade', cascades', final' :: Music Pitch
 run       = rep (transpose 5) (delayM tn) 8 (c 4 tn)
 cascade   = rep (transpose 4) (delayM en) 8 run
 cascades  = rep  id           (delayM sn) 2 cascade

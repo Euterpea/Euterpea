@@ -45,10 +45,10 @@ main = do
     printResults (length tests) result log failsR 
 
     fails <- readIORef failsR
+    hClose log
     case fails of
         0 -> putStrLn "*** All tests passed!"
-        _ -> putStrLn $ "+++ " ++ show fails ++ " of " ++ show (length tests) ++ " tests failed. See error.log for details."
-    hClose log
+        _ -> error $ "+++ " ++ show fails ++ " of " ++ show (length tests) ++ " tests failed. See error.log for details."
     return ()
 
 tests = [("AbsPitch_Pitch",            quickCheckWithResult (stdArgs { chatty = False, maxSuccess = totalTests }) prop_AbsPitch_Pitch),

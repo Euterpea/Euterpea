@@ -32,6 +32,7 @@ metro setting dur  = 60 / (fromIntegral setting * dur)
  
 type PMap a  = PlayerName -> Player a
 
+merge :: Performance -> Performance -> Performance
 merge []          es2         =  es2
 merge es1         []          =  es1
 merge a@(e1:es1)  b@(e2:es2)  =  
@@ -168,7 +169,7 @@ fancyInterpPhrase pm
            MP   -> loud 70;       SF -> loud 80;   MF   -> loud 90
            NF   -> loud 100;      FF -> loud 110;  FFF  -> loud 120
     Dyn (Loudness x)     ->  fancyInterpPhrase pm
-                             c{cVol = (round . fromRational) x} pas m
+                             c{cVol = round x} pas m
     Dyn (Crescendo x)    ->  inflate   x ; Dyn (Diminuendo x)  -> inflate (-x)
     Tmp (Ritardando x)   ->  stretch   x ; Tmp (Accelerando x) -> stretch (-x)
     Art (Staccato x)     ->  (map (\e-> e {eDur = x * eDur e}) pf, dur)

@@ -92,19 +92,14 @@ versions of the unit generators.
 > import Control.Arrow
 > import Control.CCA.ArrowP
 > import Control.CCA.Types
-> import Control.CCA.CCNF
 > import FRP.UISF.AuxFunctions (SEvent, constA)
 > import Data.Array.Base (unsafeAt)
 > import Data.Array.Unboxed
 
-> import Debug.Trace
-
 > import Language.Haskell.TH
-> import Language.Haskell.TH.Instances
 > import Language.Haskell.TH.Syntax
 
 > import Foreign.Marshal
-> import Foreign.Marshal.Alloc
 > import Foreign.Ptr
 > import Foreign.Storable
 
@@ -114,8 +109,10 @@ versions of the unit generators.
 Helper Functions
 ----------------
 
+> wrap :: (Ord n, Num n) => n -> n -> n
 > wrap val bound = if val > bound then wrap val (val-bound) else val
 
+> clip :: Ord n => n -> n -> n -> n
 > clip val lower upper 
 >     | val <= lower = lower
 >     | val >= upper = upper
@@ -123,11 +120,13 @@ Helper Functions
 
 Raises 'a' to the power 'b' using logarithms.
 
+> pow :: Floating a => a -> a -> a
 > pow a b = exp (log a * b)
 
 Returns the fractional part of 'x'.
 
-> frac x = if x > 1 then x - fromIntegral (truncate x) else x
+> frac :: RealFrac r => r -> r
+> frac = snd . properFraction
 
 Table Creation and Access
 -------------------------
@@ -164,6 +163,7 @@ A Table is essentially a UArray.
 >     in array `unsafeAt` idx
 > {-# INLINE [0] readFromTable #-}
 
+> readFromTableA :: ArrowInit a => Table -> a Double Double
 > readFromTableA t = arr' [| readFromTable t |] (readFromTable t)
 
 > readFromTableRaw :: Table -> Int -> Double
@@ -181,6 +181,7 @@ Like readFromTable, but with linear interpolation.
 >     in val0 + (val1 - val0) * (idx - fromIntegral idx0)
 > {-# INLINE [0] readFromTablei #-}
 
+> readFromTableiA :: ArrowInit a => Table -> a Double Double
 > readFromTableiA t = arr' [| readFromTablei t |] (readFromTablei t)
 
 Accesses table values by direct indexing with linear interpolation.
@@ -329,12 +330,12 @@ Helper function for oscDur and oscDurI.
 >       v0 = readFromTableRaw table 0
 >       v2 = readFromTableRaw table (sz-1)
 >   in proc () -> do
->        let state i = if i < t1 then 0 else if i < t2 then 1 else 2
 >        i <- countUp -< ()
->        y <- case state (fromIntegral i) of
->               0 -> outA         -< v0
->               1 -> osc table 0  -< 1 / dur
->               2 -> outA         -< v2
+>        let i' = fromIntegral i
+>        y <- case (i' < t1, i' < t2) of
+>               (True,  _)     -> outA         -< v0
+>               (False, True)  -> osc table 0  -< 1 / dur
+>               (False, False) -> outA         -< v2
 >        outA -< y
 
 These are not implemented.
@@ -381,6 +382,7 @@ Pluck
 > instance Lift PluckDecayMethod where
 >     lift SimpleAveraging = [| SimpleAveraging |]
 >     lift (WeightedAveraging a b) = [| WeightedAveraging a b |]
+>     lift _ = error "Euterpea.IO.Audio.BasicSigFuns: Lift PluckDecayMethod not yet defined (in TODO)"
 >     -- TODO: rest of the methods
 
 > data PluckDecayMethod
@@ -519,7 +521,7 @@ delay line with one tap.
 >         y <- init 0 -< sig
 >       outA -< unsafePerformIO $ do
 >         s <- peekBuf buf tapidx
->         updateBuf buf i y
+>         _ <- updateBuf buf i y
 >         return s
 
 delay line with two taps.
@@ -614,7 +616,7 @@ Gain Adjustment
 
 Adjusts RMS amplitude of 'sig' so that it matches RMS amplitude of 'ref'.
 
-> balance :: forall p a . Clock p =>
+> balance :: forall p . Clock p =>
 >            Int -> Signal p (Double, Double) Double
 > balance ihp =
 >     proc (sig, ref) -> do
@@ -630,7 +632,6 @@ Adjusts RMS amplitude of 'sig' so that it matches RMS amplitude of 'ref'.
 >         b  = 2 - cos (fromIntegral ihp * tpidsr)
 >         c1 = 1 - c2
 >         c2 = b - sqrt (b * b - 1)
->         dup a = (a, a)
 
 Filters
 -------
@@ -645,6 +646,7 @@ Filters
 >                           , rsnYt1     :: !Double
 >                           , rsnYt2     :: !Double
 >                           }
+> rsnDefault :: BandPassData
 > rsnDefault = BandPassData (-1) (-1) 0 0 0 0 0 0
 
 A second-order resonant (band pass) filter.
@@ -701,14 +703,18 @@ filterBandPass.
 
 Analogous to csound's 'areson' routine.
 
+> filterBandStop :: forall p. Clock p =>
+>                   Int -> Signal p (Double, Double, Double) Double
 > filterBandStop scale = proc (sig, kcf, kbw) -> do
 >   r <- filterBandPass scale -< (sig, kcf, kbw)
 >   outA -< sig - r
 
 > data ButterData = ButterData !Double !Double !Double !Double !Double
 
-> sqrt2 = sqrt 2 :: Double
+> sqrt2 :: Double
+> sqrt2 = sqrt 2
 
+> blpset :: Double -> Double -> ButterData
 > blpset freq sr = ButterData a1 a2 a3 a4 a5
 >   where c = 1 / tan (pidsr * freq)
 >         csq = c * c; pidsr = pi / sr
@@ -717,7 +723,8 @@ Analogous to csound's 'areson' routine.
 >         a3 = a1
 >         a4 = 2 * (1 - csq) * a1
 >         a5 = (1 - sqrt2 * c + csq) * a1
-        
+
+> bhpset :: Double -> Double -> ButterData
 > bhpset freq sr = ButterData a1 a2 a3 a4 a5
 >   where c = tan (pidsr * freq)
 >         csq = c * c; pidsr = pi / sr
@@ -726,7 +733,8 @@ Analogous to csound's 'areson' routine.
 >         a3 = a1
 >         a4 = 2 * (csq - 1) * a1
 >         a5 = (1 - sqrt2 * c + csq) * a1
-        
+
+> bbpset :: Double -> Double -> Double -> ButterData
 > bbpset freq band sr = ButterData a1 a2 a3 a4 a5
 >   where c = 1 / tan (pidsr * band)
 >         d = 2 * cos (2 * pidsr * freq)
@@ -736,7 +744,8 @@ Analogous to csound's 'areson' routine.
 >         a3 = negate a1
 >         a4 = negate (c * d * a1)
 >         a5 = (c - 1) * a1
-        
+
+> bbrset :: Double -> Double -> Double -> ButterData
 > bbrset freq band sr = ButterData a1 a2 a3 a4 a5
 >   where c = tan (pidsr * band)
 >         d = 2 * cos (2 * pidsr * freq)
@@ -909,6 +918,7 @@ function because Template Haskell doesn't like higher-order functions.
 >     lift (Tab xs sz uarr) =
 >         [| Tab xs sz (listArray (0, sz-1) xs) |]
 
+> aAt :: Tab -> Int -> Double
 > aAt (Tab _ sz a) i = unsafeAt a (min (sz-1) i)
 
 Helper function for envLineSeg and envExponSeg.
@@ -956,8 +966,10 @@ Trace a series of exponential segments between specified points.
 >         -> [Double]  -- List of durations for each line segment.
 >                      -- Needs to be one element fewer than 'amps'.
 >         -> Signal p () Double
-> envExponSeg (a:amps) durs = 
->     let amps' = max 0.001 a : amps 
+> envExponSeg ampinps durs = 
+>     let amps' = case ampinps of
+>                   (a:amps) -> max 0.001 a : amps
+>                   [] -> []
 >         sf = seghlp amps' durs
 >     in proc () -> do
 >       (a1,a2,t,d) <- sf -< ()
@@ -1028,15 +1040,12 @@ asymptotically to zero.
 >     in proc () -> do
 >       rec 
 >         i <- countUp -< ()
->         let state i
->               | i < rise * sr      = 0
->               | i < (dur-dec) * sr = 1
->               | otherwise          = 2
+>         let i' = fromIntegral i
 >         y  <- init (readFromTableRaw tab 0) -< y'
->         y' <- case state (fromIntegral i) of 
->                  0 -> table tab False -< fromIntegral i / (rise*sr+0.5)
->                  1 -> outA -< y * mlt1
->                  2 -> outA -< y * mlt2
+>         y' <- case (i' < rise * sr, i' < (dur-dec) * sr) of 
+>                  (True,  _)     -> table tab False -< i' / (rise*sr+0.5)
+>                  (False, True)  -> outA -< y * mlt1
+>                  (False, False) -> outA -< y * mlt2
 >       outA -< y'
 
 GEN routines
@@ -1070,7 +1079,9 @@ Analgous to csound's gen05 routine.
 >          -- endPt).
 >      -> Table
 > tableExponN  size sp segs = tableExp_ sp segs True size
+> tableExpon :: Int -> StartPt -> [(SegLength, EndPt)] -> Table
 > tableExpon size sp segs   = tableExp_ sp segs False size
+> tableExp_ :: StartPt -> [(SegLength, EndPt)] -> Bool -> Int -> Table
 > tableExp_ sp segs = funToTable (interpLine sp segs interpExpLine) 
 >                                [| interpLine sp segs interpExpLine |]
 
@@ -1087,7 +1098,9 @@ Analogous to csound's gen07 routine.
 >          -- endPt).
 >      -> Table
 > tableLinearN  size sp segs = tableLin_ sp segs True size
+> tableLinear :: Int -> StartPt -> [(SegLength, EndPt)] -> Table
 > tableLinear   size sp segs = tableLin_ sp segs False size
+> tableLin_ :: StartPt -> [(SegLength, EndPt)] -> Bool -> Int -> Table
 > tableLin_     sp segs  = funToTable (interpLine sp segs interpStraightLine) 
 >                             [| interpLine sp segs interpStraightLine |]
 
@@ -1103,10 +1116,13 @@ Analogous to csound's gen09 routine.
 >          -- strength on [0,1], and phase offset on [0,360].
 >       -> Table
 > tableSines3N  size ps = tableSines3_ ps True size
+> tableSines3 :: Int -> [(PartialNum, PartialStrength, PhaseOffset)] -> Table
 > tableSines3   size ps = tableSines3_ ps False size
+> tableSines3_ :: [(PartialNum, PartialStrength, PhaseOffset)] -> Bool -> Int -> Table
 > tableSines3_ ps = funToTable (makeCompositeSineFun ps) 
 >                        [| makeCompositeSineFun ps |]
 
+> tableSinesF :: (Floating a, Enum a) => [a] -> a -> a
 > tableSinesF pss x = let phase = 2 * pi * x 
 >                in sum (zipWith (*) [ sin (phase * pn) | pn <- [1..] ] pss)
 
@@ -1114,7 +1130,9 @@ Analogous to csound's gen10 routine.
 
 > tableSinesN :: TableSize -> [PartialStrength] -> Table
 > tableSinesN  size pss = tableSinesN_ pss True size
+> tableSines :: Int -> [Double] -> Table
 > tableSines   size pss = tableSinesN_ pss False size
+> tableSinesN_ :: [Double] -> Bool -> Int -> Table
 > tableSinesN_ pss = funToTable (tableSinesF pss) [| tableSinesF pss |]
 
 Generates the log of a modified Bessel function of the second kind,
@@ -1127,8 +1145,11 @@ Analogous to csound's gen12 routine.
 >                  -- the function is defined.
 >       -> Table
 > tableBesselN  size xint = tableBess_ xint True size
+> tableBessel :: Int -> Double -> Table
 > tableBessel   size xint = tableBess_ xint False size
+> tableBess_ :: Double -> Bool -> Int -> Table
 > tableBess_ xint = funToTable (tableBessF xint) [| tableBessF xint |]
+> tableBessF :: Floating s => s -> s -> s
 > tableBessF xint x =
 >     log $ 1 +
 >         let tsquare = x * x * xint * xint / 3.75 / 3.75

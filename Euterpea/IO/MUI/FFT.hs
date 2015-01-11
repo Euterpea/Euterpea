@@ -15,7 +15,6 @@ import FRP.UISF
 import Numeric.FFT (fft)
 import Data.Complex
 import Data.Map (Map)
-import Data.Maybe (listToMaybe, catMaybes)
 import qualified Data.Map as Map
 
 
@@ -46,7 +45,7 @@ presentFFT :: Double -> [Double] -> Map Double Double
 presentFFT clockRate a = Map.fromList $ zipWith (curry mkAssoc) [0..] a where 
     mkAssoc (i,c) = (freq, c) where
         samplesPerPeriod = fromIntegral (length a)
-        freq = fromIntegral i * (clockRate / samplesPerPeriod)
+        freq = i * (clockRate / samplesPerPeriod)
 
 -- | Given a quantization frequency (the number of samples between each 
 --   successive FFT calculation) and a fundamental period, this will decompose

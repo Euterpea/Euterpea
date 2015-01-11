@@ -29,7 +29,6 @@
 > import FRP.UISF.AuxFunctions
 
 > import Codec.Midi(exportFile, importFile)
-> import Sound.PortMidi
 
 
 

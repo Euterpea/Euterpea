@@ -14,7 +14,6 @@
 > ) where
 
 > import FRP.UISF
-> import FRP.UISF.AuxFunctions (liftAIO, initialAIO, eventBuffer')
 > import Euterpea.IO.MIDI.MidiIO
 
 > import Control.Monad (liftM)

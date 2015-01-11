@@ -6,7 +6,6 @@ import FRP.UISF.UITypes (Layout(..), nullLayout)
 import FRP.UISF.Widget
 import Euterpea.IO.MIDI
 import Euterpea.Music.Note.Music hiding (transpose)
-import Euterpea.Music.Note.Performance
 import Euterpea.IO.MUI.InstrumentBase
 import qualified Codec.Midi as Midi
 import Data.Maybe
@@ -118,7 +117,7 @@ mkKeys free ((c,kt,ap):ckas) = proc (pluck, instr) -> do
     msg <- unique <<< mkKey c kt -< getKeyData ap instr
     let on  = maybe False isKeyPlay msg
         ret | pluck     = if on then [(ap, True, maybe 127 vel msg)] else [(free, True, 127)]
-            | not pluck = [(ap, False, maybe 0 vel msg)]
+            | otherwise = [(ap, False, maybe 0 vel msg)]
     msgs <- mkKeys free ckas -< (pluck, instr)
     returnA -< fmap (const ret) msg ~++ msgs
 
@@ -146,7 +145,7 @@ pluckString c = mkWidget False nullLayout process draw where
             Button pt True down -> down
             Key c' _ down ->
                 down && c == c'
-            otherwise -> s
+            _ -> s
 
 -- Assembles the whole guitar according to a given key map and channel
 -- Requires a persistent instrument data object to be passed in.

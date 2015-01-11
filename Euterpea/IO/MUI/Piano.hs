@@ -2,11 +2,9 @@
 module Euterpea.IO.MUI.Piano where
 import FRP.UISF
 import FRP.UISF.SOE
-import FRP.UISF.UITypes (Layout(..), nullLayout)
+import FRP.UISF.UITypes (Layout(..))
 import FRP.UISF.Widget
-import Euterpea.IO.MIDI
 import Euterpea.Music.Note.Music hiding (transpose)
-import Euterpea.Music.Note.Performance
 import Euterpea.IO.MUI.InstrumentBase
 import qualified Codec.Midi as Midi
 import Data.Maybe
@@ -71,6 +69,7 @@ drawBox kt | kt == White1 = white1
            | kt == White2 = white2
            | kt == White3 = white3
            | kt == Black1 = black1
+drawBox _ = error "Euterpea.IO.MUI.Piano.drawBox: Unexpected input"
 
 white1 [] _ = nullGraphic
 white1 ((t, b):cs) ((x, y), (w, h)) =
@@ -123,6 +122,7 @@ colorKey kt ((x,y), (w,h)) = withColor White $ block ((x, y+bh), (ww, wh-bh)) //
     where f White1 = block ((x,y), (ww - bw `div` 2, bh))
           f White2 = block ((x+ bw `div` 2, y), (ww-bw, bh))
           f White3 = block ((x+ bw `div` 2, y), (ww-bw `div` 2, bh))
+          f _ = error "Euterpea.IO.MUI.Piano.colorKey: Unexpected input"
 
 -- *****************************************************************************
 --   Single-key widget: handles key/mouse input and check if the song is playing
@@ -162,8 +162,8 @@ mkKey c kt = mkWidget iState d process draw where
                 (True, False, True) -> kb' { mouse = False, vel = getVel pt bbx }
                 otherwise -> kb'
             MouseMove pt -> if insideKey kt pt bbx then kb' else kb' { mouse = False }
-            otherwise -> kb'
-            where getVel (u,v) ((x,y),(w,h)) = 40 + 87 * round ((fromIntegral v - fromIntegral y) / fromIntegral h)
+            _ -> kb'
+            where getVel (u,v) ((x,y),(w,h)) = 40 + 87 * round (fromIntegral (v - y) / fromIntegral h)
                   detectKey c' s = toUpper c == toUpper c' && isUpper c == s -- This line should be more robust
 
 -- *****************************************************************************

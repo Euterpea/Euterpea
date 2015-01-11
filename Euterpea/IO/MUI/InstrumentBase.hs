@@ -3,7 +3,6 @@ module Euterpea.IO.MUI.InstrumentBase where
 import qualified Codec.Midi as Midi
 import FRP.UISF
 import Data.Maybe
-import Control.Arrow
 import Control.Monad
 import Euterpea.IO.MUI.MidiWidgets (musicToMsgs)
 import Euterpea.IO.MIDI

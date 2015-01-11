@@ -160,7 +160,7 @@ bss  o d = note d (Bss,  o)
 bn, wn, hn, qn, en, sn, tn, sfn, dwn, dhn, 
     dqn, den, dsn, dtn, ddhn, ddqn, dden :: Dur
 
-bnr, wnr, hnr, qnr, enr, snr, tnr, dwnr, dhnr, 
+bnr, wnr, hnr, qnr, enr, snr, tnr, sfnr, dwnr, dhnr, 
      dqnr, denr, dsnr, dtnr, ddhnr, ddqnr, ddenr :: Music Pitch
 
 bn    = 2;     bnr    = rest bn    -- brevis rest

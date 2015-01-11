@@ -87,8 +87,7 @@ insertMEvent mev1@(t1,_) mevs@(mev2@(t2,_):mevs') =
                   else mev2 : insertMEvent mev1 mevs'
 
 defUpm :: UserPatchMap
-defUpm = [(AcousticGrandPiano,0), -- changed 1 to 0
-          (Marimba,1), -- line added by Donya Quick
+defUpm = [(AcousticGrandPiano,1),
           (Vibraphone,2),
           (AcousticBass,3),
           (Flute,4),

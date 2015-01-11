@@ -243,6 +243,7 @@ pr2 p =
                      m1 :+:
                      tempo (3/2) m2)
 
+mkLn :: Int -> p -> Dur -> Music p
 mkLn n p d = line $ take n $ repeat $ note d p
 \end{code} % $
 \syn{|take n lst| is the first |n| elements of the list |lst|.  For
@@ -377,6 +378,7 @@ will work even if |m1| or |m2| is infinite.
 \out{ 
 For backward compatibility:
 \begin{code}
+cut :: Dur -> Music a -> Music a
 cut = takeM
 \end{code}
 }
@@ -560,6 +562,7 @@ We can then define a function |minL| to compare a |LazyDur| with
 a regular |Dur|, returning the least |Dur| as a result:
 \begin{code}
 minL :: LazyDur -> Dur -> Dur
+minL []      d' = d'
 minL [d]     d' = min d d'
 minL (d:ds)  d' = if d < d' then minL ds d' else d'
 \end{code}
@@ -890,6 +893,7 @@ was specified as an argument to |perc|.
 For example, here are eight bars of a simple rock or ``funk groove''
 that uses |perc| and |roll|:
 \begin{code}
+funkGroove :: Music Pitch
 funkGroove
   =  let  p1  = perc LowTom         qn
           p2  = perc AcousticSnare  en
@@ -1135,6 +1139,12 @@ With this simple function we can create some interesting phrases of
 music with very little code.  For example, |rep| can be used three
 times, nested together, to create a ``cascade'' of sounds:
 
+\out{
+\begin{code}
+run,  cascade,  cascades,  final :: Music Pitch
+run', cascade', cascades', final' :: Music Pitch
+\end{code}
+}
 \begin{code}
 run       = rep (transpose 5) (delayM tn) 8 (c 4 tn)
 cascade   = rep (transpose 4) (delayM en) 8 run

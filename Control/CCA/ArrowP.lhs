@@ -50,6 +50,7 @@
 
 > instance ArrowInitP ASyn p
 
+> normP :: ArrowP ASyn p b c -> ExpQ
 > normP (ArrowP x) = norm x
 
 > normOptP :: ArrowP ASyn p b c -> ExpQ

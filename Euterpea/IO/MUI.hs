@@ -51,6 +51,7 @@ import Control.CCA.Types
 instance ArrowInit UISF where
   init = delay
 
+defaultMUIParams :: UIParams
 defaultMUIParams = defaultUIParams { uiInitialize = initializeMidi, uiClose = terminateMidi, uiTitle = "MUI" }
 
 runMUI :: UIParams -> UISF () () -> IO ()

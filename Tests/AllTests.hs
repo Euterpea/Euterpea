@@ -9,8 +9,9 @@ import EuterpeaTests
 -- I think that ideally we want to use the "detailed" cabal test suite type, 
 -- but I can't get it to work.  If I could, then the following four lines 
 -- should be uncommented, and the test-suite build-depends should additionally 
--- require cabal-test-quickcheck in place of ansi-terminal (which is then only 
--- necessary when running the tests manually using RunAllTests.main).
+-- require cabal-test-quickcheck.
+-- Also, replace the Main-Is line of the cabal file with:
+--     test-module:    AllTests
 
 --import Distribution.TestSuite.QuickCheck
 --

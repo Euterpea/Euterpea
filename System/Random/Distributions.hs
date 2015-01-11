@@ -106,6 +106,7 @@ poisson lambda g0 = (k 0 us, g1)
           k n (u:us)
               | u >= v     = k (n+1) us
               | otherwise  = n
+          k _ [] = error "System.Random.Distributions.poisson: randoms did not return an infinite list"
 
 {- | Given a list of weight-value pairs, generates a value randomly picked
 from the list, weighting the probability of choosing each value by the 
@@ -120,6 +121,7 @@ frequency xs g0 = (pick r xs, g1)
           pick n ((w,a):xs) 
              | n <= w    = a
              | otherwise = pick (n-w) xs
+          pick _ [] = error "System.Random.Distributions.frequency: The impossible happened"
 
 
 {- | Given a function generating a random number variable and a random
