@@ -1,10 +1,10 @@
-name:		Euterpea
-version:	1.0.0
+name:           Euterpea
+version:        1.0.0
 Cabal-Version:  >= 1.8
-license:	BSD3
+license:        BSD3
 license-file:	License
-copyright:      Copyright (c) 2008-2014 Paul Hudak
-category:	Sound
+copyright:      Copyright (c) 2008-2015 Paul Hudak
+category:       Sound
 stability:      experimental
 build-type:     Custom
 author:         Paul Hudak <paul.hudak@yale.edu>, 
@@ -15,7 +15,7 @@ maintainer:     Paul Hudak <paul.hudak@yale.edu>,
                 Dan Winograd-Cort <daniel.winograd-cort@yale.edu>
 bug-reports:    mailto:paul.hudak@yale.edu
 homepage:       http://haskell.cs.yale.edu/
-synopsis:	Library for computer music research and education
+synopsis:       Library for computer music research and education
 description:
         Euterpea is a domain-specific language embedded in Haskell for 
         computer music research, education, and development, providing
@@ -32,10 +32,9 @@ description:
         able to develop real-time applications, using both MIDI and a 
         high-performance back-end for real-time audio.  
 extra-source-files:
-	ReadMe.txt,
-        ArrowWrap.hs,
+        ReadMe.txt,
         Euterpea/Examples/EnableGUI.hs,
-	HSoM/HSoM.lhs,
+        HSoM/HSoM.lhs,
         HSoM/Preface.lhs,
         HSoM/Intro.lhs,
         HSoM/Music.lhs,

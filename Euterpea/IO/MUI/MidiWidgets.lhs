@@ -4,7 +4,7 @@
 >   midiIn
 > , midiOut
 > , midiInM
-> , midiOutMB
+> , midiOutM, midiOutB, midiOutMB
 > , runMidi, runMidiM, runMidiMFlood, runMidiMB, runMidiMBFlood
 > , musicToMsgs
 > , musicToBO

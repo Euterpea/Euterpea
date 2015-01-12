@@ -32,8 +32,15 @@ module Euterpea.IO.MUI
   , listbox             -- :: (Eq a, Show a) => UISF ([a], Int) Int
   , midiIn              -- :: UISF (Maybe InputDeviceID) (SEvent [MidiMessage])
   , midiOut             -- :: UISF (Maybe OutputDeviceID, SEvent [MidiMessage]) ()
+  , midiInM             -- :: UISF [InputDeviceID] (SEvent [MidiMessage])
+  , midiOutM            -- :: UISF [(OutputDeviceID, SEvent [MidiMessage])] ()
+  , midiOutB            -- :: UISF (Maybe OutputDeviceID, BufferOperation MidiMessage) Bool
+  , midiOutMB           -- :: UISF [(OutputDeviceID, BufferOperation MidiMessage)] Bool
+  , BufferOperation (..) -- Reexported for use with midiOutMB 
   , selectInput         -- :: UISF () (Maybe InputDeviceID)
   , selectOutput        -- :: UISF () (Maybe OutputDeviceID)
+  , selectInputM        -- :: UISF () [InputDeviceID]
+  , selectOutputM       -- :: UISF () [OutputDeviceID]
   , canvas              -- :: Dimension -> UISF (Event Graphic) ()
   , canvas'             -- :: Layout -> (a -> Dimension -> Graphic) -> UISF (Event a) ()
   -- Widget Utilities
