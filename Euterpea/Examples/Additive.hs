@@ -8,7 +8,7 @@ import Euterpea
 -- TBD
 -- TBD
 bell1  :: Instr (Mono AudRate)
-       -- |Dur -> AbsPitch -> Volume -> AudSF () Double|
+       -- Dur -> AbsPitch -> Volume -> AudSF () Double
 bell1 dur ap vol [] = 
   let  f    = apToHz ap
        v    = fromIntegral vol / 100
@@ -38,7 +38,7 @@ tab1' = tableSines3N 4096 [(4.07,1,0), (3.76,1,0), (3,1,0),
 
 bellTest1' = outFile "bell'1.wav" 6 (bell'1 6 (absPitch (C,5)) 100 [])
 bell2  :: Instr (Mono AudRate)
-       -- |Dur -> AbsPitch -> Volume -> AudSF () Double|
+       -- Dur -> AbsPitch -> Volume -> AudSF () Double
 bell2 dur ap vol [] = 
   let  f    = apToHz ap
        v    = fromIntegral vol / 100
@@ -66,8 +66,8 @@ good = outFile "good.wav" 10
 bad  = outFile "bad.wav" 10 
        (osc sineTable 0 <<< envLine  20 10 10000 :: AudSF () Double)
 sfTest1 :: AudSF (Double,Double) Double -> Instr (Mono AudRate)
-        -- |AudSF (Double,Double) Double -> |
-        -- |Dur -> AbsPitch -> Volume -> [Double] -> AudSF () Double|
+        -- AudSF (Double,Double) Double -> 
+        -- Dur -> AbsPitch -> Volume -> [Double] -> AudSF () Double
 sfTest1 sf dur ap vol [] =
   let f = apToHz ap
       v = fromIntegral vol / 100
@@ -103,7 +103,7 @@ tBPBW  =  outFile "bpBW.wav" 10 $
 tBSBW  =  outFile "bsBW.wav" 10 $
           sfTest1 (addBandWidth filterBandStopBW) 10 (absPitch (C,6)) 80 []
 noise1  :: Instr (Mono AudRate)
-        -- |Dur -> AbsPitch -> Volume -> [Double] -> AudSF () Double|
+        -- Dur -> AbsPitch -> Volume -> [Double] -> AudSF () Double
 noise1 dur ap vol [] = 
   let  v = fromIntegral vol / 100
   in proc () -> do
@@ -114,8 +114,8 @@ env2 :: AudSF () Double
 env2 = envExpon 1 10 2000
 
 sfTest2  :: AudSF (Double,Double,Double) Double -> Instr (Mono AudRate)
-         -- |AudSF (Double,Double,Double) Double -> |
-         -- |Dur -> AbsPitch -> Volume -> [Double] -> AudSF () Double|
+         -- AudSF (Double,Double,Double) Double -> 
+         -- Dur -> AbsPitch -> Volume -> [Double] -> AudSF () Double
 sfTest2 sf dur ap vol [] =
   let  f = apToHz ap
        v = fromIntegral vol / 100
