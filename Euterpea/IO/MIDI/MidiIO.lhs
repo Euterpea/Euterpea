@@ -31,7 +31,7 @@
 
 > import Data.Bits (shiftR, shiftL, (.|.), (.&.))
 > import Data.List (findIndex)
-> import Data.Maybe (mapMaybe)
+> import Data.Maybe (mapMaybe, fromJust)
 > import qualified Data.Heap as Heap
 
 > import System.IO (hPutStrLn, stderr)
@@ -150,15 +150,12 @@ by devices.  We define them here.
 >       push a b = modifyIORef heapRef (Heap.insert (a,b))
 >       pop = do
 >         h <- get
->         let (a, h') = Heap.extractHead h
+>         let Just (a, h') = Heap.view h
 >         modifyIORef heapRef (\_ -> h')
 >         return a
 >       peek = do
 >         h <- get
->         if Heap.isEmpty h 
->           then return Nothing 
->           else return $ Just $ Heap.head h
->         
+>         return $ Heap.viewHead h
 >   return $ PrioChannel get push pop peek
 
 
