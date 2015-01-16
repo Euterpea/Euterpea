@@ -608,6 +608,20 @@ mui0 = runMUI' ui0
 The resulting MUI, once the slider has been moved a bit, is shown in
 Figure \ref{fig:simple-mui}(a).
 
+\syn{
+  Any MUI widgets have the capacity to be \emph{focusable}, which is 
+  particularly relevant for graphical widgets.  When a focusable widget 
+  is ``in focus,'' not only can it update its appearance, but any key 
+  presses from the computer keyboard become visible to it as input 
+  events.  This means that keyboard controls are possible with MUI 
+  widgets.  Obviously, typing will affect the value of a textbox 
+  widget, but also, for instance, the arrow keys as well as the 
+  ``Home'' and 
+  ``End'' keys will affect the value of a slider widget.  Focus can 
+  be shifted between widgets by clicking on them with the mouse as 
+  well as by using ``Tab'' and ``Shift+Tab'' to cycle focus through 
+  focusable widgets.}
+
 \begin{figure}[hbtp]
 \centering
 \subfigure[Very Simple]{
@@ -973,10 +987,10 @@ examples that follow in Section~\ref{ch:mui:sec:examples}.
 \cbox{\small
 \begin{spec}
 unique :: Eq a => SF a (SEvent a)
-  -- generates an event whenever the input changes
+  -- Generates an event whenever the input changes
 
 edge :: SF Bool (SEvent ())
-  -- generates an event whenever the input changes from |False| to |True|
+  -- Generates an event whenever the input changes from |False| to |True|
 
 accum :: a -> SF (SEvent (a -> a)) a
   -- |accum x| starts with the value |x|, but then applies the function 
@@ -986,7 +1000,7 @@ mergeE :: (a -> a -> a) -> SEvent a -> SEvent a -> SEvent a
   -- |mergeE f e1 e2| merges two events, using |f| to resolve two |Just| values
 
 (~++) :: SEvent [a] -> SEvent [a] -> SEvent [a]
-  -- A nice infix operator for merging event lists
+  -- An infix specialization of |mergeE| to lists
 (~++) = mergeE (++)
 
 hold :: b -> SF (SEvent b) b
@@ -994,10 +1008,10 @@ hold :: b -> SF (SEvent b) b
   -- attached to each of its input events
 
 now :: SF () (SEvent ())
-  -- creates a single event ``right now''
+  -- Creates a single event ``now'' and forever after does nothing.
 
 evMap :: SF b c -> UISF (SEvent b) (SEvent c)
-  -- lifts a continuous signal function into one that handles events
+  -- Lifts a continuous signal function into one that handles events
 \end{spec}}
 \caption{Mediators Between the Continuous and the Discrete}
 \label{fig:mediators}
