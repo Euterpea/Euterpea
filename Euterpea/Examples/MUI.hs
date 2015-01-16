@@ -5,65 +5,63 @@
 
 module Euterpea.Examples.MUI where
 import Euterpea
-import Control.Arrow
 import Data.Maybe (mapMaybe)
-
+import Euterpea.Experimental
+import FRP.UISF.SOE (withColor', rgb, polygon)
+import FRP.UISF.Widget (mkWidget)
 ui0  ::  UISF () ()
 ui0  =   proc _ -> do
     ap <- hiSlider 1 (0,100) 0 -< ()
     display -< pitch ap
 
---mui0 = runMUI' "Simple MUI" ui0
+mui0 = runMUI' ui0
 
 ui1 ::  UISF () ()
-ui1 =   setLayout (makeLayout (Fixed 150) (Fixed 150)) $ 
+ui1 =   setSize (150,150) $ 
   proc _ -> do
     ap <- title "Absolute Pitch" (hiSlider 1 (0,100) 0) -< ()
     title "Pitch" display -< pitch ap
 
---mui1  =  runMUI' "Simple MUI (sized and titled)" ui1
+mui1  =  runMUI' ui1
 ui2   ::  UISF () ()
 ui2   =   leftRight $
   proc _ -> do
     ap <- title "Absolute Pitch" (hiSlider 1 (0,100) 0) -< ()
     title "Pitch" display -< pitch ap
 
---mui2  =  runMUI' "Simple MUI (left-to-right layout)" ui2
---ui3  ::  UISF () ()
---ui3  =   proc _ -> do
---    ap <- title "Absolute Pitch" (hiSlider 1 (0,100) 0) -< ()
---    title "Pitch" display -< pitch ap
---    uap <- unique -< ap
---    midiOut -< (0, fmap (\k-> [ANote 0 k 100 0.1]) uap)
+mui2  =  runMUI' ui2
 
---mui3  = runMUI' "Pitch Player" ui3
-
-ui4   ::  UISF () ()
-ui4   =   proc _ -> do
+ui3  ::  UISF () ()
+ui3  =   proc _ -> do
     devid <- selectOutput -< ()
     ap <- title "Absolute Pitch" (hiSlider 1 (0,100) 0) -< ()
     title "Pitch" display -< pitch ap
     uap <- unique -< ap
     midiOut -< (devid, fmap (\k-> [ANote 0 k 100 0.1]) uap)
 
---mui4  = runMUI' "Pitch Player with MIDI Device Select" ui4
+mui3  = runMUI' ui3
 
-ui5   :: UISF () ()
-ui5   = proc _ -> do
+ui4   :: UISF () ()
+ui4   = proc _ -> do
     mi  <- selectInput   -< ()
     mo  <- selectOutput  -< ()
     m   <- midiIn        -< mi
     midiOut -< (mo, m)
 
---mui5  = runMUI' "MIDI Input / Output UI" ui5
+mui4  = runMUI' ui4
 
 getDeviceIDs = topDown $
   proc () -> do
     mi    <- selectInput   -< ()
     mo    <- selectOutput  -< ()
     outA  -< (mi,mo)
-ui6   ::  UISF () ()
-ui6   =   proc _ -> do
+
+mui'4 = runMUI  (defaultMUIParams 
+                    {  uiTitle  = "MIDI Input / Output UI", 
+                       uiSize   = (200,200)})
+                ui4
+ui5 ::  UISF () ()
+ui5 =   proc _ -> do
     devid   <- selectOutput -< ()
     ap      <- title "Absolute Pitch" (hiSlider 1 (0,100) 0) -< ()
     title "Pitch" display -< pitch ap
@@ -71,7 +69,8 @@ ui6   =   proc _ -> do
     tick    <- timer -< 1/f
     midiOut -< (devid, fmap (const [ANote 0 ap 100 0.1]) tick)
 
---mui6  = runMUI' "Pitch Player with Timer" ui6
+-- Pitch Player with Timer
+mui5  = runMUI' ui5
 
 chordIntervals :: [ (String, [Int]) ]
 chordIntervals = [  ("Maj",     [4,3,5]),    ("Maj7",    [4,3,4,1]),
@@ -82,12 +81,12 @@ chordIntervals = [  ("Maj",     [4,3,5]),    ("Maj7",    [4,3,4,1]),
                     ("dim7",    [3,3,3,3]),  ("Dom7",    [4,3,3,2]),
                     ("Dom9",    [4,3,3,4]),  ("Dom7b9",  [4,3,3,3]) ]
 
-toChord :: Int -> [MidiMessage] -> [MidiMessage]
-toChord i ms@(m:_) = 
+toChord :: Int -> MidiMessage -> [MidiMessage]
+toChord i m = 
   case m of 
     Std (NoteOn c k v)   -> f NoteOn c k v
     Std (NoteOff c k v)  -> f NoteOff c k v
-    _ -> ms
+    _ -> []
   where f g c k v = map  (\k' -> Std (g c k' v)) 
                          (scanl (+) k (snd (chordIntervals !! i)))
 
@@ -98,11 +97,14 @@ buildChord = leftRight $
     m         <- midiIn -< mi
     i         <- topDown $ title "Chord Type" $ 
                    radio (fst (unzip chordIntervals)) 0 -< ()
-    midiOut -< (mo, fmap (toChord i) m)
+    midiOut -< (mo, fmap (concatMap $ toChord i) m)
 
---chordBuilder = runMUI (600,400) "Chord Builder" buildChord
-grow      :: Double -> Double -> Double
-grow r x  = r * x * (1-x)
+chordBuilder = runMUI  (defaultMUIParams 
+                           {  uiTitle  = "Chord Builder", 
+                              uiSize   = (600,400)})
+                       buildChord
+grow :: Double -> Double -> Double
+grow r x = r * x * (1-x)
 
 popToNote :: Double -> [MidiMessage]
 popToNote x =  [ANote 0 n 64 0.05] 
@@ -118,26 +120,25 @@ bifurcateUI = proc _ -> do
     _     <- title "Population" $ display -< pop
     midiOut -< (mo, fmap (const (popToNote pop)) tick)
 
---bifurcate = runMUI (300,500) "Bifurcate!" $ bifurcateUI
+bifurcate = runMUI  (defaultMUIParams 
+                        {  uiTitle  = "Bifurcate!", 
+                           uiSize   = (300,500)})
+                    bifurcateUI
 
 echoUI :: UISF () ()
 echoUI = proc _ -> do
-    mi <- selectInput  -< ()
-    mo <- selectOutput -< ()
+    (mi, mo) <- getDeviceIDs -< ()
     m <- midiIn -< mi
     r <- title "Decay rate" $ withDisplay (hSlider (0, 0.9) 0.5) -< ()
     f <- title "Echoing frequency" $ withDisplay (hSlider (1, 10) 10) -< ()
 
-    rec let m' = removeNull $ mergeE (++) m s
-        s <- vdelay -< (1/f, fmap (mapMaybe (decay 0.1 r)) m')
+    rec s <- vdelay -< (1/f, fmap (mapMaybe (decay 0.1 r)) m')
+        let m' = m ~++ s
 
     midiOut -< (mo, m')
 
---echo = runMUI (500,500) "Echo" echoUI
+echo = runMUI' echoUI
 
-removeNull :: Maybe [MidiMessage] -> Maybe [MidiMessage]
-removeNull (Just [])  = Nothing
-removeNull mm         = mm
 
 decay :: Time -> Double -> MidiMessage -> Maybe MidiMessage
 decay dur r m = 
@@ -149,3 +150,57 @@ decay dur r m =
        ANote c k v d       -> f c k v d
        Std (NoteOn c k v)  -> f c k v dur
        _                   -> Nothing
+gAndPUI :: UISF () ()
+gAndPUI = proc _ -> do
+    (mi, mo) <- getDeviceIDs -< ()
+    m <- midiIn -< mi
+    settings <- addNotation -< defaultInstrumentData
+    outG  <- guitar sixString 1   -< (settings, Nothing)
+    outP  <- piano defaultMap0 0  -< (settings, m)
+    midiOut -< (mo, outG ~++ outP)
+
+gAndP = runMUI  (defaultMUIParams {  uiSize=(1050,700), 
+                                     uiTitle="Guitar and Piano"})
+                gAndPUI
+colorSwatchUI :: UISF () ()
+colorSwatchUI = setSize (300, 220) $ pad (4,0,4,0) $ leftRight $ 
+    proc _ -> do
+        r <- newColorSlider "R" -< ()
+        g <- newColorSlider "G" -< ()
+        b <- newColorSlider "B" -< ()
+        e <- unique -< (r,g,b)
+        let rect = withColor' (rgb r g b) (box ((0,0),d))
+        pad (4,8,0,0) $ canvas d -< fmap (const rect) e
+  where
+    d = (170,170)
+    newColorSlider l = title l $ withDisplay $ viSlider 16 (0,255) 0
+    box ((x,y), (w, h)) = 
+        polygon [(x, y), (x + w, y), (x + w, y + h), (x, y + h)]
+
+colorSwatch = runMUI' colorSwatchUI
+ui6 = topDown $ proc _ -> do
+  b1 <- button "Button 1" -< ()
+  (b2, b3) <- leftRight (proc _ -> do
+    b2 <- button "Button 2" -< ()
+    b3 <- button "Button 3" -< ()
+    returnA -< (b2, b3)) -< ()
+  b4 <- button "Button 4" -< ()
+  display -< b1 || b2 || b3 || b4
+ui'6 = topDown $ proc _ -> do
+  b1 <- button "Button 1" -< ()
+  (b2, b3) <- leftRight (proc b1 -> do
+    b2 <- button "Button 2" -< ()
+    display -< b1
+    b3 <- button "Button 3" -< ()
+    returnA -< (b2, b3)) -< b1
+  b4 <- button "Button 4" -< ()
+  display -< b1 || b2 || b3 || b4
+ui''6 = proc () -> do
+  b1 <- button "Button 1" -< ()
+  (b2, b3) <- (| leftRight (do
+    b2 <- button "Button 2" -< ()
+    display -< b1
+    b3 <- button "Button 3" -< ()
+    returnA -< (b2, b3)) |)
+  b4 <- button "Button 4" -< ()
+  display -< b1 || b2 || b3 || b4

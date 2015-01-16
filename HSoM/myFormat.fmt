@@ -26,6 +26,7 @@
 %format =>>    = "\mathbin{=\!\gg}"
 %format /      = "\mathbin{\!/\!}"
 %format !++    = "\mathbin{\ +\!\!\!+}"
+%format ~++    = "\mathbin{\sim\!\!\!+\!\!\!+}"
 %format -<     = "\mathbin{-\!\!\!\prec}"
 %format >>>    = "\mathbin{>\!\!\!>\!\!\!>}"
 %format <<<    = "\mathbin{<\!\!\!<\!\!\!<}"
@@ -102,6 +103,7 @@
 %format b1
 %format b2
 %format b3
+%format b4
 %format ma1
 %format ma2
 %format mb1
@@ -151,13 +153,15 @@
 %format ui4
 %format ui5
 %format ui6
+%format ui'6
+%format ui''6
 %format mui0
 %format mui1
 %format mui2
 %format mui3
 %format mui4
+%format mui'4
 %format mui5
-%format mui'5
 %format mui6
 %format n1
 %format n2
@@ -211,4 +215,10 @@
 %format bell1
 %format bell'1
 %format bell2
+%format defaultMap0
+%format defaultMap1
+%format defaultMap2
+%format withColor'
+%format cmd1
+%format cmd2
 

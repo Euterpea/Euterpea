@@ -272,6 +272,8 @@ Cover image: \emph{Euterpe}, the Greek Muse of Music\\
 % ---------------------------------------------------------------------
 % \backmatter
 
+\phantomsection\addcontentsline{toc}{part}{Appendix}% Add references to ToC (and bookmarks)
+\part*{Appendix}
 \appendix
 
 % Tour of PreludeList
@@ -286,10 +288,11 @@ Cover image: \emph{Euterpe}, the Greek Muse of Music\\
 % Pattern-Matching Details
 \include{Patterns}
 
-\newpage
+\clearpage
 
 % Bibliography
 \bibliographystyle{alpha}
+\phantomsection\addcontentsline{toc}{part}{Bibliography}% Add references to ToC (and bookmarks)
 \bibliography{HSoM}
 
 % Index

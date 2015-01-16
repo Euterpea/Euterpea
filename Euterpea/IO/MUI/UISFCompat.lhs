@@ -20,7 +20,7 @@ NOTE: Actually, SF and Automaton (->) are the same thing.  Perhaps we should
 
 The below function is useful for directly asynchronizing AudSFs and CtrSFs in UISF.
 
-> clockedSFToUISF :: forall a b c . (NFData b, Clock c) => Double -> SigFun c a b -> UISF a [(b, Time)]
+> clockedSFToUISF :: forall a b c . (NFData b, Clock c) => DeltaT -> SigFun c a b -> UISF a [(b, Time)]
 > clockedSFToUISF buffer ~(ArrowP sf) = let r = rate (undefined :: c) 
 >   in asyncUISFV r buffer (toAutomaton sf)
 

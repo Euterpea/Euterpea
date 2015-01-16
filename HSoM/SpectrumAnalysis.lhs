@@ -908,7 +908,7 @@ this is shown in Figure~\ref{fig:fft-mui}.
 fftEx :: UISF () ()
 fftEx = proc _ -> do
     f       <- hSlider (1, 2000) 440 -< ()
-    (d,_) <- convertToUISF 100 simpleSig -< f
+    (d,_) <- clockedSFToUISF 100 simpleSig -< f
     let (s, fft) = unzip d
     _ <- histogram (500, 150) 20 -< listToMaybe (catMaybes fft)
     _ <- realtimeGraph' (500, 150) 200 20 Black -< s
