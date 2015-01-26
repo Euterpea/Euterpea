@@ -87,7 +87,8 @@ insertMEvent mev1@(t1,_) mevs@(mev2@(t2,_):mevs') =
                   else mev2 : insertMEvent mev1 mevs'
 
 defUpm :: UserPatchMap
-defUpm = [(AcousticGrandPiano,1),
+defUpm = [(AcousticGrandPiano,0),
+          (Marimba,1),
           (Vibraphone,2),
           (AcousticBass,3),
           (Flute,4),
@@ -95,7 +96,7 @@ defUpm = [(AcousticGrandPiano,1),
           (AcousticGuitarSteel,6),
           (Viola,7),
           (StringEnsemble1,8),
-          (AcousticGrandPiano,9)]  
+          (AcousticGrandPiano,9)]
             -- the GM name for drums is unimportant, only channel 9
 
 testMidi :: Performable a => Music a -> Midi
