@@ -2,7 +2,6 @@
 module Euterpea.Examples.Instruments where
 import Euterpea
 import Euterpea.Experimental
-import FRP.UISF.AuxFunctions ((~++))
 
 -- Here is a demonstration of the guitar and piano widgets available in Euterpea.
 
@@ -16,8 +15,7 @@ instrumentDemo = runMUI (defaultMUIParams {uiSize=(1038,706), uiTitle="Instrumen
     -- If you want to be able to change these settings at runtime, a structure like this is necessary
     -- addNotation presents a checkbox that allows the user to toggle the display of pitch classes
     -- on the instruements. In this example, a single settings variable is used.
-    rec settings' <- addNotation -< settings
-        settings <- hold defaultInstrumentData -< Just settings'
+    settings <- addNotation -< defaultInstrumentData
     -- The guitar UISF takes in a keymap (sixString is the only one available at the moment) and
     -- a midi channel. Any midi messages passed into the guitar will be coerced to that channel.
     guitar1 <- guitar sixString 1 -< (settings, Nothing)
