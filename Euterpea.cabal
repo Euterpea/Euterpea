@@ -14,7 +14,7 @@ maintainer:     Paul Hudak <paul.hudak@yale.edu>,
                 Donya Quick <donya.quick@yale.edu>,
                 Dan Winograd-Cort <daniel.winograd-cort@yale.edu>,
                 Mark Santolucito <mark.santolucito@yale.edu>
-bug-reports:    mailto:paul.hudak@yale.edu
+bug-reports:    https://github.com/Euterpea/Euterpea/issues
 homepage:       http://haskell.cs.yale.edu/
 synopsis:       Library for computer music research and education
 description:
