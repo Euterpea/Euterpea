@@ -1,9 +1,12 @@
 {-# LANGUAGE ExistentialQuantification, ScopedTypeVariables,
     FlexibleContexts #-}
+{-# LANGUAGE CPP #-}
 
 module Euterpea.IO.Audio.IO (
     outFile,  outFileNorm,
+#ifdef PortAudio
     playSignal, playSignalNorm,
+#endif
  -- outFileA, outFileNormA, RecordStatus,
     maxSample) where
 
@@ -17,7 +20,9 @@ import Control.Concurrent.MonadIO
 
 
 import Euterpea.IO.Audio.Types hiding (Signal)
+#ifdef PortAudio
 import Euterpea.IO.Audio.PortAudioChannel
+#endif
 
 import Control.Concurrent.MonadIO
 import Control.Exception
@@ -121,6 +126,7 @@ writeWav f filepath sr numChannels adat =
 
 
 
+#ifdef PortAudio
 {- RealTime Audio -}
 
 -- | Plays a signal to the default speaker
@@ -148,6 +154,8 @@ playSignalHelp f dur sf = bracket (openChannel 512 sr) closeChannel
       (\c -> mapM_ (writeChannel c) dat) -- This is equivalent to ((flip mapM_) dat) . writeChannel
     where sr    = rate (undefined :: p)
           dat   = f (toSamples dur sf)
+
+#endif
 
 toSamples :: forall a p. (AudioSample a, Clock p) =>
              Double -> Signal p () a -> [Double]
