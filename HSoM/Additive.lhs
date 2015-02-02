@@ -315,7 +315,7 @@ Figure~\ref{fig:clarinet-mode}a.
 \begin{figure}[hbtp]
 \centering
 \includegraphics[height=8.5in]{pics/DPlots/ClarinetModes.eps}
-\vspace{-.2in}
+\vspace{ -.2in}
 \caption{The Modes of a Clarinet Seen as a Cylindrical Tube}
 \label{fig:clarinet-mode}
 \end{figure}
@@ -424,7 +424,7 @@ than that of the fundamental!
 \begin{figure}
 \begin{code}
 bell1  :: Instr (Mono AudRate)
-       -- |Dur -> AbsPitch -> Volume -> AudSF () Double|
+       typecomment(Dur -> AbsPitch -> Volume -> AudSF () Double)
 bell1 dur ap vol [] = 
   let  f    = apToHz ap
        v    = fromIntegral vol / 100
@@ -489,7 +489,7 @@ realistic sound.
 \begin{figure}
 \begin{code}
 bell2  :: Instr (Mono AudRate)
-       -- |Dur -> AbsPitch -> Volume -> AudSF () Double|
+       typecomment(Dur -> AbsPitch -> Volume -> AudSF () Double)
 bell2 dur ap vol [] = 
   let  f    = apToHz ap
        v    = fromIntegral vol / 100
@@ -570,7 +570,7 @@ function for the four most common forms of filters:
 \begin{figure}[hbtp]
 \centering
 \includegraphics[height=7.5in]{pics/DPlots/FilterTypes.eps}
-\vspace{-.2in}
+\vspace{ -.2in}
 \caption{Transfer Functions for Four Common Filter Types}
 \label{fig:filter-types}
 \end{figure}
@@ -772,8 +772,8 @@ Helper function for filter tests:
 
 \begin{code}
 sfTest1 :: AudSF (Double,Double) Double -> Instr (Mono AudRate)
-        -- |AudSF (Double,Double) Double -> |
-        -- |Dur -> AbsPitch -> Volume -> [Double] -> AudSF () Double|
+        typecomment(AudSF (Double,Double) Double -> )
+        typecomment(Dur -> AbsPitch -> Volume -> [Double] -> AudSF () Double)
 sfTest1 sf dur ap vol [] =
   let f = apToHz ap
       v = fromIntegral vol / 100
@@ -824,7 +824,7 @@ Pure white noise:
 
 \begin{code}
 noise1  :: Instr (Mono AudRate)
-        -- |Dur -> AbsPitch -> Volume -> [Double] -> AudSF () Double|
+        typecomment(Dur -> AbsPitch -> Volume -> [Double] -> AudSF () Double)
 noise1 dur ap vol [] = 
   let  v = fromIntegral vol / 100
   in proc () -> do
@@ -840,8 +840,8 @@ env2 :: AudSF () Double
 env2 = envExpon 1 10 2000
 
 sfTest2  :: AudSF (Double,Double,Double) Double -> Instr (Mono AudRate)
-         -- |AudSF (Double,Double,Double) Double -> |
-         -- |Dur -> AbsPitch -> Volume -> [Double] -> AudSF () Double|
+         typecomment(AudSF (Double,Double,Double) Double -> )
+         typecomment(Dur -> AbsPitch -> Volume -> [Double] -> AudSF () Double)
 sfTest2 sf dur ap vol [] =
   let  f = apToHz ap
        v = fromIntegral vol / 100
@@ -850,7 +850,9 @@ sfTest2 sf dur ap vol [] =
        bw <- env2 -< ()
        a2 <- sf -< (a1,f,bw)
        outA -< a2
+\end{code}
 
+\begin{code}
 tBP'    =  outFile "bp'.wav" 10 $
            sfTest2 (filterBandPass 1) 10 (absPitch (C,5)) 80 []
 

@@ -826,7 +826,7 @@ example, let's turn the |vibrato| function from the last section into
 a (rather primitive) instrument:
 \begin{code}
 myInstr :: Instr (AudSF () Double)
-  -- |Dur -> AbsPitch -> Volume -> [Double] -> (AudSF () Double)|
+  typecomment(Dur -> AbsPitch -> Volume -> [Double] -> (AudSF () Double))
 myInstr dur ap vol [vfrq,dep] =
   proc () -> do
        vib  <- osc tab1  0 -< vfrq
