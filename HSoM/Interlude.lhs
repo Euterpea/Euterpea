@@ -112,7 +112,7 @@ they will be introduced as needed in future chapters.
 }{
 % We use a parbox here to make sure that the figure takes up a full page, 
 % just like ChildSong6, so that page numbers will remain consistent.
-  \parbox[c][8in][c]{\textwidth}{\center{\framebox[1.1\width]{Image omitted due to respository space issues.}}}
+  \parbox[c][8in][c]{\textwidth}{\center{\framebox[1.1\width]{Image omitted due to repository space issues.}}}
 }
 \caption{Excerpt from Chick Corea's \emph{Children's Songs No.\ 6}}
 \label{fig:childsong6}

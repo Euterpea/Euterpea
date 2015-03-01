@@ -33,3 +33,4 @@ lhs2tex --poly Patterns.lhs > Patterns.tex
 bibtex HSoM
 latex HSoM
 dvips HSoM
+ps2pdf HSoM.ps

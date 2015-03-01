@@ -117,6 +117,17 @@
   \addtocontents{toc}{\vskip5pt}
 }
 
+%---------------------------------------------------------------------
+%---------------------------------------------------------------------
+% These lines should not be necessary, but they are included because 
+% images are occasionally missing from the repository.
+\LetLtxMacro\latexincludegraphics\includegraphics
+\renewcommand{\includegraphics}[2][]{%
+\IfFileExists{#2}{\latexincludegraphics[#1]{#2}}
+  {\framebox[1.1\width]{Image not in repository!}}}
+%---------------------------------------------------------------------
+%---------------------------------------------------------------------
+
 \begin{document}
 
 %---------------------------------------------------------------------
@@ -178,11 +189,15 @@ Cover image: \emph{Euterpe}, the Greek Muse of Music\\
 
 \newpage
 
+\setcounter{tocdepth}{1}% Set contents to display Chapters and Sections and nothing deeper
 \tableofcontents
+\addcontentsline{toc}{chapter}{Table of Contents}% Add ToC to ToC (and bookmarks)
 
 \listoffigures
+\addcontentsline{toc}{chapter}{List of Figures}% Add LoF to ToC (and bookmarks)
 
 \listoftables
+\addcontentsline{toc}{chapter}{List of Tables}% Add LoT to ToC (and bookmarks)
 
 % Preface
 \include{Preface}
@@ -272,7 +287,7 @@ Cover image: \emph{Euterpe}, the Greek Muse of Music\\
 % ---------------------------------------------------------------------
 % \backmatter
 
-\phantomsection\addcontentsline{toc}{part}{Appendix}% Add references to ToC (and bookmarks)
+\phantomsection\addcontentsline{toc}{part}{Appendix}% Add appendix to ToC (and bookmarks)
 \part*{Appendix}
 \appendix
 

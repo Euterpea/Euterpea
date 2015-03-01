@@ -1,3 +1,6 @@
+%include lhs2TeX.fmt
+%include myFormat.fmt
+
 \section{General Midi}
 \label{general-midi}
 
@@ -153,7 +156,7 @@ instance Enum InstrumentName where
   fromEnum Helicopter = 125
   fromEnum Applause = 126
   fromEnum Gunshot = 127
-  fromEnum i = error $ "fromEnum: " ++ show i ++ " inot implemented"
+  fromEnum i = error $ "fromEnum: " ++ show i ++ " is not implemented"
 
   toEnum 0 = AcousticGrandPiano 
   toEnum 1 = BrightAcousticPiano 

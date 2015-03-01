@@ -394,7 +394,7 @@ directly, say as an abstract type |Signal T|, and then define
 functions to add, multiply, take the sine of, and so on, signals
 represented in this way.  For example, |Signal Float| would be the
 type of a time-varying floating-point number, |Signal AbsPitch| would
-be the type of a time-varing absolute pitch, and so on.  Then given
+be the type of a time-varying absolute pitch, and so on.  Then given
 |s1,s2 :: Signal Float| we might simply write |s1 + s2|, |s1 * s2|,
 and |sin s1| as examples of applying the above operations.  Haskell's
 numeric type class hierarchy makes this particularly easy to do.
@@ -419,7 +419,7 @@ and the individual values that comprise a signal, but not to the
 actual signal itself.  By not giving the user direct access to
 signals, and providing a disciplined way to compose signal functions
 (namely arrow syntax), time- and space-leaks are avoided.  In fact,
-the resulting framwework is highly amenable to optimization, although
+the resulting framework is highly amenable to optimization, although
 this requires using special features in Haskell, as described in
 Chapter \ref{ch:arrows}.
 
@@ -487,7 +487,7 @@ hiSlider, viSlider   :: Integral a => a -> (a, a) -> a -> UISF () a
 \item
 A simple (static) text string can be displayed using:
 \begin{spec}
-label :: String -> UISF () ()
+label :: String -> UISF a a
 \end{spec}
 
 \item
@@ -879,7 +879,7 @@ mui4  = runMUI' ui4
 
 \end{code}
 
-Since determining device IDs for both input and ouput is common, we
+Since determining device IDs for both input and output is common, we
 define a simple signal function to do both:
 \begin{code}
 getDeviceIDs = topDown $
@@ -992,9 +992,19 @@ unique :: Eq a => SF a (SEvent a)
 edge :: SF Bool (SEvent ())
   -- Generates an event whenever the input changes from |False| to |True|
 
+hold :: a -> SF (SEvent a) a
+  -- |hold x| begins as value |x|, but changes to the subsequent values
+  -- attached to each of its input events
+
 accum :: a -> SF (SEvent (a -> a)) a
   -- |accum x| starts with the value |x|, but then applies the function 
   -- attached to the first event to |x| to get the next value, and so on
+
+now :: SF () (SEvent ())
+  -- Creates a single event ``now'' and forever after does nothing.
+
+evMap :: SF a b -> SF (SEvent a) (SEvent b)
+  -- Lifts a continuous signal function into one that handles events
 
 mergeE :: (a -> a -> a) -> SEvent a -> SEvent a -> SEvent a
   -- |mergeE f e1 e2| merges two events, using |f| to resolve two |Just| values
@@ -1003,15 +1013,6 @@ mergeE :: (a -> a -> a) -> SEvent a -> SEvent a -> SEvent a
   -- An infix specialization of |mergeE| to lists
 (~++) = mergeE (++)
 
-hold :: b -> SF (SEvent b) b
-  -- |hold x| begins as value |x|, but changes to the subsequent values
-  -- attached to each of its input events
-
-now :: SF () (SEvent ())
-  -- Creates a single event ``now'' and forever after does nothing.
-
-evMap :: SF b c -> UISF (SEvent b) (SEvent c)
-  -- Lifts a continuous signal function into one that handles events
 \end{spec}}
 \caption{Mediators Between the Continuous and the Discrete}
 \label{fig:mediators}
@@ -1023,7 +1024,7 @@ evMap :: SF b c -> UISF (SEvent b) (SEvent c)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Folds}
 
-In traditional functional prgramming, a folding, or reducing, operation 
+In traditional functional programming, a folding, or reducing, operation 
 is one that joins together a set of data.  The typical case would be 
 an operation that operates over a list of data, such as a function that 
 sums all elements of a list of numbers.
@@ -1145,7 +1146,7 @@ an event.
 \label{ch:mui:sec:delays}
 
 
-Another way in which a widget can use time implictly is in a 
+Another way in which a widget can use time implicitly is in a 
 \emph{delay}.  Euterpea comes with five different delaying widgets, 
 which each serve a specific role depending on whether the streams 
 are continuous or event-based and if the delay is a fixed length or 
@@ -1200,7 +1201,7 @@ to |vcdelay| is
 the maximum amount that the widget can delay.  Due to the variable 
 nature of |vcdelay|, some portions of the input signal may be omitted 
 entirely from the output signal while others may even be outputted 
-more than once.  Thus, once again, it is higly advised to use 
+more than once.  Thus, once again, it is highly advised to use 
 |vdelay| rather than |vcdelay| when dealing with event-based signals.
 
 
@@ -1325,7 +1326,7 @@ growth function is given by the recurrence equation:
 
 Mathematically, we start with an initial population $x_0$ and
 iteratively apply the growth function to it, where $r$ is the growth
-rate.  For certain values of $r$, the population stablizes to a
+rate.  For certain values of $r$, the population stabilizes to a
 certain value, but as $r$ increases, the period doubles, quadruples,
 and eventually leads to chaos.  It is one of the classic examples of
 chaotic behavior.
@@ -1511,14 +1512,14 @@ We will walk through the descriptions of each of these widgets:
 |l|.  This graph will accept as input a stream of events of pairs 
 of values and time\footnote{These events are represented as a list 
   rather than using the |SEvent| type because there may be more than 
-  one event at the same time.  The absense of any events would be 
+  one event at the same time.  The absence of any events would be 
   indicated by an empty list.}.
 The values are plotted vertically in color |c|, and the horizontal 
 axis represents time, where the width of the graph represents an 
 amount of time |t|.
 
 \item
-The histogram widgets' input areevents that each contain a complete 
+The histogram widgets' input are events that each contain a complete 
 set of data.  The data are plotted as a histogram within the given 
 layout.  For the histogram with the scale, each value must be paired 
 with a |String| representing its label, and the labels are printed 
@@ -1536,7 +1537,7 @@ signals directly in future chapters.
 In Sections~\ref{ch:mui:sec:midiinout} and \ref{ch:mui:sec:mididevs}, 
 we presented simple widgets for selecting devices and polling and 
 playing midi messages.  However, these widgets allow for only one 
-input device and one output device at a time.  For a more comlex 
+input device and one output device at a time.  For a more complex 
 scenario where multiple devices are to be used simultaneously, we 
 have the following four widgets:
 
@@ -1681,7 +1682,7 @@ For the guitar, we provide |sixString|, a mapping using the first
 six columns of keys (e.g. 1, Q, A, Z would be the first column) to 
 represent the six strings of the guitar.
 
-The next argument to making a virutal instrument widget is a MIDI 
+The next argument to making a virtual instrument widget is a MIDI 
 channel.  Because they can create MIDI messages from just a mouse 
 click, these widgets need 
 information about what MIDI channel the messages should use.  The 
@@ -1878,7 +1879,7 @@ whole signal function by applying it on the first line like so:
 \begin{spec}
 ... = leftRight $ proc _ -> do ...
 \end{spec}
-The other option is to apply the transformation inline for the signal 
+The other option is to apply the transformation in-line for the signal 
 function it should act upon:
 \begin{spec}
 ...
@@ -2115,7 +2116,7 @@ the end of the chapter in Figure~\ref{fig:fft-mui}
 \begin{exercise}{\em
 Define a MUI that has a text box in which the user can type a pitch
 using the normal syntax |(C,4)|, |(D,5)|, etc., and a pushbutton
-labeled ``Play'' that, when pushed, will play the pitch appearing in
+labelled ``Play'' that, when pushed, will play the pitch appearing in
 the textbox.
 
 Hint: use the Haskell function |reads :: Read a => String ->
