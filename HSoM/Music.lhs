@@ -285,7 +285,7 @@ Modify  :: Control -> Music a  -> Music a
 \end{spec}
 These four constructors then are also polymorphic functions.
 
-%%     |  Music a :=/ Music a              -- parallel composition
+%%     |  Music a /=: Music a              -- parallel composition
 %%     (short)
 
 %%   The first line here looks odd: the name |Primitive| appears
@@ -343,7 +343,7 @@ concert A.
   chapter.  You can see now that they are actually constructors of an
   algebraic data type.)
 
-%% \item |m1 :=/ m2| is also a parallel composition of |m1| and |m2|, but
+%% \item |m1 /=: m2| is also a parallel composition of |m1| and |m2|, but
 %%   its duration is that of the shorter of |m1| and |m2|.
 
 \item |Modify cntrl m| is an ``annotated'' version of |m| in which the

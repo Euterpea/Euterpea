@@ -378,7 +378,7 @@ perf pm
 \label{fig:real-perform}
 \end{figure}
 
-%%      m1 :=/ m2                  -> 
+%%      m1 /=: m2                  ->
 %%              let  (pf1,d1) = perf pm c m1
 %%                   (pf2,d2) = perf pm c m2
 %%              in (merge pf1 pf2, max d1 d2)
