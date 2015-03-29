@@ -78,7 +78,7 @@ timidity -iA -Os &
 
 On gentoo:  run:
 aconnect -l
-This will output the Midi Through port number, say it is port number is 14,
+This will output the Midi Through port number, say, it is port number 14,
 then run:
 aconnect 14:0 128:0
 This will connect a timidity default port (128) to port 14
