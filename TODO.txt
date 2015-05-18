@@ -1,0 +1,13 @@
+TODO
+
+- (DWC) Euterpea.IO.MUI should export MusicToMsgs (from MidiWidgets).
+    (DQ) musicToMsgs in MidiWidgets was eventually going to be replaced by a channel assignment policy and the more recent implementation in ExperimentalPlay. There is stuff in ExperimentalPlay that will accomplish that, but I was waiting for that to get rolled into non-experimental status before replacing the old stuff. The only thing stopping that from happening is the fact that the relevant module where that stuff needs to go is currently auto gen code from HSoM.
+- (DWC) I think the type of musicToMsgs should change from:
+    musicToMsgs :: Bool -> [InstrumentName] -> Music1 -> [(DeltaT, MidiMessage)]
+  to
+    musicToMsgs :: Maybe [InstrumentName] -> Music1 -> [(DeltaT, MidiMessage)]
+- (DWC) On an implementation side, there's no longer a reason to have SEvent [MidiMessage] as the default MIDI type in the MUI as there's no difference in behavior between Nothing and Just [].  Thoughts on changing it to simply [MidiMessage]?  (This would be a pretty large-scale change, but I'm guessing that in most places it would be as simple as replacing fmap with maybe [])
+- (DWC) Euterpea.IO.MUI.InstrumentBase functions songPlayer and selectInstrument should either be (updated and) moved to MidiWidgets and exported along with base Euterpea or removed altogether.
+- (DWC) I think the user-level design of the virtual instruments (guitar and piano) could do with some work to make them a little cleaner to use.  Then we should thoroughly test them and put them in base Euterpea.
+- (DWC) Euterpea base should export vcdelay and fcdelay
+- (DWC) MidiIO should have functions defaultOutputDevice :: IO (Maybe OutputDeviceID) and defaultInputDevice :: IO (Maybe InputDeviceID).  Then we can also make widgets based on these as non-interactive alternatives to selectInput and selectOutput.

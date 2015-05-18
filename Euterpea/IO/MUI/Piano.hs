@@ -131,7 +131,7 @@ mkKey :: Char -> KeyType -> UISF KeyData KeyState
 mkKey c kt = mkWidget iState d process draw where
     iState = (KeyState False False False 127, Nothing)
 
-    d = Layout 0 0 0 minh minw minh
+    d = makeLayout (Fixed minw) (Fixed minh)
     minw = topW kt
     minh | isBlack kt = bh
          | otherwise  = wh

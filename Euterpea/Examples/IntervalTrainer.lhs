@@ -100,7 +100,7 @@ The main UI:
 >     -- edge-detect pushbuttons:
 >     let guessesE = foldl1 (.|.) $ zipWith (->>) guesses intNameList
 >     rec -- the state
->         state    <- accum Start -< updates
+>         state    <- delay Start <<< accum Start -< updates
 >         -- event filter based on MUI state
 >         let whileIn' :: SEvent a -> State -> SEvent a
 >             e `whileIn'` s = if s == state then e else Nothing
@@ -118,12 +118,12 @@ The main UI:
 >     -- state variables:
 >     let matchE   = snapshot (guessesE `whileIn` Base) interval =>> 
 >                     \(g,(r,i)) -> if g==intNameList!!i then succ else id
->     total   <- accum 0 -< ((guessesE `whileIn` Base ->> succ) .|.
+>     total   <- delay 0 <<< accum 0 -< ((guessesE `whileIn` Base ->> succ) .|.
 >                            (nextE    `whileIn` Base ->> succ) .|.
 >                            (giveUpE  `whileIn` Base ->> succ) .|.
 >                            (resetE ->> const 0)                  )
->     correct <- accum 0 -< (matchE .|. (resetE ->> const 0))
->     repeats <- accum 0 -< ((repeatE `whileIn` Base ->> succ) .|.
+>     correct <- delay 0 <<< accum 0 -< (matchE .|. (resetE ->> const 0))
+>     repeats <- delay 0 <<< accum 0 -< ((repeatE `whileIn` Base ->> succ) .|.
 >                            (resetE ->> const 0)                  )
 >     -- Note delays
 >     let f n pn dur = if pn==n then 1 / fromIntegral (2 ^ dur) else 0

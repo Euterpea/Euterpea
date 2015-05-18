@@ -58,7 +58,7 @@ drawHead n = topDown $ constA (repeat ()) >>>
              concatA (map (mkBasicWidget layout . draw) [n,n-1..1]) >>>
              constA ()
     where draw k ((x,y),(w,h)) = withColor Black $ line (x, y + h `div` 2 + 5 * (3 - k)) (x + w, y + h `div` 2)
-          layout = Layout 0 0 fw fh fw fh
+          layout = makeLayout (Fixed fw) (Fixed fh)
 
 
 --drawHead :: Int -> UISF () ()
@@ -76,7 +76,7 @@ mkKey :: Char -> KeyType -> UISF KeyData KeyState
 mkKey c kt = mkWidget iState d process draw where
     iState = (KeyState False False False 127, Nothing)
 
-    d = Layout 0 0 0 minh minw minh
+    d = makeLayout (Fixed minw) (Fixed minh)
     (minh, minw) = (fh, fw - kt * 3)
 
     draw box@((x,y),(w,h)) _ (kb, showNote) =

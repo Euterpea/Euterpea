@@ -11,12 +11,13 @@
 > , selectInput,  selectOutput
 > , selectInputM, selectOutputM
 > , BufferOperation (..) -- Reexported for use with midiOutMB 
+> , asyncMidi, asyncMidiOn
 > ) where
 
 > import FRP.UISF
 > import Euterpea.IO.MIDI.MidiIO
 
-> import Control.Monad (liftM)
+> import Control.Monad (liftM, forM_, when)
 
 > -- These four imports are just for musicToMsgs
 > import Euterpea.IO.MIDI.GeneralMidi (toGM)
@@ -25,9 +26,12 @@
 > import Data.List (nub, elemIndex, sortBy)
 
 > -- These three imports are for the runMidi functions
+> import FRP.UISF.UISF (addTerminationProc)
 > import Euterpea.IO.MUI.UISFCompat
 > import Control.SF.SF
 > import Control.DeepSeq
+> import Control.Concurrent (threadDelay, killThread)
+> import Data.IORef
 
 
 
@@ -303,4 +307,34 @@ These widgets should be used with midiInM and midiOutM respectively.
 >   in  title t $ checkGroup $ map (\(i,d) -> (name d, i)) devs
 
 
+> asyncMidi :: r -> (b,c) -> Int -> ((r, b) -> ([([(OutputDeviceID, [MidiMessage])], Int)], r, c)) -> UISF b c
+> asyncMidi = asyncMidiHelper unsafeAsyncIO
+
+> asyncMidiOn :: Int -> r -> (b,c) -> Int -> ((r, b) -> ([([(OutputDeviceID, [MidiMessage])], Int)], r, c)) -> UISF b c
+> asyncMidiOn n = asyncMidiHelper (unsafeAsyncIOOn n)
+
+> asyncMidiHelper asy r (defb, defc) dd f = go where --initialAIO (newIORef Nothing) go where
+> --                                 >>> arr (\x -> if null x then Nothing else Just (last x)) 
+> --                                 >>> hold defc where
+> --  go die = asy th ((r,defb),g) where
+>   go = asy (defb, defc) th (r,uncurry h) where
+>     th tid = addTerminationProc $ killThread tid --do
+> --      writeIORef die (Just tid)
+> --      putStrLn "MIDI back-end closing..."
+> --    g ((r,b),[]) = h r b
+> --    g ((r,_),bs) = h r (last bs)
+>     h r b = do
+>       let (omt, r', c) = f (r, b)
+>           td = sum $ map snd omt
+>       forM_ omt $ \(om, t) -> do
+>         forM_ om $ \(odev,mm) -> do
+>           outputMidi odev
+>           forM_ mm (\m -> deliverMidiEvent odev (0, m))
+>         when (t > 0) (threadDelay t)
+> --      continue <- readIORef die
+> --      maybe (return ()) killThread continue
+>       when (td <= 0) (threadDelay dd)
+> --      return ((r',b),c)
+>       return (r',c)
+    
 

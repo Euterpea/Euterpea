@@ -18,7 +18,7 @@ module Euterpea.IO.MUI
   , display             -- :: Show a => UISF a ()
   , withDisplay         -- :: Show b => UISF a b -> UISF a b
   , textboxE            -- :: String -> UISF (SEvent String) String
-  , textbox             -- :: UISF String String
+  , textbox             -- :: String -> UISF (SEvent String) String
   , title               -- :: String -> UISF a b -> UISF a b
   , button              -- :: String -> UISF () Bool
   , stickyButton        -- :: String -> UISF () Bool
