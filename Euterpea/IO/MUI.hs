@@ -59,13 +59,14 @@ instance ArrowInit UISF where
   init = delay
 
 defaultMUIParams :: UIParams
-defaultMUIParams = defaultUIParams { uiInitialize = initializeMidi, uiClose = terminateMidi, uiTitle = "MUI" }
+defaultMUIParams = defaultUIParams { uiTitle = "MUI" }
 
 runMUI :: UIParams -> UISF () () -> IO ()
-runMUI = runUI
+runMUI params = runUI (params { uiInitialize = uiInitialize params >> initializeMidi, 
+                                uiClose = uiClose params >> terminateMidi})
 
 runMUI' :: UISF () () -> IO ()
-runMUI' = runUI defaultMUIParams
+runMUI' = runMUI defaultMUIParams
 
 
 

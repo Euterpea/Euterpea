@@ -11,7 +11,9 @@
 > , selectInput,  selectOutput
 > , selectInputM, selectOutputM
 > , BufferOperation (..) -- Reexported for use with midiOutMB 
+#if MIN_VERSION_UISF(0,4,0)
 > , asyncMidi, asyncMidiOn
+#endif
 > ) where
 
 > import FRP.UISF
@@ -307,20 +309,21 @@ These widgets should be used with midiInM and midiOutM respectively.
 >   in  title t $ checkGroup $ map (\(i,d) -> (name d, i)) devs
 
 
+#if MIN_VERSION_UISF(0,4,0)
 > asyncMidi :: r -> (b,c) -> Int -> ((r, b) -> ([([(OutputDeviceID, [MidiMessage])], Int)], r, c)) -> UISF b c
 > asyncMidi = asyncMidiHelper unsafeAsyncIO
 
 > asyncMidiOn :: Int -> r -> (b,c) -> Int -> ((r, b) -> ([([(OutputDeviceID, [MidiMessage])], Int)], r, c)) -> UISF b c
 > asyncMidiOn n = asyncMidiHelper (unsafeAsyncIOOn n)
 
-> asyncMidiHelper asy r (defb, defc) dd f = go where --initialAIO (newIORef Nothing) go where
+> asyncMidiHelper asy r (defb, defc) dd f = initialAIO (newIORef Nothing) go where
 > --                                 >>> arr (\x -> if null x then Nothing else Just (last x)) 
 > --                                 >>> hold defc where
 > --  go die = asy th ((r,defb),g) where
->   go = asy (defb, defc) th (r,uncurry h) where
->     th tid = addTerminationProc $ killThread tid --do
-> --      writeIORef die (Just tid)
-> --      putStrLn "MIDI back-end closing..."
+>   go die = asy (defb, defc) th (r,uncurry h) where
+>     th tid = addTerminationProc $ do
+>       writeIORef die (Just tid)
+>       putStrLn "MIDI back-end closing..."
 > --    g ((r,b),[]) = h r b
 > --    g ((r,_),bs) = h r (last bs)
 >     h r b = do
@@ -331,10 +334,10 @@ These widgets should be used with midiInM and midiOutM respectively.
 >           outputMidi odev
 >           forM_ mm (\m -> deliverMidiEvent odev (0, m))
 >         when (t > 0) (threadDelay t)
-> --      continue <- readIORef die
-> --      maybe (return ()) killThread continue
+>       continue <- readIORef die
+>       maybe (return ()) killThread continue
 >       when (td <= 0) (threadDelay dd)
 > --      return ((r',b),c)
 >       return (r',c)
-    
+#endif
 

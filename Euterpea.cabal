@@ -77,6 +77,7 @@ Test-Suite test-euterpea
 Library
   hs-source-dirs: .
   ghc-options: -O2 -funbox-strict-fields -fexcess-precision
+  extensions: CPP
   exposed-modules: 
         Euterpea,
         Euterpea.Experimental,
