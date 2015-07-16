@@ -6,8 +6,7 @@ module Euterpea.IO.Audio.IO (
 --    outFileA, outFileNormA, RecordStatus, 
     maxSample) where
 
-import Prelude hiding (init)
-import Control.CCA.ArrowP
+import Control.Arrow.ArrowP
 import Control.SF.SF
 import Euterpea.IO.Audio.Types hiding (Signal)
 
@@ -97,7 +96,7 @@ outFileHelpA f filepath sr =
   let numChannels = numChans (undefined :: a)
       writeWavSink = sink (writeWav f filepath sr numChannels)
   in proc (a, rs) -> do
-        rec dat <- init [] -< dat'
+        rec dat <- delay [] -< dat'
             dat' <- case rs of
                         Pause  -> returnA -< dat
                         Record -> returnA -< a:dat

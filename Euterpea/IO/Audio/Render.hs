@@ -9,8 +9,8 @@ module Euterpea.IO.Audio.Render (
 ) where
 
 import Control.Arrow
-import Control.CCA.Types
-import Control.CCA.ArrowP
+import Control.Arrow.Operations
+import Control.Arrow.ArrowP
 import Control.SF.SF
 
 import Euterpea.Music.Note.Music
@@ -19,11 +19,9 @@ import Euterpea.Music.Note.Performance
 import Euterpea.IO.Audio.Basics
 import Euterpea.IO.Audio.Types
 
-import Data.List hiding (init)
+import Data.List
 import qualified Data.IntMap as M
 import Data.Ord (comparing)
-
-import Prelude hiding (init)
 
 -- Every instrument is a function that takes a duration, absolute
 -- pitch, volume, and a list of parameters (Doubles).  What the function 
@@ -72,7 +70,7 @@ toEvtSF pf imap =
     in proc _ -> do
          rec
            t <- integral -< 1
-           es <- init evts -< next
+           es <- delay evts -< next
            let (evs, next) = span ((<= t) . fst) es
              -- Trim events that are due off the list and output them,
              -- retaining the rest
@@ -106,7 +104,7 @@ pSwitch col esig mod =
       evts <- esig -< ()
       rec
         -- perhaps this can be run at a lower rate using upsample
-        sfcol <- init col -< mod sfcol' evts  
+        sfcol <- delay col -< mod sfcol' evts  
         let rs = fmap (\s -> runSF (strip s) ()) sfcol :: col (a, SF () a)
             (as, sfcol' :: col (Signal p () a)) = (fmap fst rs, fmap (ArrowP . snd) rs)
       outA -< as

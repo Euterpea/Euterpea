@@ -8,10 +8,8 @@
 
 {-# LANGUAGE Arrows #-}
 module Euterpea.IO.MUI.FFT where
-import Control.CCA.Types
-import Prelude hiding (init)
-
 import FRP.UISF
+import Control.Arrow.Operations
 import Numeric.FFT (fft)
 import Data.Complex
 import Data.Map (Map)
@@ -33,9 +31,9 @@ import qualified Data.Map as Map
 -- | Returns n samples of type b from the input stream at a time, 
 --   updating after k samples.  This function is good for chunking 
 --   data and is a critical component to fftA
-quantize :: ArrowInit a => Int -> Int -> a b (SEvent [b])
+quantize :: ArrowCircuit a => Int -> Int -> a b (SEvent [b])
 quantize n k = proc d -> do
-    rec (ds,c) <- init ([],0) -< (take n (d:ds), c+1)
+    rec (ds,c) <- delay ([],0) -< (take n (d:ds), c+1)
     returnA -< if c >= n && c `mod` k == 0 then Just ds else Nothing
 
 -- | Converts the vector result of a dft into a map from frequency to magnitude.
@@ -51,7 +49,7 @@ presentFFT clockRate a = Map.fromList $ zipWith (curry mkAssoc) [0..] a where
 --   successive FFT calculation) and a fundamental period, this will decompose
 --   the input signal into its constituent frequencies.
 --   NOTE: The fundamental period must be a power of two!
-fftA :: ArrowInit a => Int -> Int -> a Double (SEvent [Double])
+fftA :: ArrowCircuit a => Int -> Int -> a Double (SEvent [Double])
 fftA qf fp = proc d -> do
     carray <- quantize fp qf -< d :+ 0
     returnA -< fmap (map magnitude . take (fp `div` 2) . fft) carray

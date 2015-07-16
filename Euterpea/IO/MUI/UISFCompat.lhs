@@ -5,7 +5,7 @@
 > import FRP.UISF.AuxFunctions
 > import FRP.UISF.UISF
 > import Control.SF.SF
-> import Control.CCA.ArrowP
+> import Control.Arrow.ArrowP
 > import Euterpea.IO.Audio.Types
 > import Control.DeepSeq
 > import Control.Concurrent (killThread, ThreadId)

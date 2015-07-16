@@ -38,7 +38,7 @@ delay line is a \emph{queue} or \emph{FIFO} data structure.
 \begin{figure}
 Unit delay line:
 \begin{code}
-init ::  Clock c => 
+delay ::  Clock c => 
          Double -> SigFun c Double Double
 \end{code}
 
@@ -68,7 +68,7 @@ given in Figure~\ref{fig:delay-line-types}.  Their behaviors can be
 described as follows:
 \begin{itemize}
 \item
-|init x| is a delay line with one element, which is initalized to |x|.
+|delay x| is a delay line with one element, which is initalized to |x|.
 \item
 |delayLineT s tab| is a delay line whose length is $s$ and whose
 contents are initialized to the values in the table |tab| (presumably
@@ -367,7 +367,7 @@ mathematical notation for a 1-unit delay.\footnote{This representation
   is called the \emph{Z transform} of a signal.}
 
 If you recall from Section\ref{sec:euterpea-filters}, the one-unit
-delay operator in Euterpea is called |init|.  With that in mind, it is
+delay operator in Euterpea is called |delay|.  With that in mind, it is
 easy to write a Euterpea program for a DC blocking filter, as shown in
 Figure~\ref{fig:dc-blocking-code}.  The transfer function
 corresponding to this filter for different values of |a| is shown in
@@ -379,8 +379,8 @@ for |a| works well.
 dcBlock :: Double -> AudSF Double Double
 dcBlock a = proc xn -> do
   rec  let yn = xn - xn_1 + a * yn_1
-       xn_1  <- init 0 -< xn
-       yn_1  <- init 0 -< yn
+       xn_1  <- delay 0 -< xn
+       yn_1  <- delay 0 -< yn
   outA -< yn
 \end{code}
 \caption{DC Blocking Filter in Euterpea}

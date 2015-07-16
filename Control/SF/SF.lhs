@@ -1,23 +1,18 @@
-> {-# LANGUAGE CPP, TemplateHaskell, BangPatterns, FlexibleInstances, MultiParamTypeClasses #-}
+> {-# LANGUAGE CPP, BangPatterns #-}
 
 > module Control.SF.SF where
 
 #if __GLASGOW_HASKELL__ >= 610
 > import Control.Category
-> import Prelude hiding ((.), init, exp)
-#else
-> import Prelude hiding (init, exp)
+> import Prelude hiding ((.), id)
 #endif
 
 > import Control.Arrow
-> import Control.CCA.Types
-> import Control.CCA.ArrowP
+> import Control.Arrow.ArrowP
 > import Control.Arrow.Operations
 
 
 > newtype SF a b = SF { runSF :: (a -> (b, SF a b)) }
-
-> instance ArrowInitP SF p
 
 #if __GLASGOW_HASKELL__ >= 610
 > instance Category SF where
@@ -89,17 +84,9 @@
 >                    Left a -> let (y, f') = runSF f a in f' `seq` (Left y, SF (g f'))
 >                    Right b -> (Right b, SF (g f))
 > 
-> instance ArrowInit SF where
->   init i = SF (f i)
->     where f i x = (i, SF (f x))
->   loopD i g = SF (f i)
->     where
->       f i x = 
->         let (y, i') = g (x, i)
->         in (y, SF (f i'))
-
 > instance ArrowCircuit SF where
->   delay = init
+>   delay i = SF (f i)
+>     where f i x = (i, SF (f x))
 
 > run :: SF a b -> [a] -> [b]
 > run _ [] = []

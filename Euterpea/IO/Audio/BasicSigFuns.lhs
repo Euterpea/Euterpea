@@ -1,4 +1,4 @@
-> {-# LANGUAGE Arrows, TemplateHaskell, BangPatterns, 
+> {-# LANGUAGE Arrows, BangPatterns, 
 >              ExistentialQuantification, FlexibleContexts, 
 >              FunctionalDependencies, ScopedTypeVariables,
 >              NoMonomorphismRestriction #-}
@@ -85,19 +85,14 @@ versions of the unit generators.
 > -- gen12, gen12',
 > -- butterlp, butterhp, butterbp, butterbr,
 
-> import Prelude hiding (init)
-
 > import Euterpea.IO.Audio.Basics
 > import Euterpea.IO.Audio.Types
 > import Control.Arrow
-> import Control.CCA.ArrowP
-> import Control.CCA.Types
+> import Control.Arrow.Operations
+> import Control.Arrow.ArrowP
 > import FRP.UISF.AuxFunctions (SEvent, constA)
 > import Data.Array.Base (unsafeAt)
 > import Data.Array.Unboxed
-
-> import Language.Haskell.TH
-> import Language.Haskell.TH.Syntax
 
 > import Foreign.Marshal
 > import Foreign.Ptr
@@ -136,43 +131,36 @@ A Table is essentially a UArray.
 > data Table = Table 
 >     !Int                   -- size
 >     !(UArray Int Double)   -- table implementation
->     ExpQ                   -- TH expression to construct 
->                            -- the table at compile time
 >     !Bool                  -- Whether the table is normalized
 
 > instance Show Table where
->     show (Table sz a _ n) = "Table with " ++ show sz ++ " entries: " ++ 
->                             show a
+>     show (Table sz a n) = "Table with " ++ show sz ++ " entries: " ++ show a
 
-> instance Language.Haskell.TH.Syntax.Lift Table where
->     lift (Table sz uarr fexp norm) =
->          [| funToTable ($(fexp)) fexp norm sz |]
-
-> funToTable :: (Double->Double) -> ExpQ -> Bool -> Int -> Table
-> funToTable f f' normalize size = 
+> funToTable :: (Double->Double) -> Bool -> Int -> Table
+> funToTable f normalize size = 
 >     let delta = 1 / fromIntegral size
 >         ys = take size (map f [0, delta.. ]) ++ [head ys]
 >              -- make table one size larger as an extended guard point
 >         zs = if normalize then map (/ maxabs ys) ys else ys
 >         maxabs = maximum . map abs
->     in Table size (listArray (0, size) zs) f' normalize
+>     in Table size (listArray (0, size) zs) normalize
 
 > readFromTable :: Table -> Double -> Double
-> readFromTable (Table sz array _ _) pos = 
+> readFromTable (Table sz array _) pos = 
 >     let idx = truncate (fromIntegral sz * pos)  -- range must be [0,size]
 >     in array `unsafeAt` idx
 > {-# INLINE [0] readFromTable #-}
 
-> readFromTableA :: ArrowInit a => Table -> a Double Double
-> readFromTableA t = arr' [| readFromTable t |] (readFromTable t)
+> readFromTableA :: Arrow a => Table -> a Double Double
+> readFromTableA = arr . readFromTable
 
 > readFromTableRaw :: Table -> Int -> Double
-> readFromTableRaw (Table _ a _ _) idx = a `unsafeAt` idx
+> readFromTableRaw (Table _ a _) idx = a `unsafeAt` idx
 
 Like readFromTable, but with linear interpolation.
 
 > readFromTablei :: Table -> Double -> Double
-> readFromTablei (Table sz array _ _) pos = 
+> readFromTablei (Table sz array _) pos = 
 >     let idx  = fromIntegral sz * pos  -- fractional "index" in table ([0,sz])
 >         idx0 = (truncate idx) `mod` sz       :: Int
 >         idx1 = idx0 + 1                      :: Int
@@ -181,14 +169,14 @@ Like readFromTable, but with linear interpolation.
 >     in val0 + (val1 - val0) * (idx - fromIntegral idx0)
 > {-# INLINE [0] readFromTablei #-}
 
-> readFromTableiA :: ArrowInit a => Table -> a Double Double
-> readFromTableiA t = arr' [| readFromTablei t |] (readFromTablei t)
+> readFromTableiA :: Arrow a => Table -> a Double Double
+> readFromTableiA = arr . readFromTablei
 
 Accesses table values by direct indexing with linear interpolation.
 The index 'pos' is expected to be normalized (between 0 and 1).  Values
 out of bounds are either clipped or wrapped.
 
-> tablei :: (Clock p, ArrowInit a) => 
+> tablei :: (Clock p, Arrow a) => 
 >           Table   -- Table to read from.
 >        -> Bool    -- Whether to wrap around index; 
 >                   --   if not, index is clipped within bounds
@@ -203,7 +191,7 @@ out of bounds are either clipped or wrapped.
 Accesses table values by direct indexing; the index is normalized
 (between 0 and 1).
 
-> table :: (Clock p, ArrowInit a) => Table -> Bool -> ArrowP a p Double Double
+> table :: (Clock p, Arrow a) => Table -> Bool -> ArrowP a p Double Double
 > table tab True =
 >     proc pos -> do 
 >       outA -< readFromTable tab (wrap pos 1)
@@ -214,26 +202,26 @@ Accesses table values by direct indexing; the index is normalized
 Like tablei, but the index is interpreted as a raw value (between 0
 and (size of table - 1), inclusive).
 
-> tableiIx :: (Clock p, ArrowInit a) => 
+> tableiIx :: (Clock p, Arrow a) => 
 >             Table -> Bool -> ArrowP a p Double Double
-> tableiIx tab@(Table sz array _ _) True =
+> tableiIx tab@(Table sz array _) True =
 >     proc idx -> do
 >       let idx0 = (truncate idx) `mod` sz
 >           val0 = readFromTableRaw tab idx0
 >           val1 = readFromTableRaw tab (idx0 + 1)
 >       outA -< val0 + (val1 - val0) * (idx - fromIntegral idx0)
-> tableiIx tab@(Table sz _ _ _) False =
+> tableiIx tab@(Table sz _ _) False =
 >     proc idx -> do
 >       let pos = idx / fromIntegral (sz-1)
 >       outA -< readFromTablei tab (clip pos 0 1)
 
 Like table, but index interpreted as raw value.
 
-> tableIx :: (Clock p, ArrowInit a) => Table -> Bool -> ArrowP a p Double Double
-> tableIx tab@(Table sz array _ _) True =
+> tableIx :: (Clock p, Arrow a) => Table -> Bool -> ArrowP a p Double Double
+> tableIx tab@(Table sz array _) True =
 >     proc idx -> do
 >       outA -< readFromTableRaw tab (truncate idx `mod` (sz-1))
-> tableIx tab@(Table sz array _ _) False =
+> tableIx tab@(Table sz array _) False =
 >     proc idx -> do
 >       outA -< readFromTableRaw tab (clip (truncate idx) 0 (sz-1))
 
@@ -244,7 +232,7 @@ Oscillators
 from sampling a stored function table. The internal phase is
 simultaneously advanced in accordance with the input signal 'freq'.
 
-> osc :: (Clock p, ArrowInit a) =>
+> osc :: (Clock p, ArrowCircuit a) =>
 >          Table 
 >       -> Double  -- Initial phase of sampling, expressed as a
 >                  -- fraction of a cycle (0 to 1).
@@ -253,7 +241,7 @@ simultaneously advanced in accordance with the input signal 'freq'.
 
 'oscI' is like 'osc', but with linear interpolation.
 
-> oscI :: (Clock p, ArrowInit a) => 
+> oscI :: (Clock p, ArrowCircuit a) => 
 >           Table 
 >        -> Double 
 >        -> ArrowP a p Double Double
@@ -261,7 +249,7 @@ simultaneously advanced in accordance with the input signal 'freq'.
 
 Helper function for osc and oscI.
 
-> osc_ :: forall p a. (Clock p, ArrowInit a) => 
+> osc_ :: forall p a. (Clock p, ArrowCircuit a) => 
 >           Double -> ArrowP a p Double Double
 > osc_ phs = 
 >     let sr = rate (undefined :: p)
@@ -269,14 +257,14 @@ Helper function for osc and oscI.
 >       rec 
 >         let delta = 1 / sr * freq
 >             phase = if next > 1 then frac next else next
->         next <- init phs -< frac (phase + delta)
+>         next <- delay phs -< frac (phase + delta)
 >       outA -< phase
 
 Simple, fast sine oscillator, that uses only one multiply and two add
 operations to generate one sample of output, and does not require a
 function table.
 
-> oscFixed :: forall p a . (Clock p, ArrowInit a) =>
+> oscFixed :: forall p a . (Clock p, ArrowCircuit a) =>
 >             Double -> ArrowP a p () Double
 > oscFixed freq =
 >   let omh = 2 * pi * freq / sr
@@ -286,8 +274,8 @@ function table.
 >       sf  = proc () -> do
 >                rec
 >                  let r = c * d2 - d1
->                  d1 <- init 0         -< d2
->                  d2 <- init d         -< r
+>                  d1 <- delay 0 -< d2
+>                  d2 <- delay d -< r
 >                outA -< r
 >   in sf
 
@@ -298,7 +286,7 @@ begin moving through the table at a constant rate, reaching the end in
 another 'dur' seconds; from that time on (i.e. after 'del' + 'dur'
 seconds) it will remain pointing at the last location. 
 
-> oscDur :: (Clock p, ArrowChoice a, ArrowInit a) =>
+> oscDur :: (Clock p, ArrowChoice a, ArrowCircuit a) =>
 >           Table
 >        -> Double
 >        -- delay in seconds before 'oscDur' incremental sampling begins
@@ -309,7 +297,7 @@ seconds) it will remain pointing at the last location.
 
 Like 'oscDur', but with linear interpolation.
 
-> oscDurI :: (Clock p, ArrowChoice a, ArrowInit a) => 
+> oscDurI :: (Clock p, ArrowChoice a, ArrowCircuit a) => 
 >            Table
 >         -> Double                  
 >            -- delay in seconds before 'oscDur' incremental sampling begins.
@@ -320,10 +308,10 @@ Like 'oscDur', but with linear interpolation.
 
 Helper function for oscDur and oscDurI.
 
-> oscDur_ :: forall p a . (Clock p, ArrowChoice a, ArrowInit a) => 
+> oscDur_ :: forall p a . (Clock p, ArrowChoice a, ArrowCircuit a) => 
 >            (Table -> Double -> ArrowP a p Double Double)
 >            -> Table -> Double -> Double -> ArrowP a p () Double
-> oscDur_ osc table@(Table sz _ _ _) del dur =
+> oscDur_ osc table@(Table sz _ _) del dur =
 >   let sr = rate (undefined :: p)
 >       t1 = del * sr
 >       t2 = t1 + dur * sr
@@ -340,7 +328,7 @@ Helper function for oscDur and oscDurI.
 
 These are not implemented.
 
-> foscil, foscili :: (Clock p, ArrowInit a) => 
+> foscil, foscili :: (Clock p, Arrow a) => 
 >                    Table -> ArrowP a p (Double,Double,Double,Double) Double
 > foscil table =
 >     proc (freq,carfreq,modfreq,modindex) -> do
@@ -350,7 +338,7 @@ These are not implemented.
 >     proc (freq,carfreq,modfreq,modindex) -> do
 >       outA -< 0
 
-> loscil :: (Clock p, ArrowInit a) => Table -> ArrowP a p Double Double
+> loscil :: (Clock p, Arrow a) => Table -> ArrowP a p Double Double
 > loscil table = 
 >     proc freq -> do
 >       outA -< 0
@@ -371,19 +359,13 @@ Output a set of harmonically related sine partials.
 >       rec
 >         let delta = 1 / sr * freq
 >             phase = if next > 1 then frac next else next
->         next <- init initialPhase -< frac (phase + delta)
+>         next <- delay initialPhase -< frac (phase + delta)
 >       outA -< sum [ readFromTable table (frac (phase * fromIntegral pn)) | 
 >                     pn <- [1..nharms] ]
 >               / fromIntegral nharms
 
 Pluck
 -----
-
-> instance Lift PluckDecayMethod where
->     lift SimpleAveraging = [| SimpleAveraging |]
->     lift (WeightedAveraging a b) = [| WeightedAveraging a b |]
->     lift _ = error "Euterpea.IO.Audio.BasicSigFuns: Lift PluckDecayMethod not yet defined (in TODO)"
->     -- TODO: rest of the methods
 
 > data PluckDecayMethod
 >     = SimpleAveraging
@@ -413,7 +395,7 @@ Pluck
 >     in proc cps -> do
 >       rec 
 >         z <- delayLineT (max 64 (truncate (sr / pitch))) table -< y
->         z' <- init 0 -< z
+>         z' <- delay 0 -< z
 >         let y = case method of 
 >                   SimpleAveraging -> 0.5 * (z + z') 
 >                          -- or is this "RecursiveFilter?"
@@ -451,9 +433,6 @@ modified feedback loops.
 
 > data Buf = Buf !Int !(Ptr Double)
 
-> instance Lift Buf where
->     lift (Buf sz _) = [| mkArr sz |]
-
 > updateBuf :: Buf -> Int -> Double -> IO Double
 > updateBuf (Buf _ a) i u = a `seq` i `seq` u `seq` do
 >     let p = a `advancePtr` i
@@ -483,8 +462,8 @@ A fixed-length delay line, initialized using a table.
 >     in proc x -> do
 >         rec
 >           let i' = if i == size-1 then 0 else i+1
->           i <- init 0 -< i'
->           y <- init 0 -< x  
+>           i <- delay 0 -< i'
+>           y <- delay 0 -< x  
 >         -- TODO: this proc can't be strict on x, but how can we 
 >         --       deal with strictness better without this hack?
 >         outA -< unsafePerformIO $ updateBuf buf i y
@@ -500,8 +479,8 @@ A fixed-length delay line.
 >     in proc x -> do
 >         rec
 >           let i' = if i == sz-1 then 0 else i+1
->           i <- init 0 -< i'
->           y <- init 0 -< x  
+>           i <- delay 0 -< i'
+>           y <- delay 0 -< x  
 >         outA -< unsafePerformIO $ updateBuf buf i y
 
 delay line with one tap.
@@ -517,8 +496,8 @@ delay line with one tap.
 >             dl = min maxdel dlt
 >             tap = i - truncate (sr * dl)
 >             tapidx = if tap < 0 then sz + tap else tap
->         i <- init 0 -< i'
->         y <- init 0 -< sig
+>         i <- delay 0 -< i'
+>         y <- delay 0 -< sig
 >       outA -< unsafePerformIO $ do
 >         s <- peekBuf buf tapidx
 >         _ <- updateBuf buf i y
@@ -545,9 +524,6 @@ delay line with four taps.
 >     proc (sig, dlt1, dlt2, dlt3, dlt4) -> do
 >       outA -< 0
 
-> instance Language.Haskell.TH.Syntax.Lift StdGen where
->     lift g = [| g |]
-
 Noise Generators
 ----------------
 
@@ -562,7 +538,7 @@ Generate uniform white noise with an R.M.S value of 1 / sqrt 2, where
 >     in proc () -> do
 >       rec
 >         let (a,g') = random g :: (Double,StdGen)
->         g <- init gen -< g'
+>         g <- delay gen -< g'
 >       outA -< a * 2 - 1
 
 Controlled band-limited noise with interpolation between each new
@@ -580,7 +556,7 @@ number, and with an RMS value of 1 / sqrt 2.
 >     in proc cps -> do
 >       let bound = sr / cps
 >       rec
->         state <- init (0, i_pr) -< state'
+>         state <- delay (0, i_pr) -< state'
 >         let (cnt, pr@(n1, n2, g)) = state
 >             n = n1 + (n2 - n1) * cnt / bound
 >             state' = if cnt + 1 < bound 
@@ -603,7 +579,7 @@ previous value instead), and with an RMS value of 1 / sqrt 2.
 >     in proc cps -> do
 >       let bound = sr / cps
 >       rec
->         state <- init (0, i_pr) -< state'
+>         state <- delay (0, i_pr) -< state'
 >         let (cnt, pr@(n, g)) = state
 >             state' = if cnt + 1 < bound 
 >                      then (cnt + 1, pr)
@@ -621,7 +597,7 @@ Adjusts RMS amplitude of 'sig' so that it matches RMS amplitude of 'ref'.
 > balance ihp =
 >     proc (sig, ref) -> do
 >       rec
->         (sqrsum, refsum) <- init (0, 0) -< (sqrsum', refsum')
+>         (sqrsum, refsum) <- delay (0, 0) -< (sqrsum', refsum')
 >         let sqrsum' = c1 * sig * sig + c2 * sqrsum
 >             refsum' = c1 * ref * ref + c2 * refsum
 >             ratio   = if sqrsum == 0 then sqrt $ refsum
@@ -667,7 +643,7 @@ Analogous to csound's 'reson' routine.
 > filterBandPass scale =
 >     proc (sig, kcf, kbw) -> do
 >       rec
->         rsnData  <- init rsnDefault -< rsnData'
+>         rsnData  <- delay rsnDefault -< rsnData'
 >         currData <- if kcf == rsnKcf rsnData && kbw == rsnKbw rsnData
 >                          then outA -<  rsnData
 >                          else update  -< (rsnData, kcf, kbw)
@@ -808,8 +784,8 @@ Helper function for various Butterworth filters.
 > butter = proc (sig, ButterData a1 a2 a3 a4 a5) -> do
 >     rec let t = sig - a4 * y' - a5 * y''
 >             y = t * a1 + a2 * y' + a3 * y''
->         y'  <- init 0 -< t
->         y'' <- init 0 -< y'
+>         y'  <- delay 0 -< t
+>         y'' <- delay 0 -< y'
 >     outA -< y
 
 This filter reiterates input with an echo density determined by loop
@@ -854,7 +830,7 @@ Analogous to csound's tone routine.
 >                b = 2 - cos (2 * pi * hp / sr)
 >                c2 = b - sqrt (b * b - 1.0)
 >                c1 = 1 - c2
->            y <- init 0 -< y'
+>            y <- delay 0 -< y'
 >         outA -< y
 
 A high-pass filter whose transfer function is the complement of that
@@ -891,7 +867,7 @@ then hold is required then 'envLineSeg' should be considered instead.
 >     let sr = rate (undefined :: p)
 >     in proc () -> do
 >       rec
->         y <- init a -< y + (b-a) * (1 / sr / dur)
+>         y <- delay a -< y + (b-a) * (1 / sr / dur)
 >       outA -< y
 
 Trace an exponential curve between specified points. 
@@ -906,17 +882,13 @@ Trace an exponential curve between specified points.
 >     let sr = rate (undefined :: p)
 >     in proc () -> do
 >       rec
->         y <- init a -< y * pow (b/a) (1 / sr / dur)
+>         y <- delay a -< y * pow (b/a) (1 / sr / dur)
 >       outA -< y
 
 Unfortunately, envLine and envExpon cannot be abstracted to a common
 function because Template Haskell doesn't like higher-order functions.
 
 > data Tab = Tab [Double] !Int !(UArray Int Double)
-
-> instance Language.Haskell.TH.Syntax.Lift Tab where
->     lift (Tab xs sz uarr) =
->         [| Tab xs sz (listArray (0, sz-1) xs) |]
 
 > aAt :: Tab -> Int -> Double
 > aAt (Tab _ sz a) i = unsafeAt a (min (sz-1) i)
@@ -939,8 +911,8 @@ Helper function for envLineSeg and envExponSeg.
 >         let (t', i') = if t >= durs `aAt` i 
 >                        then if i == sz-2 then (t+1, i) else (0, i+1)
 >                        else (t+1, i)
->         i <- init 0 -< i'
->         t <- init 0 -< t'
+>         i <- delay 0 -< i'
+>         t <- delay 0 -< t'
 >       let a1 = aAt amps i
 >           a2 = aAt amps (i+1)
 >           d  = aAt durs i
@@ -1041,7 +1013,7 @@ asymptotically to zero.
 >       rec 
 >         i <- countUp -< ()
 >         let i' = fromIntegral i
->         y  <- init (readFromTableRaw tab 0) -< y'
+>         y  <- delay (readFromTableRaw tab 0) -< y'
 >         y' <- case (i' < rise * sr, i' < (dur-dec) * sr) of 
 >                  (True,  _)     -> table tab False -< i' / (rise*sr+0.5)
 >                  (False, True)  -> outA -< y * mlt1
@@ -1083,7 +1055,6 @@ Analgous to csound's gen05 routine.
 > tableExpon size sp segs   = tableExp_ sp segs False size
 > tableExp_ :: StartPt -> [(SegLength, EndPt)] -> Bool -> Int -> Table
 > tableExp_ sp segs = funToTable (interpLine sp segs interpExpLine) 
->                                [| interpLine sp segs interpExpLine |]
 
 Analogous to csound's gen07 routine.
 
@@ -1102,7 +1073,6 @@ Analogous to csound's gen07 routine.
 > tableLinear   size sp segs = tableLin_ sp segs False size
 > tableLin_ :: StartPt -> [(SegLength, EndPt)] -> Bool -> Int -> Table
 > tableLin_     sp segs  = funToTable (interpLine sp segs interpStraightLine) 
->                             [| interpLine sp segs interpStraightLine |]
 
 Make a table from a collection of sine waves at different offsets and
 strengths.
@@ -1120,7 +1090,6 @@ Analogous to csound's gen09 routine.
 > tableSines3   size ps = tableSines3_ ps False size
 > tableSines3_ :: [(PartialNum, PartialStrength, PhaseOffset)] -> Bool -> Int -> Table
 > tableSines3_ ps = funToTable (makeCompositeSineFun ps) 
->                        [| makeCompositeSineFun ps |]
 
 > tableSinesF :: (Floating a, Enum a) => [a] -> a -> a
 > tableSinesF pss x = let phase = 2 * pi * x 
@@ -1133,7 +1102,7 @@ Analogous to csound's gen10 routine.
 > tableSines :: Int -> [Double] -> Table
 > tableSines   size pss = tableSinesN_ pss False size
 > tableSinesN_ :: [Double] -> Bool -> Int -> Table
-> tableSinesN_ pss = funToTable (tableSinesF pss) [| tableSinesF pss |]
+> tableSinesN_ pss = funToTable (tableSinesF pss)
 
 Generates the log of a modified Bessel function of the second kind,
 order 0, suitable for use in amplitude-modulated FM.
@@ -1148,7 +1117,7 @@ Analogous to csound's gen12 routine.
 > tableBessel :: Int -> Double -> Table
 > tableBessel   size xint = tableBess_ xint False size
 > tableBess_ :: Double -> Bool -> Int -> Table
-> tableBess_ xint = funToTable (tableBessF xint) [| tableBessF xint |]
+> tableBess_ xint = funToTable (tableBessF xint)
 > tableBessF :: Floating s => s -> s -> s
 > tableBessF xint x =
 >     log $ 1 +
@@ -1253,7 +1222,7 @@ For a particular point, sum all partials.
 > timeBuilder d =
 >     let r = (rate (undefined :: p))*d
 >     in proc _ -> do
->         rec i <- init 0 -< if i >= r then i-r else i+1
+>         rec i <- delay 0 -< if i >= r then i-r else i+1
 >         outA -< if i < 1 then Just () else Nothing
 
 > milliseconds :: Clock p => Signal p () (SEvent ())
@@ -1265,6 +1234,6 @@ For a particular point, sum all partials.
 > countTime :: Clock p => Int -> Signal p () (SEvent ()) -> Signal p () (SEvent ())
 > countTime n t = proc _ -> do
 >   e <- t -< ()
->   rec i <- init 0 -< maybe i' (const $ i'+1) e
+>   rec i <- delay 0 -< maybe i' (const $ i'+1) e
 >       let (i',o) = if i == n then (0, Just ()) else (i, Nothing)
 >   outA -< o
