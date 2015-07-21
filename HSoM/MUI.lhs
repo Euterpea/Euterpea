@@ -24,7 +24,7 @@ import Euterpea
 \out{\begin{code}
 import Data.Maybe (mapMaybe)
 import Euterpea.Experimental
-import FRP.UISF.SOE (withColor', rgb, polygon)
+import FRP.UISF.Graphics (withColor', rgbE, rectangleFilled)
 import FRP.UISF.Widget (mkWidget)
 
 \end{code}}
@@ -1764,12 +1764,14 @@ import, we will leave it to the reader to read this other text or to
 look at the documentation directly.  Instead, we will only point out 
 three functions as we will use them in our upcoming example:
 \begin{spec}
-polygon     :: [(Int, Int)] -> Graphic
-rgb         :: Int -> Int -> Int -> RGB
-withColor'  :: RGB -> Graphic -> Graphic
+rectangleFilled  :: Rect -> Graphic
+rgbE             :: Int -> Int -> Int -> RGB
+withColor'       :: RGB -> Graphic -> Graphic
 \end{spec}
-The |polygon| function takes a list of points and constructs a polygon 
-treating them as vertices, the |rgb| function produces an |RGB| color 
+The |rectangleFilled| function takes a |Rect|, which is a pair of 
+a point representing the bottom left corner and a width and height, 
+and constructs a rectangle bounded by the |Rect|.  
+The |rgbE| function produces an |RGB| color 
 from red, green, and blue values, and |withColor'| applies the given 
 |RGB| color to the given |Graphic|.
 
@@ -1785,13 +1787,11 @@ colorSwatchUI = setSize (300, 220) $ pad (4,0,4,0) $ leftRight $
         g <- newColorSlider "G" -< ()
         b <- newColorSlider "B" -< ()
         e <- unique -< (r,g,b)
-        let rect = withColor' (rgb r g b) (box ((0,0),d))
+        let rect = withColor' (rgbE r g b) (rectangleFilled ((0,0),d))
         pad (4,8,0,0) $ canvas d -< fmap (const rect) e
   where
     d = (170,170)
     newColorSlider l = title l $ withDisplay $ viSlider 16 (0,255) 0
-    box ((x,y), (w, h)) = 
-        polygon [(x, y), (x + w, y), (x + w, y + h), (x, y + h)]
 
 colorSwatch = runMUI' colorSwatchUI
 \end{code}

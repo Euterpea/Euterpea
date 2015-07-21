@@ -1,15 +1,33 @@
-{-# LANGUAGE Arrows #-}
+{-# LANGUAGE Arrows, CPP #-}
 module Euterpea.IO.MUI.Guitar where
 import FRP.UISF
-import FRP.UISF.SOE
-import FRP.UISF.UITypes (Layout(..), nullLayout)
-import FRP.UISF.Widget
+import FRP.UISF.UITypes
 import Euterpea.IO.MIDI
 import Euterpea.Music.Note.Music hiding (transpose)
 import Euterpea.IO.MUI.InstrumentBase
 import qualified Codec.Midi as Midi
 import Data.Maybe
 import qualified Data.Char as Char
+
+#if MIN_VERSION_UISF(0,4,0)
+import FRP.UISF.Graphics
+import FRP.UISF.Keys
+import FRP.UISF.Widget
+withColorC = withColor
+#else
+import qualified FRP.UISF.SOE as SOE
+import FRP.UISF.SOE hiding (arc, ellipse)
+import qualified FRP.UISF.Widget as W
+import FRP.UISF.Widget hiding (pushed, popped, marked)
+pushed = let [(to,bo),(ti,bi)] = W.pushed
+         in (to,ti,bi,bo)
+popped = let [(to,bo),(ti,bi)] = W.popped
+         in (to,ti,bi,bo)
+arc ((x,y),(w,h)) = SOE.arc (x,y) (x+w,y+h)
+ellipse ((x,y),(w,h)) = SOE.ellipse (x,y) (x+w,y+h)
+rectangleFilled = block
+withColorC = withColor'
+#endif
 
 --Note, only valid for standard US keyboards:
 --Also, this is an ugly hack that can't stay
@@ -35,18 +53,22 @@ type GuitarKeyMap = [(String, Pitch, Char)]
 
 -- Draws an individual fret
 
-drawFret [] ((x, y), (w, h)) = nullGraphic
-drawFret ((t, b):cs) ((x, y), (w, h)) =
-    drawFret cs ((x + 1, y + 1), (w - 2, h )) //
-    withColor' t (line (x, y) (x, y + h)) //
-    withColor' b (line (x + w - 1, y) (x + w - 1, y + h))
+#if MIN_VERSION_UISF(0,4,0)
+drawFret :: (Color,Color,Color,Color) -> Rect -> Graphic
+#endif
+drawFret (to,ti,bi,bo) ((x, y), (w, h)) =
+    withColorC ti (line (x + 1, y + 1) (x + 1, y + h + 1)) //
+    withColorC bi (line (x + w - 2, y + 1) (x + w - 2, y + h + 1)) //
+    withColorC to (line (x, y) (x, y + h)) //
+    withColorC bo (line (x + w - 1, y) (x + w - 1, y + h))
+    
 
 -- Draws the string on top of each fret
-    
+drawString :: Bool -> Rect -> Graphic
 drawString down ((x, y), (w, h)) =
-    withColor Black (if down then arc (x,midY+2) (x+w, midY-2) (-180) 180
+    withColor Black (if down then arc ((x,midY-2),(w, 4)) (-180) 180
                              else line (x-1, y+ h `div` 2) (x+w, y+h `div` 2)) //
-    if down then withColor Blue (ellipse (midX - d, midY - d) (midX + d, midY + d)) else nullGraphic
+    if down then withColor Blue $ ellipse ((midX - d, midY - d), (2*d, 2*d)) else nullGraphic
     where d = 10
           midX = x + w `div` 2
           midY = y + h `div` 2
@@ -96,7 +118,11 @@ mkKey c kt = mkWidget iState d process draw where
                 if detectKey c' (hasShiftModifier ms)
                 then kb' { keypad = down, vel = 127 }
                 else kb'
+#if MIN_VERSION_UISF(0,4,0)
+            Button pt LeftButton down ->
+#else
             Button pt True down ->
+#endif
                 case (mouse kb', down, pt `inside` box) of
                     (False, True, True) -> kb' { mouse = True,  vel = getVel pt box }
                     (True, False, True) -> kb' { mouse = False, vel = getVel pt box }
@@ -138,11 +164,15 @@ pluckString c = mkWidget False nullLayout process draw where
     draw ((x,y),(w,h)) _ down =
         let x' = x + (w - tw) `div` 2 + if down then 0 else -1
             y' = y + (h - th) `div` 2 + if down then 0 else -1
-         in withColor (if down then White else Black) $ block ((0,0),(10,10))
+         in withColor (if down then White else Black) $ rectangleFilled ((0,0),(10,10))
 
     process _ s _ evt = (s', s', s /= s') where
         s' = case evt of
+#if MIN_VERSION_UISF(0,4,0)
+            Button pt LeftButton down -> down
+#else
             Button pt True down -> down
+#endif
             Key c' _ down ->
                 down && c == c'
             _ -> s

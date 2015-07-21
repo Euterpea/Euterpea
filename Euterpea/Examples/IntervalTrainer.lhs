@@ -137,11 +137,10 @@ The main UI:
 >                     zipWith ProgramChange [0,1,2,3,4] [0,4,40,66,73])
 >         midiMsgs = progChan .|. mergeE (++) note0 note1
 >     -- Display results:
->     (| leftRight (do
->         title "Score:"   $ setSize (120,50) $ 
->                             display -< showScore correct total
->         title "Repeats:" $ setSize (120,50) $ display -< show repeats
->         title "Answer:"  $ setSize (120,50) $ display -< 
+>     (| (setSize (600,30) . leftRight) (do
+>         title "Score:"   $ display -< showScore correct total
+>         title "Repeats:" $ display -< show repeats
+>         title "Answer:"  $ display -< 
 >                 if state==Guessed then intNameList!!(snd interval) else ""
 >         returnA -< () )|)
 >     -- Midi output

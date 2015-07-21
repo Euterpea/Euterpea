@@ -1,14 +1,30 @@
-{-# LANGUAGE Arrows #-}
+{-# LANGUAGE Arrows, CPP #-}
 module Euterpea.IO.MUI.Piano where
 import FRP.UISF
-import FRP.UISF.SOE
-import FRP.UISF.UITypes (Layout(..))
-import FRP.UISF.Widget
+import FRP.UISF.UITypes
 import Euterpea.Music.Note.Music hiding (transpose)
 import Euterpea.IO.MUI.InstrumentBase
 import qualified Codec.Midi as Midi
 import Data.Maybe
 import qualified Data.Char as Char
+
+#if MIN_VERSION_UISF(0,4,0)
+import FRP.UISF.Graphics
+import FRP.UISF.Keys
+import FRP.UISF.Widget
+withColorC = withColor
+#else
+import FRP.UISF.SOE
+import qualified FRP.UISF.Widget as W
+import FRP.UISF.Widget hiding (pushed, popped, marked)
+pushed = let [(to,bo),(ti,bi)] = W.pushed
+         in (to,ti,bi,bo)
+popped = let [(to,bo),(ti,bi)] = W.popped
+         in (to,ti,bi,bo)
+rectangleFilled = block
+withColorC = withColor'
+#endif
+
 
 --Note, only valid for standard US keyboards:
 --Also, this is an ugly hack that can't stay
@@ -41,7 +57,7 @@ topW White1 = ww - bw `div` 2
 topW White2 = ww - bw `div` 2
 topW White3 = ww
 
-insideKey :: KeyType -> (Int,Int) -> ((Int,Int),(Int,Int)) -> Bool
+insideKey :: KeyType -> Point -> Rect -> Bool
 insideKey Black1 pt ((x, y), (w, h)) = pt `inside` ((x,y),(bw,bh))
 insideKey White1 pt ((x, y), (w, h)) =
     let b1 = ((x,y), (ww - bw `div` 2,  bh))
@@ -64,65 +80,79 @@ isBlack _      = False
 -- *****************************************************************************
 --   Drawing routines for each key type
 -- *****************************************************************************
--- This has a complicated type, so I'm leaving it out.
-drawBox kt | kt == White1 = white1
-           | kt == White2 = white2
-           | kt == White3 = white3
-           | kt == Black1 = black1
-drawBox _ = error "Euterpea.IO.MUI.Piano.drawBox: Unexpected input"
+#if MIN_VERSION_UISF(0,4,0)
+drawKey :: KeyType -> (Color,Color,Color,Color) -> Rect -> Graphic
+#endif
+drawKey White1 (to,ti,bi,bo) ((x, y), (w, h)) = 
+  let val = x + w - bw `div` 2
+  in withColorC ti (line (x + 1, y + 1) (x + 1, y + h - 2) //
+        line (x + 1, y + 1) (val - 3, y + 1) //
+        line (val - 3, y + 1 + bh) (x + w - 3, y + 1 + bh))
+  // withColorC bi (line (x + 2, y + h - 2) (x + w - 2, y + h - 2) //
+        line (val - 3, y + 1) (val - 3, y + 1 + bh) //
+        line (x + w - 2, y + 1 + bh) (x + w - 2, y + h - 2))
+  // withColorC to (line (x, y) (x, y + h - 1) //
+        line (x, y) (val - 2, y) //
+        line (val - 2, y + bh) (x + w - 2, y + bh))
+  // withColorC bo (line (x + 1, y + h - 1) (x + w - 1, y + h - 1) //
+        line (val - 2, y) (val - 2, y + bh) //
+        line (x + w - 1, y + bh) (x + w - 1, y + h - 1))
 
-white1 [] _ = nullGraphic
-white1 ((t, b):cs) ((x, y), (w, h)) =
-    let x' = x + w - bw `div` 2
-        y' = y + bh
-     in white1 cs ((x + 1, y + 1), (w - 2, h - 2)) //
-        withColor' t (line (x, y) (x, y + h - 1) //
-            line (x, y) (x' - 2, y) //
-            line (x' - 2, y+bh) (x + w - 2, y+bh)) //
-        withColor' b (line (x + 1, y + h - 1) (x + w - 1, y + h - 1) //
-            line (x + w - 2 - bw `div` 2, y) (x + w - 2 - bw `div` 2, y+bh) //
-            line (x + w - 1, y + bh) (x + w - 1, y + h - 1))
+drawKey White2 (to,ti,bi,bo) ((x, y), (w, h)) = 
+  let valP = x + bw `div` 2
+      valM = x + w - bw `div` 2
+  in withColorC ti (line (valP + 3, y + 1) (valP + 3, y + bh) //
+        line (valP + 3, y + 1) (valM - 3, y + 1) //
+        line (x - 1, y + bh + 1) (valP - 1, y + bh + 1) //
+        line (valM - 3, y + bh + 1) (x + w - 3, y + bh + 1))
+  // withColorC bi (line (x + 2, y + h - 2) (x + w - 2, y + h - 2) //
+        line (valM - 2, y + 1) (valM - 2, y + bh + 1) //
+        line (x + w - 2, y + bh + 1) (x + w - 2, y + h - 2))
+  // withColorC to (line (valP + 2, y) (valP + 2, y + bh - 1) //
+        line (valP + 2, y) (valM - 2, y) //
+        line (x - 2, y + bh) (valP - 2, y + bh) //
+        line (valM - 2, y + bh) (x + w - 2, y + bh))
+  // withColorC bo (line (x + 1, y + h - 1) (x + w - 1, y + h - 1) //
+        line (valM - 1, y) (valM - 1, y + bh) //
+        line (x + w - 1, y + bh) (x + w - 1, y + h - 1))
 
-white2 [] _ = nullGraphic
-white2 ((t, b):cs) ((x, y), (w, h)) = 
-    let x1 = x + bw `div` 2
-        x2 = x + w - bw `div` 2
-        y' = y + bh
-     in white2 cs ((x + 1, y + 1), (w - 2, h - 2)) //
-        withColor' t (line (x1+2, y) (x1+2, y' - 1) //
-            line (x1+2, y) (x2 - 2, y) //
-            line (x - 2, y') (x1 - 2, y') //
-            line (x2- 2, y') (x + w - 2, y')) //
-        withColor' b (line (x + 1, y + h - 1) (x + w - 1, y + h - 1) //
-            line (x2 - 1, y) (x2 - 1, y') //
-            line (x + w - 1, y + bh) (x + w - 1, y + h - 1))
+drawKey White3 (to,ti,bi,bo) ((x, y), (w, h)) = 
+  let val = x + bw `div` 2
+  in withColorC ti (line (val + 3, y + 1) (val + 3, y + bh) //
+        line (val + 3, y + 1) (x + w - 3, y + 1) //
+        line (x - 1, y + bh + 1) (val - 1, y + bh + 1))
+  // withColorC bi (line (x + 2, y + h - 2) (x + w - 2, y + h - 2) //
+        line (x + w - 2, y + 1) (x + w - 2, y + bh + 1) //
+        line (x + w - 2, y + bh + 1) (x + w - 2, y + h - 2))
+  // withColorC to (line (val + 2, y) (val + 2, y + bh - 1) //
+        line (val + 2, y) (x + w - 2, y) //
+        line (x - 2, y + bh) (val - 2, y + bh))
+  // withColorC bo (line (x + 1, y + h - 1) (x + w - 1, y + h - 1) //
+        line (x + w - 1, y) (x + w - 1, y + bh) //
+        line (x + w - 1, y + bh) (x + w - 1, y + h - 1))
 
-white3 [] _ = nullGraphic
-white3 ((t, b):cs) ((x, y), (w, h)) =
-    let x1 = x + bw `div` 2
-        y' = y + bh
-     in white3 cs ((x + 1, y + 1), (w - 2, h - 2)) //
-        withColor' t (line (x1+2, y) (x1+2, y' - 1) //
-            line (x1+2, y) (x + w - 2, y) //
-            line (x - 2, y') (x1 - 2, y')) //
-        withColor' b (line (x + 1, y + h - 1) (x + w - 1, y + h - 1) //
-            line (x + w - 1, y) (x + w - 1, y') //
-            line (x + w - 1, y + bh) (x + w - 1, y + h - 1))
-
-black1 [] _ = nullGraphic
-black1 ((t, b):cs) ((x, y), (w, h)) =
-    black1 cs ((x + 1, y + 1), (w - 2, h - 2)) //
-    withColor' t (line (x, y) (x, y + h - 1) //
-        line (x, y) (x + w - 2, y)) //
-    withColor' b (line (x + 1, y + h - 1) (x + w - 1, y + h - 1) //
+drawKey Black1 (to,ti,bi,bo) ((x, y), (w, h)) = 
+     withColorC ti (line (x + 1, y + 1) (x + 1, y + h - 2) //
+        line (x + 1, y + 1) (x + w - 3, y + 1))
+  // withColorC bi (line (x + 2, y + h - 2) (x + w - 2, y + h - 2) //
+        line (x + w - 2, y + 1) (x + w - 2, y + h - 2))
+  // withColorC to (line (x, y) (x, y + h - 1) //
+        line (x, y) (x + w - 2, y))
+  // withColorC bo (line (x + 1, y + h - 1) (x + w - 1, y + h - 1) //
         line (x + w - 1, y) (x + w - 1, y + h - 1))
 
-colorKey Black1 b = withColor Black $ block b
-colorKey kt ((x,y), (w,h)) = withColor White $ block ((x, y+bh), (ww, wh-bh)) // f kt
-    where f White1 = block ((x,y), (ww - bw `div` 2, bh))
-          f White2 = block ((x+ bw `div` 2, y), (ww-bw, bh))
-          f White3 = block ((x+ bw `div` 2, y), (ww-bw `div` 2, bh))
-          f _ = error "Euterpea.IO.MUI.Piano.colorKey: Unexpected input"
+
+colorKey :: KeyType -> Rect -> Graphic
+colorKey Black1 r = withColor Black $ rectangleFilled r
+colorKey White1 ((x,y), (w,h)) = withColor White $ 
+     rectangleFilled ((x, y+bh), (ww, wh-bh))
+  // rectangleFilled ((x,y), (ww - bw `div` 2, bh))
+colorKey White2 ((x,y), (w,h)) = withColor White $ 
+     rectangleFilled ((x, y+bh), (ww, wh-bh))
+  // rectangleFilled ((x+ bw `div` 2, y), (ww-bw, bh))
+colorKey White3 ((x,y), (w,h)) = withColor White $ 
+     rectangleFilled ((x, y+bh), (ww, wh-bh))
+  // rectangleFilled ((x+ bw `div` 2, y), (ww-bw `div` 2, bh))
 
 -- *****************************************************************************
 --   Single-key widget: handles key/mouse input and check if the song is playing
@@ -144,7 +174,7 @@ mkKey c kt = mkWidget iState d process draw where
             drawNotation s = withColor Red $ text (x'+(1-length s)*tw `div` 2, y'- th + 2) s
          in withColor (if isBlack kt then White else Black) (text (x',y') [c]) 
             // maybe nullGraphic drawNotation showNote 
-            // withColor White (drawBox kt (if isDown then pushed else popped) b) 
+            // withColor White (drawKey kt (if isDown then pushed else popped) b) 
             // colorKey kt b
     realBBX ((x,y),(w,h)) = let (w', h') | isBlack kt = (bw,bh)
                                          | otherwise  = (ww,wh)
@@ -157,7 +187,11 @@ mkKey c kt = mkWidget iState d process draw where
                 if detectKey c' (hasShiftModifier ms)
                 then kb' { keypad = down, vel = 127 }
                 else kb'
+#if MIN_VERSION_UISF(0,4,0)
+            Button pt LeftButton down -> case (mouse kb', down, insideKey kt pt bbx) of 
+#else
             Button pt True down -> case (mouse kb', down, insideKey kt pt bbx) of 
+#endif
                 (False, True, True) -> kb' { mouse = True,  vel = getVel pt bbx }
                 (True, False, True) -> kb' { mouse = False, vel = getVel pt bbx }
                 otherwise -> kb'
@@ -171,7 +205,7 @@ mkKey c kt = mkWidget iState d process draw where
 -- *****************************************************************************
 
 mkKeys :: [(Char, KeyType, AbsPitch)] -> UISF InstrumentData (SEvent [(AbsPitch, Bool, Midi.Velocity)])
-mkKeys [] = proc instr -> returnA -< Nothing
+mkKeys [] = constA Nothing
 mkKeys ((c,kt,ap):ckas) = proc instr -> do
     msg <- unique <<< mkKey c kt -< getKeyData ap instr
     let on  = maybe False isKeyPlay msg
@@ -189,7 +223,7 @@ mkKeys ((c,kt,ap):ckas) = proc instr -> do
 -- *****************************************************************************
 type PianoKeyMap = (String, Pitch)
 defaultMap1, defaultMap2, defaultMap0 :: PianoKeyMap
-defaultMap1 = ("q2w3er5t6y7uQ@W#ERT^Y&U*", (C,2))
+defaultMap1 = ("q2w3er5t6y7uQ@W#ER%T^Y&U", (C,2))
 defaultMap2 = ("zsxdcvgbhnjmZSXDCVGBHNJM", (C,3))
 defaultMap0 = (fst defaultMap1 ++ fst defaultMap2, (C,3))
 

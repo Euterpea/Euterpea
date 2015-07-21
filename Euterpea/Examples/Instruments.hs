@@ -5,6 +5,7 @@ import Euterpea.Experimental
 
 -- Here is a demonstration of the guitar and piano widgets available in Euterpea.
 
+main = instrumentDemo
 instrumentDemo :: IO ()
 instrumentDemo = runMUI (defaultMUIParams {uiSize=(1038,706), uiTitle="Instrument Demo"}) $ proc _ -> do
     devId <- selectOutput -< ()
