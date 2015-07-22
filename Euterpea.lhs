@@ -10,7 +10,7 @@
 >   module Euterpea.IO.MUI,
 >   module Control.Arrow,
 >   -- These 4 lines are from FRP.UISF.AuxFunctions
->   SEvent, edge, accum, constA, constSF, foldA, foldSF, (~++),
+>   SEvent, edge, accum, constA, constSF, foldA, foldSF,
 >   unique, hold, now, mergeE,
 >   delay, vdelay, fdelay,
 >   timer, genEvents, Time, DeltaT,
@@ -28,7 +28,7 @@
 > import Euterpea.IO.MUI
 
 > import Control.Arrow
-> import FRP.UISF.AuxFunctions
+> import FRP.UISF.AuxFunctions hiding ((~++))
 
 > import Codec.Midi(exportFile, importFile)
 

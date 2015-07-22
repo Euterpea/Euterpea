@@ -135,7 +135,7 @@ The main UI:
 >     nowE <- now -< ()
 >     let progChan = nowE ->> (map Std $
 >                     zipWith ProgramChange [0,1,2,3,4] [0,4,40,66,73])
->         midiMsgs = progChan .|. mergeE (++) note0 note1
+>         midiMsgs = progChan .|. (note0 ~++ note1)
 >     -- Display results:
 >     (| (setSize (600,30) . leftRight) (do
 >         title "Score:"   $ display -< showScore correct total

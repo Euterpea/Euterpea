@@ -1,10 +1,10 @@
 {-# LANGUAGE Arrows #-}
 module Euterpea.IO.MUI.InstrumentBase where
 import qualified Codec.Midi as Midi
-import FRP.UISF
+import FRP.UISF hiding ((~++))
 import Data.Maybe
 import Control.Monad
-import Euterpea.IO.MUI.MidiWidgets (musicToMsgs)
+import Euterpea.IO.MUI.MidiWidgets (musicToMsgs, (~++))
 import Euterpea.IO.MIDI
 import Euterpea.Music.Note.Music hiding (transpose)
 import Euterpea.Music.Note.Performance

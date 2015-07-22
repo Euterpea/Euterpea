@@ -47,11 +47,12 @@ module Euterpea.IO.MUI
   , makeLayout          -- :: LayoutType -> LayoutType -> Layout
   , LayoutType (..)     -- data LayoutType = Stretchy { minSize :: Int } | Fixed { fixedSize :: Int }
   , Color (..)          -- data Color = Black | Blue | Green | Cyan | Red | Magenta | Yellow | White
+  , (~++)
   ) where
 
 import Euterpea.IO.MUI.MidiWidgets
 import Euterpea.IO.MIDI.MidiIO (initializeMidi, terminateMidi)
-import FRP.UISF
+import FRP.UISF hiding ((~++))
 
 defaultMUIParams :: UIParams
 defaultMUIParams = defaultUIParams { uiTitle = "MUI" }

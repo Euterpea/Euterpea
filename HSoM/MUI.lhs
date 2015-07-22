@@ -1006,13 +1006,6 @@ now :: SF () (SEvent ())
 evMap :: SF a b -> SF (SEvent a) (SEvent b)
   -- Lifts a continuous signal function into one that handles events
 
-mergeE :: (a -> a -> a) -> SEvent a -> SEvent a -> SEvent a
-  -- |mergeE f e1 e2| merges two events, using |f| to resolve two |Just| values
-
-(~++) :: SEvent [a] -> SEvent [a] -> SEvent [a]
-  -- An infix specialization of |mergeE| to lists
-(~++) = mergeE (++)
-
 \end{spec}}
 \caption{Mediators Between the Continuous and the Discrete}
 \label{fig:mediators}
@@ -1426,8 +1419,8 @@ reducing the velocity of each note by the given rate and removing
 the note if the velocity drops to 0.  The resulting signal is
 then delayed by the amount of time determined by another slider |f|,
 producing signal |s|.  Signal |s| is then merged with |m| in order to 
-define |m'| (recall from Section\ref{ch:mui:sec:mediators} that |~++| 
-merges to event lists), thus closing the loop of the recursive signal.  
+define |m'| (note that |~++| is a Euterpea function that 
+merges event lists), thus closing the loop of the recursive signal.  
 Finally, |m'| is sent to the output device.
 
 \begin{code}

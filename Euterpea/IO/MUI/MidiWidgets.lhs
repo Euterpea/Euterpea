@@ -1,7 +1,8 @@
 > {-# LANGUAGE RecursiveDo, Arrows, TupleSections #-}
 
 > module Euterpea.IO.MUI.MidiWidgets (
->   midiIn
+>   (~++)
+> , midiIn
 > , midiOut
 > , midiInM
 > , midiOutM, midiOutB, midiOutMB
@@ -16,7 +17,7 @@
 #endif
 > ) where
 
-> import FRP.UISF
+> import FRP.UISF hiding ((~++))
 > import Euterpea.IO.MIDI.MidiIO
 
 > import Control.Monad (liftM, forM_, when)
@@ -34,6 +35,12 @@
 > import Control.DeepSeq
 > import Control.Concurrent (threadDelay, killThread)
 > import Data.IORef
+
+> import Data.Monoid
+
+
+> (~++) :: SEvent [a] -> SEvent [a] -> SEvent [a]
+> (~++) = mappend
 
 
 

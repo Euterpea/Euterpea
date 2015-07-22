@@ -1,10 +1,11 @@
 {-# LANGUAGE Arrows, CPP #-}
 module Euterpea.IO.MUI.Guitar where
-import FRP.UISF
+import FRP.UISF hiding ((~++))
 import FRP.UISF.UITypes
 import Euterpea.IO.MIDI
 import Euterpea.Music.Note.Music hiding (transpose)
 import Euterpea.IO.MUI.InstrumentBase
+import Euterpea.IO.MUI.MidiWidgets ((~++))
 import qualified Codec.Midi as Midi
 import Data.Maybe
 import qualified Data.Char as Char
