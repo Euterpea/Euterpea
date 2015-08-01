@@ -1,5 +1,5 @@
 
-> {-# LANGUAGE ExistentialQuantification, ScopedTypeVariables #-}
+> {-# LANGUAGE ExistentialQuantification, ScopedTypeVariables, CPP #-}
 
 > module Euterpea.IO.MUI.UISFCompat where
 > import FRP.UISF.AuxFunctions
@@ -9,6 +9,11 @@
 > import Euterpea.IO.Audio.Types
 > import Control.DeepSeq
 > import Control.Concurrent (killThread, ThreadId)
+
+#if MIN_VERSION_UISF(0,4,0)
+> import FRP.UISF.Asynchrony
+> asyncUISFV x = asyncVT x
+#endif
 
 The below function is useful for making use of asyncUISF*
 which both make use of Automatons rather than SFs.

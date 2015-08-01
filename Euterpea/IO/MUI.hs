@@ -64,5 +64,6 @@ runMUI params = runUI (params { uiInitialize = uiInitialize params >> initialize
 runMUI' :: UISF () () -> IO ()
 runMUI' = runMUI defaultMUIParams
 
-
-
+#if MIN_VERSION_UISF(0,4,0)
+asyncV x = asyncVT x
+#endif

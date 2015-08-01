@@ -39,8 +39,15 @@
 > import Data.Monoid
 
 
+#if MIN_VERSION_UISF(0,4,0)
+> import FRP.UISF.Asynchrony
+> import Data.Maybe (listToMaybe)
+#endif
+
+
 > (~++) :: SEvent [a] -> SEvent [a] -> SEvent [a]
 > (~++) = mappend
+
 
 
 
@@ -146,7 +153,7 @@ behavior at once in an external thread.  There are mutiple versions
 corresponding to Multiple input/output (M), Batch (B), and message 
 flooding (Flood).
 
-> runMidi :: NFData b
+> runMidi :: (NFData b, NFData c)
 >         => SF (b, SEvent [MidiMessage]) 
 >               (c, SEvent [MidiMessage])
 >         -> UISF (b, (Maybe InputDeviceID, Maybe OutputDeviceID)) [c]
@@ -162,7 +169,7 @@ flooding (Flood).
 >   sf' = toAutomaton $ arr (\((b,(idev,odev)),mms) -> ((b,mms),odev)) >>> first sf >>>
 >           arr (\((c,mms),odev) -> (c, (odev, mms)))
 
-> runMidiM :: NFData b
+> runMidiM :: (NFData b, NFData c)
 >          => SF (b, ([(InputDeviceID, SEvent [MidiMessage])], [OutputDeviceID]))
 >                (c, [(OutputDeviceID, SEvent [MidiMessage])])
 >          -> UISF (b, ([InputDeviceID],[OutputDeviceID])) [c]
@@ -180,13 +187,13 @@ flooding (Flood).
 >     oAction rst
 >   sf' = toAutomaton $ arr (\((b,(idevs,odevs)),mms) -> (b,(mms,odevs))) >>> sf
 
-> runMidiMFlood :: NFData b
+> runMidiMFlood :: (NFData b, NFData c)
 >               => SF (b, SEvent [MidiMessage])
 >                     (c, SEvent [MidiMessage])
 >               -> UISF (b, ([InputDeviceID],[OutputDeviceID])) [c]
 > runMidiMFlood = runMidiFloodHelper runMidiM
 
-> runMidiMB :: NFData b
+> runMidiMB :: (NFData b, NFData c)
 >           => SF (b, ([(InputDeviceID, SEvent [MidiMessage])], [OutputDeviceID]))
 >                 (c, [(OutputDeviceID, BufferOperation MidiMessage)])
 >           -> UISF (b, ([InputDeviceID],[OutputDeviceID])) [(c, Bool)] --([c], Bool)
@@ -222,7 +229,7 @@ flooding (Flood).
 >   shouldClear _ = False
 
 
-> runMidiMBFlood :: NFData b
+> runMidiMBFlood :: (NFData b, NFData c)
 >                => SF (b, SEvent [MidiMessage])
 >                      (c, BufferOperation MidiMessage)
 >                -> UISF (b, ([InputDeviceID],[OutputDeviceID])) [(c, Bool)] --([c], Bool)
@@ -317,34 +324,63 @@ These widgets should be used with midiInM and midiOutM respectively.
 
 
 #if MIN_VERSION_UISF(0,4,0)
-> asyncMidi :: r -> (b,c) -> Int -> ((r, b) -> ([([(OutputDeviceID, [MidiMessage])], Int)], r, c)) -> UISF b c
-> asyncMidi = asyncMidiHelper unsafeAsyncIO
+> -- For backward compatibility with runMidi, which should be rewritten
+> asyncC' :: (ArrowIO a, ArrowLoop a, ArrowCircuit a, ArrowChoice a, NFData b, NFData c) => 
+>            x -- ^ The thread handler
+>         -> (b -> IO d, e -> IO ()) -- ^ Effectful input and output channels for the automaton
+>         -> (Automaton (->) (b,d) (c,e))  -- ^ The automaton to convert to asynchronize
+>         -> a b [c]
+> asyncC' _ (ia, oa) sf = asyncCIO (return (), const $ return ()) sf' where
+>   sf' _ = (arr id &&& actionToIOAuto ia) >>> pureAutoToIOAuto sf >>> second (actionToIOAuto oa) >>> arr fst
 
-> asyncMidiOn :: Int -> r -> (b,c) -> Int -> ((r, b) -> ([([(OutputDeviceID, [MidiMessage])], Int)], r, c)) -> UISF b c
-> asyncMidiOn n = asyncMidiHelper (unsafeAsyncIOOn n)
 
-> asyncMidiHelper asy r (defb, defc) dd f = initialAIO (newIORef Nothing) go where
-> --                                 >>> arr (\x -> if null x then Nothing else Just (last x)) 
-> --                                 >>> hold defc where
-> --  go die = asy th ((r,defb),g) where
->   go die = asy (defb, defc) th (r,uncurry h) where
->     th tid = addTerminationProc $ do
->       writeIORef die (Just tid)
->       putStrLn "MIDI back-end closing..."
-> --    g ((r,b),[]) = h r b
-> --    g ((r,_),bs) = h r (last bs)
->     h r b = do
->       let (omt, r', c) = f (r, b)
->           td = sum $ map snd omt
->       forM_ omt $ \(om, t) -> do
->         forM_ om $ \(odev,mm) -> do
->           outputMidi odev
->           forM_ mm (\m -> deliverMidiEvent odev (0, m))
->         when (t > 0) (threadDelay t)
->       continue <- readIORef die
->       maybe (return ()) killThread continue
->       when (td <= 0) (threadDelay dd)
-> --      return ((r',b),c)
->       return (r',c)
+> asyncMidiHelper asy rinit (_defb, defc) dd f = asy (ini, term) sf >>> arr listToMaybe >>> hold defc where
+>   sf _ = proc b -> do
+>     rec r <- delay rinit -< r'
+>         (omt, r', c) <- arr f -< (r,b)
+>     actionToIOAuto action -< omt
+>     returnA -< c
+>   ini = return ()
+>   term _ = putStrLn "MIDI back-end terminated."
+>   action omt = do
+>     let td = sum $ map snd omt
+>     forM_ omt $ \(om, t) -> do
+>       forM_ om $ \(odev,mm) -> do
+>         outputMidi odev
+>         forM_ mm (\m -> deliverMidiEvent odev (0, m))
+>       when (t > 0) (threadDelay t)
+>     when (td <= 0) (threadDelay dd)
+
+
+
+> asyncMidi :: NFData c => r -> (b,c) -> Int -> ((r, b) -> ([([(OutputDeviceID, [MidiMessage])], Int)], r, c)) -> UISF b c
+> asyncMidi = asyncMidiHelper asyncCIO
+
+> asyncMidiOn :: NFData c => Int -> r -> (b,c) -> Int -> ((r, b) -> ([([(OutputDeviceID, [MidiMessage])], Int)], r, c)) -> UISF b c
+> asyncMidiOn n = asyncMidiHelper (asyncCIOOn n)
+
+asyncMidiHelper asy r (defb, defc) dd f = initialAIO (newIORef Nothing) go where
+--                                 >>> arr (\x -> if null x then Nothing else Just (last x)) 
+--                                 >>> hold defc where
+--  go die = asy th ((r,defb),g) where
+  go die = asy (defb, defc) th (r,uncurry h) where
+    th tid = addTerminationProc $ do
+      writeIORef die (Just tid)
+      putStrLn "MIDI back-end closing..."
+--    g ((r,b),[]) = h r b
+--    g ((r,_),bs) = h r (last bs)
+    h r b = do
+      let (omt, r', c) = f (r, b)
+          td = sum $ map snd omt
+      forM_ omt $ \(om, t) -> do
+        forM_ om $ \(odev,mm) -> do
+          outputMidi odev
+          forM_ mm (\m -> deliverMidiEvent odev (0, m))
+        when (t > 0) (threadDelay t)
+      continue <- readIORef die
+      maybe (return ()) killThread continue
+      when (td <= 0) (threadDelay dd)
+--      return ((r',b),c)
+      return (r',c)
 #endif
 

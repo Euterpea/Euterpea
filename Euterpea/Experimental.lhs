@@ -35,6 +35,10 @@ compatability.
 > import FRP.UISF.AuxFunctions
 > import FRP.UISF.UISF
 
+#if MIN_VERSION_UISF(0,4,0)
+> import FRP.UISF.Asynchrony
+> asyncUISFE x = asyncE x
+#endif
 
 
 

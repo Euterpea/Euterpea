@@ -11,10 +11,11 @@ import Data.Maybe (mapMaybe)
 import Euterpea.Experimental
 #if MIN_VERSION_UISF(0,4,0)
 import FRP.UISF.Graphics (withColor', rgbE, rectangleFilled)
+import FRP.UISF.WidgetConstruction (mkWidget)
 #else
 import FRP.UISF.SOE (withColor', rgb, polygon)
-#endif
 import FRP.UISF.Widget (mkWidget)
+#endif
 {-# LINE 585 "MUI.lhs" #-}
 ui0  ::  UISF () ()
 ui0  =   proc _ -> do
