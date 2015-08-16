@@ -1,5 +1,5 @@
 
-> {-# LANGUAGE ExistentialQuantification, ScopedTypeVariables, CPP #-}
+> {-# LANGUAGE ExistentialQuantification, ScopedTypeVariables, FlexibleContexts, CPP #-}
 
 > module Euterpea.IO.MUI.UISFCompat where
 > import FRP.UISF.AuxFunctions

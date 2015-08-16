@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleContexts #-}
+
 module Euterpea.IO.MUI 
   ( -- UI functions
     UISF 
