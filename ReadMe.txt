@@ -78,31 +78,23 @@ timidity -iA -Os &
 
 
 --------- Mac OS X ---------
-OS X is the least desirable platform on which to run Euterpea.  In fact,  
-the latest release of OS X (Mavericks) has trouble with GHC in general.
+Euterpea is known to work fine on OS X (including Mavericks) when used with
+GHC 7.8.3 & Haskell Platform 2014.2.0.0 or later.
 
-We, the maintainers, currently do not have a Mac to test with, and so we 
-have no exact instructions for how to set up GHC and Euterpea to get them 
-into a functioning condition.
-
-Once Euterpea is set up, you may require additional steps to get MIDI sound 
-output working.  Download SimpleSynth and open it before you run ghci.  It’s 
+Once Euterpea is set up, you may require additional steps to get MIDI sound
+output working.  Download SimpleSynth and open it before you run ghci.  Itâ€™s
 a software MIDI synthesizer that plays MIDI output through the speaker.
 
-Furthermore, you will have to use the ``EnableGUI trick'' to run GUI 
-programs for Euterpea.  To do so, first compile EnableGUI.hs from the 
-Euterpea/Examples directory to binary:
-ghc -c -fffi EnableGUI.hs
-(Note: on some systems it is necessary to add the option 
-``-framework ApplicationServices'')
-Then, run your Euterpea GUI programs in ghci like this:
+With GHC 7.8.3 or later, to run the GUI examples in ghci reliably, you need
+to start gchi with -fno-ghci-sandbox, or set it within ghci as follows:
 
-ghci UIExamples.hs EnableGUI
-*UIExamples> :m +EnableGUI
-*UIExamples EnableGUI> enableGUI >> main
+    ghci -fno-ghci-sandbox
+    *: :set -fno-ghci-sandbox
+    *: :m + Euterpea.Examples.MUI
+    *: mui5
 
-With this, GHCi will be able to fully activate the Graphics Window. (Fully 
-compiled GUI programs do not suffer from this anomaly.)
+With older versions of GHC, you may need the ``EnableGUI trick''. See
+Euterpea/Examples/EnableGUI.hs for details.
 
 
 ------ Troubleshooting -----
