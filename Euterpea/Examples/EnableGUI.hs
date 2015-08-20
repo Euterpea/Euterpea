@@ -1,4 +1,24 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
+{--
+On Mac OS X, with versions of GHC prior to 7.8, you will have to use this
+``EnableGUI trick'' to run GUI programs for Euterpea from within ghci.
+
+To do so, first compile this file, EnableGUI.hs, to binary:
+    ghc -c -fffi EnableGUI.hs
+
+(Note: on some systems it is necessary to add the option
+``-framework ApplicationServices'')
+Then, run your Euterpea GUI programs in ghci like this:
+
+ghci UIExamples.hs EnableGUI
+*UIExamples> :m +EnableGUI
+*UIExamples EnableGUI> enableGUI >> main
+
+With this, GHCi will be able to fully activate the Graphics Window. (Fully
+compiled GUI programs do not suffer from this anomaly.)
+
+--}
+
 module EnableGUI(enableGUI) where
 
 import Data.Int
