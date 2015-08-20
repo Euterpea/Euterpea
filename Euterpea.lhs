@@ -16,8 +16,6 @@
 >   timer, genEvents, Time, DeltaT,
 >   -- This next line is from Codec.Midi
 >   exportFile, importFile
->   -- For backward compatibility
->   ,init
 >   ) where
 >
 > import Euterpea.Music.Note.Music hiding (t251)
@@ -33,10 +31,4 @@
 > import Codec.Midi(exportFile, importFile)
 
 > import Control.Arrow.Operations
-> import Prelude hiding (init)
-> {-# DEPRECATED init "Use delay instead" #-}
-> init :: ArrowCircuit a => b -> a b b
-> init = delay
-
-
 

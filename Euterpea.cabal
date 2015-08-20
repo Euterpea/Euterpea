@@ -1,5 +1,5 @@
 name:           Euterpea
-version:        1.0.0
+version:        1.1.0
 Cabal-Version:  >= 1.8
 license:        BSD3
 license-file:	License
@@ -129,8 +129,7 @@ Library
         base >= 3 && < 5, arrows >= 0.4, array, deepseq, random,
         PortMidi, HCodecs >= 0.2, 
         stm, containers, bytestring, heap == 0.6.0, 
-        
-        markov-chain, pure-fft,        
+        markov-chain, pure-fft, 
         UISF >= 0.3
   if (impl(ghc >= 6.10))
     build-depends: base >= 4 && < 5, ghc-prim
