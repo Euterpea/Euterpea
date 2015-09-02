@@ -31,7 +31,7 @@ Homepage: http://haskell.cs.yale.edu/
 ==== Getting the Source ====
 ============================
 
-Currently (2/8/2014), the most up-to-date version of Euterpea is 
+Currently (9/2/2015), the most up-to-date version of Euterpea is 
 available through GitHub at:
 
     https://github.com/Euterpea/Euterpea
@@ -46,7 +46,11 @@ When we reach milestones, we will release stable versions to Hackage.
 ======= Installation =======
 ============================
 
-Installing from source RECOMMENDED (updated 2/8/2014)
+There is a stable version of Euterpea on Hackage, so one can easily 
+install Euterpea with:
+    cabal install euterpea
+
+For the most up to date version, install from source:
 
   1) Clone the source from github
      git clone https://github.com/Euterpea/Euterpea
@@ -175,5 +179,5 @@ and is currently maintained by
     Donya Quick <donya.quick@yale.edu>,
     Dan Winograd-Cort <daniel.winograd-cort@yale.edu>
 
-This file was last modified on 2/8/2014
+This file was last modified on 9/2/2015
 by Daniel Winograd-Cort
