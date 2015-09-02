@@ -25,7 +25,7 @@ import Euterpea
 import Data.Maybe (mapMaybe)
 import Euterpea.Experimental
 import FRP.UISF.Graphics (withColor', rgbE, rectangleFilled)
-import FRP.UISF.WidgetConstruction (mkWidget)
+import FRP.UISF.Widget.Construction (mkWidget)
 
 \end{code}}
 

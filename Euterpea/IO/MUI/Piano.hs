@@ -11,8 +11,7 @@ import qualified Data.Char as Char
 
 #if MIN_VERSION_UISF(0,4,0)
 import FRP.UISF.Graphics
-import FRP.UISF.Keys
-import FRP.UISF.WidgetConstruction
+import FRP.UISF.Widget.Construction
 import FRP.UISF.Widget
 withColorC = withColor
 #else
