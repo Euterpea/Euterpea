@@ -279,7 +279,7 @@ since the last event. The arguments are as follows:
 >         progChanges = zipWith (\c i -> (0, Std $ ProgramChange c i)) 
 >                       [1..16] $ map toGM instrs
 >     in  if length instrs > 16 then error "too many instruments!" 
->         else progChanges ++ zip newTimes (map snd evs) where
+>         else progChanges ++ zip times (map snd evs) where
 >     mOrder (t1,m1) (t2,m2) = compare t1 t2
 
 > musicToBO :: Bool -> [InstrumentName] -> Music1 -> BufferOperation MidiMessage
