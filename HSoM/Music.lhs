@@ -727,7 +727,7 @@ simple such as |play (note qn (C,4))|, Haskell cannot infer exactly
 what kind of number 4 is, and therefore cannot infer that |(C,4)| is
 intended to be a |Pitch|.  We can get around this either by writing:
 \begin{spec}
-m :: Pitch
+m :: Music Pitch
 m = note qn (C,4)
 \end{spec}
 in which case |play m| will work just fine, or we can include the type

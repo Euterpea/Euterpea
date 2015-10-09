@@ -80,6 +80,14 @@ Then, while Euterpea programs are running, you must have timidity running
 in the background:
 timidity -iA -Os &
 
+On gentoo:  run:
+aconnect -l
+This will output the Midi Through port number, say, it is port number 14,
+then run:
+aconnect 14:0 128:0
+This will connect a timidity default port (128) to port 14
+Now Euterpea should direct Midi stream to standard output.
+
 
 --------- Mac OS X ---------
 Euterpea is known to work fine on OS X (including Mavericks) when used with
