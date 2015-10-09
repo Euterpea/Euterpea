@@ -275,7 +275,7 @@ with each of the pieces defined in Figure \ref{fig:bars7-28}.  Note that:
   The organization of the Euterpea code in this way is at the
   discretion of the composer.
 
-\item The stacatto is treated by playing the qurater note as an eighth
+\item The stacatto is treated by playing the quarter note as an eighth
   note; the portamento is ignored.  As mentioned earlier, these
   ornamentations will be addressed differently in a later chapter.
 
